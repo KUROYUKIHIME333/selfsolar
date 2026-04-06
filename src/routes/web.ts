@@ -1,13 +1,12 @@
-import { FastifyInstance } from 'fastify'
+import type { FastifyInstance } from "fastify";
+import { dimensionnementController } from "../controllers/dimensionnement.controller.js";
 
-export default async function (app: FastifyInstance) {
+export default async function (fastify: FastifyInstance) {
   // page accueil
-  app.get('/', async () => {
+  fastify.get('/', async (req, reply) => {
     return reply.view('pages/index.ejs')
-  }/*cette fobction est le cobtroller calculate controleur*/)
+  }/*cette fobction est le cobtroller calculate controleur*/);
   
-  // traitement formulaire
-  app.post('/calculate', async (req, reply) => {
-    return reply.view('pages/result.ejs', {}) // result
-  } /*cette fobction est le cobtroller calculate controleur*/)
-}
+  // traitement formulaire et dumensionnement PV
+  fastify.post('/dimmensionner', dimensionnementController.dimensionnementPV);
+};
