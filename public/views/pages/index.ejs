@@ -1,160 +1,59 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-<h2>Calculer votre installation</h2>
+<h2 style="text-align: center; color: var(--silver);">☀ Dimensionnement Intelligent</h2>
 
 <form id="datasForm" action="/dimensionner" method="POST">
   
   <fieldset>
-    <legend>Équipements et Consommation</legend>
-    <div id="equipementsContainer">
-      </div>
-    <button id="addEquipementButton" type="button">Ajouter un équipement</button>
+    <legend>⚡ Besoins Énergétiques</legend>
+    <div id="equipementsContainer"></div>
+    <button id="addEquipementButton" type="button" style="margin-top: 15px; background: var(--accent-pink);">
+      + Ajouter un appareil
+    </button>
     
-    <div style="margin-top: 15px;">
-      <label>
-        <input type="checkbox" name="contientMoteurs"> L'installation contient des moteurs (Frigo, Pompe, etc.)
+    <div style="margin-top: 20px;">
+      <label class="container">
+        <input type="checkbox" name="contientMoteurs"> L'installation contient des moteurs (Frigo, Pompe)
       </label>
     </div>
   </fieldset>
 
   <fieldset>
-    <legend>Localisation du projet</legend>
-    <label>Cliquez sur la carte pour définir l'emplacement (HSP, Orientation, Inclinaison) :</label>
+    <legend>📍 Localisation</legend>
     <div id="map"></div>
-    
-    <div class="grid-2">
-      <div class="field">
-        <label>Latitude :</label>
-        <input type="number" id="latInput" name="localisation[lat]" step="any" readonly required>
+    <div class="grid-2" style="margin-top: 15px;">
+      <div>
+        <label>Latitude</label>
+        <input type="number" id="latInput" name="localisation[lat]" step="any" readonly required style="width: 90%;">
       </div>
-      <div class="field">
-        <label>Longitude :</label>
-        <input type="number" id="longInput" name="localisation[long]" step="any" readonly required>
+      <div>
+        <label>Longitude</label>
+        <input type="number" id="longInput" name="localisation[long]" step="any" readonly required style="width: 90%;">
       </div>
     </div>
   </fieldset>
 
   <div class="grid-2">
     <fieldset>
-      <legend>Choix des Panneaux</legend>
-      <select id="selectPanneau" name="caracteristiquesPanneau" required></select>
-      <div id="infoPanneau" class="details-hint"></div>
+      <legend>🔋 Stockage</legend>
+      <select id="selectBatterie" name="caracteristiquesBatterie" style="width: 100%;"></select>
+      <div id="infoBatterie" class="details-hint"></div>
+      <div style="margin-top:15px">
+        <label>Autonomie (jours)</label>
+        <input type="number" name="autonomie" value="1" min="1" style="width: 60px;">
+      </div>
     </fieldset>
 
     <fieldset>
-      <legend>Choix des Batteries</legend>
-      <select id="selectBatterie" name="caracteristiquesBatterie" required></select>
-      <div id="infoBatterie" class="details-hint"></div>
-      
-      <div style="margin-top:10px">
-        <label>Autonomie (jours) :</label>
-        <input type="number" name="autonomie" value="1" min="1">
-      </div>
-      
-      <label style="display:block; margin-top:5px;">
-        <input type="checkbox" name="inGridNoBatterie"> Système sans batterie (On-Grid)
-      </label>
+      <legend>🛰 Panneaux</legend>
+      <select id="selectPanneau" name="caracteristiquesPanneau" style="width: 100%;"></select>
+      <div id="infoPanneau" class="details-hint"></div>
     </fieldset>
   </div>
 
-  <fieldset>
-    <legend>Paramètres d'installation</legend>
-    <div class="grid-2">
-      <div>
-        <label>Type d'installation :</label>
-        <select name="typeInstallation">
-          <option value="isole">Site Isolé</option>
-          <option value="pompage">Pompage Solaire</option>
-          <option value="reseau">Injection Réseau</option>
-        </select>
-      </div>
-      <div>
-        <label>Priorités :</label><br>
-        <input type="checkbox" name="priorites[]" value="performance" checked> Performance
-        <input type="checkbox" name="priorites[]" value="economie"> Économie
-      </div>
-    </div>
-  </fieldset>
-
-  <button type="submit" style="width:100%; padding: 15px; margin-top: 20px; cursor:pointer;">
-    Lancer le calcul
+  <button type="submit" style="width:100%; padding: 20px; font-size: 1.2rem; border-radius: 50px; margin-top: 30px;">
+    GÉNÉRER LE RAPPORT SOLAIRE
   </button>
 </form>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-  // --- CATALOGUE MATÉRIEL ---
-  const catalogue = {
-    panneaux: [
-      { label: "Jinko Tiger 400W", puissanceCrete: 400, U: 31, Icc: 13.7 },
-      { label: "Canadian Solar 550W", puissanceCrete: 550, U: 41, Icc: 14.0 },
-      { label: "Generic 150W", puissanceCrete: 150, U: 18, Icc: 8.8 }
-    ],
-    batteries: [
-      { label: "Gel 200Ah 12V", capacite: 200, U: 12, type: "plomb" },
-      { label: "Lithium 100Ah 12V", capacite: 100, U: 12, type: "lithium" },
-      { label: "Pylontech 74Ah 48V", capacite: 74, U: 48, type: "lithium" }
-    ]
-  };
-
-  // --- INITIALISATION MAP ---
-  const map = L.map('map').setView([-4.322, 15.312], 12); // Centré sur Kinshasa
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  }).addTo(map);
-
-  let marker;
-  map.on('click', (e) => {
-    const { lat, lng } = e.latlng;
-    if (marker) map.removeLayer(marker);
-    marker = L.marker([lat, lng]).addTo(map);
-    document.getElementById('latInput').value = lat.toFixed(6);
-    document.getElementById('longInput').value = lng.toFixed(6);
-  });
-
-  // Géo-détection
-  map.locate({setView: true, maxZoom: 15});
-  map.on('locationfound', (e) => {
-    marker = L.marker(e.latlng).addTo(map);
-    document.getElementById('latInput').value = e.latlng.lat.toFixed(6);
-    document.getElementById('longInput').value = e.latlng.lng.toFixed(6);
-  });
-
-  // --- GESTION ÉQUIPEMENTS ---
-  let eqCount = 0;
-  const addEq = () => {
-    const container = document.getElementById('equipementsContainer');
-    const div = document.createElement('div');
-    div.className = 'equipement-entry';
-    div.innerHTML = `
-      <legend>Équipement n° ${eqCount + 1}</legend>
-      <label>Nom:</label> <input type="text" name="equipements[${eqCount}][nom]" placeholder="ex: TV" required>
-      <label>Watts:</label> <input type="number" name="equipements[${eqCount}][puissance]" required>
-      <label>Heures/j:</label> <input type="number" name="equipements[${eqCount}][tempsJournalier]" step="0.1" required>
-      <button type="button" class="remove-btn" onclick="this.parentElement.remove()">X</button>
-    `;
-    container.appendChild(div);
-    eqCount++;
-  };
-  document.getElementById('addEquipementButton').onclick = addEq;
-  addEq(); // Ajoute le premier par défaut
-
-  // --- REMPLISSAGE SELECTS ---
-  const setupSelect = (id, data, infoId) => {
-    const select = document.getElementById(id);
-    data.forEach(item => {
-      const opt = document.createElement('option');
-      opt.value = JSON.stringify(item);
-      opt.textContent = item.label;
-      select.appendChild(opt);
-    });
-    select.onchange = () => {
-      const val = JSON.parse(select.value);
-      document.getElementById(infoId).innerText = `Détails : ${val.puissanceCrete || val.capacite}${val.puissanceCrete ? 'Wc' : 'Ah'} - ${val.U}V`;
-    };
-    select.dispatchEvent(new Event('change'));
-  };
-
-  setupSelect('selectPanneau', catalogue.panneaux, 'infoPanneau');
-  setupSelect('selectBatterie', catalogue.batteries, 'infoBatterie');
-</script>

@@ -7,5 +7,5 @@ export default async function apiRoutes (fastify: FastifyInstance) {
   
   
   // traitement formulaire et dumensionnement PV
-  fastify.post('/api/dimmensionner', ()=>{});
+  fastify.post('/api/dimensionner', ()=>{});
 };

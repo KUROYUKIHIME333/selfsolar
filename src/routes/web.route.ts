@@ -8,5 +8,5 @@ export default async function webRoutes (fastify: FastifyInstance) {
   }/*cette fobction est le cobtroller calculate controleur*/);
   
   // traitement formulaire et dumensionnement PV
-  fastify.post('/dimmensionner', dimensionnementController.dimensionnementPV);
+  fastify.post('/dimensionner', dimensionnementController.dimensionnementPV);
 };
