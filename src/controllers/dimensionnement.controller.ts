@@ -1,4 +1,4 @@
-import { FastifyRequest, FastifyReply } from "fastify";
+//import { FastifyRequest, FastifyReply } from "fastify";
 import { batteriesService } from "../services/batteries.service.js";
 import { consoJournaliereService } from "../services/consoJournaliere.service.js";
 import { generateursService } from "../services/generateurs.service.js";
@@ -16,7 +16,7 @@ export type Priorites = "rendement" | "performance" | "economie";
 export type TypeInstallation = "pompage" | "reseau" | "isole";
 
 export class DimensionnementController {
-  async dimensionnementPV(req: FastifyRequest, res: FastifyReply) {
+  async dimensionnementPV(req, reply) {
     const {
       equipements,
       localisation,
@@ -97,7 +97,7 @@ export class DimensionnementController {
       };
 
       // 7. Réponse
-      return res.view('pages/result.ejs', {
+      return reply.view('pages/result.ejs', {
         resultat: {
           energie: { journaliere: ec, puissanceMax: pCharge },
           geographie: { hsp, hemisphere },

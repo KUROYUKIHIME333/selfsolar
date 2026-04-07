@@ -1,4 +1,4 @@
-export const protectionReturn (natureAppareillage:string, natureCourant: string, courantMax: number, position: string){
+export const protectionReturn =  (natureAppareillage: string, natureCourant: string, courantMax: number, position: string) => {
    return {
       equipement: natureAppareillage,
       type: natureCourant,
