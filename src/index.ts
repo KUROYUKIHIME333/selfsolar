@@ -3,7 +3,8 @@ import path from 'path';
 import view from '@fastify/view';
 import ejs from 'ejs';
 import staticPlugin from '@fastify/static';
-import webRoutes from './routes/web.js';
+import webRoutes from './routes/web.route.js';
+import apiRoutes from './routes/api.route.js';
 import { fileURLToPath } from 'url';
 
 const app = Fastify({ logger: true });
@@ -23,5 +24,6 @@ await app.register(view, {
 
 // routes
 await app.register(webRoutes);
+await app.register(apiRoutes);
 
 app.listen({ port: 3000, host: '0.0.0.0' });
