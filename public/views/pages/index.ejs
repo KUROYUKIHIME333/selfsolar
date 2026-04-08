@@ -3,16 +3,15 @@
 <h2 style="text-align: center; color: var(--silver);">☀ Dimensionnement Intelligent</h2>
 
 <form id="datasForm" action="/dimensionner" method="POST">
-  
+
   <fieldset>
     <legend>⚡ Besoins Énergétiques</legend>
     <div id="equipementsContainer"></div>
     <button id="addEquipementButton" type="button" style="margin-top: 15px; background: var(--accent-pink);">
       + Ajouter un appareil
     </button>
-    
     <div style="margin-top: 20px;">
-      <label class="container">
+      <label>
         <input type="checkbox" name="contientMoteurs"> L'installation contient des moteurs (Frigo, Pompe)
       </label>
     </div>
@@ -42,6 +41,11 @@
         <label>Autonomie (jours)</label>
         <input type="number" name="autonomie" value="1" min="1" style="width: 60px;">
       </div>
+      <div style="margin-top:15px">
+        <label>
+          <input type="checkbox" name="inGridNoBatterie"> Installation couplée réseau (sans batteries)
+        </label>
+      </div>
     </fieldset>
 
     <fieldset>
@@ -50,6 +54,28 @@
       <div id="infoPanneau" class="details-hint"></div>
     </fieldset>
   </div>
+
+  <fieldset>
+    <legend>⚙ Configuration avancée</legend>
+    <div class="grid-2">
+      <div>
+        <label>Type d'installation</label>
+        <select name="typeInstallation" style="width: 100%;">
+          <option value="isole">Isolé (off-grid)</option>
+          <option value="reseau">Couplé réseau (on-grid)</option>
+          <option value="pompage">Pompage solaire</option>
+        </select>
+      </div>
+      <div>
+        <label>Priorités</label>
+        <div style="margin-top: 8px;">
+          <label><input type="checkbox" name="priorites" value="rendement"> Rendement</label><br>
+          <label><input type="checkbox" name="priorites" value="performance"> Performance</label><br>
+          <label><input type="checkbox" name="priorites" value="economie"> Économie</label>
+        </div>
+      </div>
+    </div>
+  </fieldset>
 
   <button type="submit" style="width:100%; padding: 20px; font-size: 1.2rem; border-radius: 50px; margin-top: 30px;">
     GÉNÉRER LE RAPPORT SOLAIRE

@@ -1,13 +1,16 @@
 import Fastify from 'fastify';
-import path from 'path';
 import view from '@fastify/view';
 import ejs from 'ejs';
 import staticPlugin from '@fastify/static';
+import formbody from '@fastify/formbody';
 import webRoutes from './routes/web.route.js';
 import apiRoutes from './routes/api.route.js';
 import { fileURLToPath } from 'url';
 
 const app = Fastify({ logger: true });
+
+// parse application/x-www-form-urlencoded (formulaires HTML)
+await app.register(formbody);
 
 // static files (css/js)
 await app.register(staticPlugin, {
