@@ -1,16 +1,15 @@
 {
   "name": "selfsolar",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Outil de dimensionnement de systèmes photovoltaïques autonomes",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["solaire", "photovoltaique", "dimensionnement", "off-grid"],
+  "author": "Daniel Herman Ramazani Sumaili",
   "license": "ISC",
   "type": "module",
   "dependencies": {
@@ -23,7 +22,6 @@
   "devDependencies": {
     "@types/ejs": "^3.1.5",
     "@types/node": "^25.5.2",
-    "ts-node-dev": "^2.0.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }

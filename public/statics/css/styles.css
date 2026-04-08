@@ -1,12 +1,16 @@
+/* ── Variables ────────────────────────────────────────────────────────────── */
 :root {
   --primary-green: #2ecc71;
-  --accent-pink: #ff79c6;
-  --power-blue: #3498db;
-  --silver: #e2e8f0;
-  --glass: rgba(255, 255, 255, 0.1);
-  --bg-solar: radial-gradient(circle at top right, #1a2a6c, #b21f1f, #fdbb2d); /* Optionnel : lever de soleil */
-  --bg-dark: #0f172a;
+  --accent-pink:   #ff79c6;
+  --power-blue:    #3498db;
+  --silver:        #e2e8f0;
+  --glass:         rgba(255, 255, 255, 0.07);
+  --bg-dark:       #0f172a;
+  --red:           #e74c3c;
 }
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -19,109 +23,42 @@ body {
   min-height: 100vh;
 }
 
+/* ── Header ───────────────────────────────────────────────────────────────── */
 header {
   background: var(--glass);
   backdrop-filter: blur(10px);
-  padding: 1.5rem;
+  padding: 1.2rem 2rem;
   text-align: center;
   border-bottom: 2px solid var(--primary-green);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
 }
 
 header p {
   font-weight: 800;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   color: var(--primary-green);
   text-transform: uppercase;
   margin: 0;
+  font-size: 1.1rem;
 }
 
+/* ── Layout ───────────────────────────────────────────────────────────────── */
 main {
   max-width: 1000px;
   margin: 40px auto;
+  padding: 0 20px 60px;
+}
+
+footer {
+  text-align: center;
   padding: 20px;
+  color: var(--silver);
+  opacity: 0.4;
+  font-size: 0.82rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
 }
 
-fieldset {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: var(--glass);
-  border-radius: 15px;
-  padding: 25px;
-  margin-bottom: 30px;
-  backdrop-filter: blur(5px);
-}
-
-legend {
-  color: var(--accent-pink);
-  font-weight: bold;
-  padding: 0 10px;
-  font-size: 1.2rem;
-}
-
-input, select, button {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--silver);
-  border-radius: 8px;
-  color: white;
-  padding: 12px;
-  transition: all 0.3s ease;
-}
-
-input:focus, select:focus {
-  border-color: var(--power-blue);
-  outline: none;
-  box-shadow: 0 0 10px var(--power-blue);
-}
-
-button {
-  background: linear-gradient(45deg, var(--primary-green), var(--power-blue));
-  border: none;
-  font-weight: bold;
-  color: white;
-  cursor: pointer;
-}
-
-button:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
-
-#map {
-  height: 400px;
-  border-radius: 15px;
-  border: 2px solid var(--power-blue);
-}
-
-.equipement-entry {
-  background: rgba(0, 0, 0, 0.2);
-  border-left: 5px solid var(--accent-pink);
-  position: relative;
-  padding: 20px;
-  margin-bottom: 15px;
-  border-radius: 10px;
-}
-
-/* Résultats */
-.card {
-  background: var(--glass);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  padding: 25px;
-  margin-bottom: 25px;
-}
-
-.highlight {
-  color: var(--primary-green);
-  font-size: 2rem;
-  text-shadow: 0 0 15px rgba(46, 204, 113, 0.5);
-}
-
-.badge {
-  background: var(--power-blue);
-  padding: 5px 12px;
-  border-radius: 20px;
-}
-/* Grilles */
+/* ── Grilles ──────────────────────────────────────────────────────────────── */
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -134,19 +71,125 @@ button:hover {
   gap: 20px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 720px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
 }
 
-/* Hint sous les selects */
-.details-hint {
-  margin-top: 8px;
-  font-size: 0.85rem;
-  color: var(--accent-pink);
-  min-height: 1.2em;
+/* ── Formulaire ───────────────────────────────────────────────────────────── */
+fieldset {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--glass);
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 25px;
+  backdrop-filter: blur(5px);
 }
 
-/* Page résultats */
+legend {
+  color: var(--accent-pink);
+  font-weight: bold;
+  padding: 0 10px;
+  font-size: 1.1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--silver);
+  font-size: 0.88rem;
+  opacity: 0.85;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: white;
+  padding: 10px 12px;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-size: 0.95rem;
+}
+
+input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+  accent-color: var(--primary-green);
+}
+
+input:focus, select:focus {
+  border-color: var(--power-blue);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
+}
+
+input[readonly] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+button {
+  background: linear-gradient(45deg, var(--primary-green), var(--power-blue));
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  transition: transform 0.15s, filter 0.15s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* ── Équipements ──────────────────────────────────────────────────────────── */
+.equipement-entry {
+  background: rgba(0, 0, 0, 0.25);
+  border-left: 4px solid var(--accent-pink);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+}
+
+.remove-btn {
+  background: rgba(231, 76, 60, 0.2) !important;
+  border: 1px solid var(--red) !important;
+  color: var(--red) !important;
+  padding: 4px 10px !important;
+  font-size: 0.85rem !important;
+}
+
+.remove-btn:hover {
+  background: rgba(231, 76, 60, 0.4) !important;
+}
+
+/* ── Carte ────────────────────────────────────────────────────────────────── */
+#map {
+  height: 380px;
+  border-radius: 12px;
+  border: 2px solid var(--power-blue);
+  margin-top: 10px;
+}
+
+/* ── Hint sous selects ────────────────────────────────────────────────────── */
+.details-hint {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: var(--accent-pink);
+  min-height: 1.2em;
+  opacity: 0.9;
+}
+
+/* ── Résultats ────────────────────────────────────────────────────────────── */
 .result-container {
   max-width: 960px;
   margin: 0 auto;
@@ -154,58 +197,85 @@ button:hover {
 
 .result-container h2 {
   color: var(--primary-green);
-  font-size: 1.8rem;
-  margin-bottom: 10px;
+  font-size: 1.7rem;
+  margin-bottom: 6px;
 }
 
 .btn-back {
   display: inline-block;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
   color: var(--power-blue);
   text-decoration: none;
   font-weight: bold;
+  font-size: 0.9rem;
 }
 
 .btn-back:hover { text-decoration: underline; }
 
-.unit {
-  font-size: 0.85rem;
-  color: var(--silver);
-  opacity: 0.7;
+.card {
+  background: var(--glass);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 24px 28px;
+  margin-bottom: 22px;
+  backdrop-filter: blur(5px);
 }
 
 .card h3 {
   color: var(--accent-pink);
-  margin-top: 0;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin: 0 0 18px;
   padding-bottom: 10px;
-  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.label-sm {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.55;
+  margin: 0 0 4px;
+}
+
+.highlight {
+  color: var(--primary-green);
+  font-size: 2rem;
+  font-weight: 700;
+  text-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
+  line-height: 1;
+}
+
+.unit {
+  font-size: 0.85rem;
+  color: var(--silver);
+  opacity: 0.6;
+}
+
+.badge {
+  display: inline-block;
+  background: var(--power-blue);
+  color: white;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .protection-item {
-  background: rgba(0,0,0,0.2);
+  background: rgba(0, 0, 0, 0.2);
   border-left: 4px solid var(--power-blue);
   padding: 12px 16px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   border-radius: 8px;
+  font-size: 0.93rem;
 }
 
 .protection-item small {
-  color: var(--silver);
-  opacity: 0.7;
-}
-
-footer {
-  text-align: center;
-  padding: 20px;
-  color: var(--silver);
-  opacity: 0.5;
-  font-size: 0.85rem;
-}
-
-label {
   display: block;
-  margin-bottom: 6px;
-  color: var(--silver);
-  font-size: 0.9rem;
+  margin-top: 4px;
+  opacity: 0.55;
+  font-size: 0.8rem;
 }

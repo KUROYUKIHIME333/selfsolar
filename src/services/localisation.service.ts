@@ -57,7 +57,7 @@ export class LocalisationService {
         throw new Error(`Erreur HTTP NASA: ${response.status}`);
       }
       
-      const data: NasaPowerResponse = await response.json();
+      const data = await response.json() as NasaPowerResponse;
       const parameterData = data.properties.parameter.ALLSKY_SFC_SW_DWN;
       const values = Object.values(parameterData);
       

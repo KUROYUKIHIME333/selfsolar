@@ -1,21 +1,25 @@
 <div class="result-container">
-  <h2>Rapport de Dimensionnement Photovoltaïque</h2>
+  <h2>☀ Rapport de Dimensionnement Photovoltaïque</h2>
   <a href="/" class="btn-back">← Nouveau calcul</a>
 
   <div class="card">
     <h3>Bilan Énergétique</h3>
     <div class="grid-3">
       <div>
-        <p>Consommation journalière :<br>
-        <span class="highlight"><%= resultat.energie.journaliere.toFixed(2) %></span> <span class="unit">Wh/j</span></p>
+        <p class="label-sm">Consommation journalière</p>
+        <span class="highlight"><%= resultat.energie.journaliere.toFixed(0) %></span>
+        <span class="unit"> Wh/j</span>
       </div>
       <div>
-        <p>Puissance de crête des charges :<br>
-        <span class="highlight"><%= resultat.energie.puissanceMax %></span> <span class="unit">W</span></p>
+        <p class="label-sm">Puissance de crête des charges</p>
+        <span class="highlight"><%= resultat.energie.puissanceMax %></span>
+        <span class="unit"> W</span>
       </div>
       <div>
-        <p>Ensoleillement (HSP) :<br>
-        <span class="highlight"><%= resultat.geographie.hsp %></span> <span class="unit">kWh/m²/j</span></p>
+        <p class="label-sm">Ensoleillement (HSP)</p>
+        <span class="highlight"><%= resultat.geographie.hsp %></span>
+        <span class="unit"> kWh/m²/j</span>
+        <p style="margin:4px 0 0; font-size:0.8rem; opacity:0.6;">Hémisphère <%= resultat.geographie.hemisphere %> — données NASA POWER</p>
       </div>
     </div>
   </div>
@@ -24,21 +28,25 @@
     <h3>Champ Photovoltaïque</h3>
     <div class="grid-3">
       <div>
-        <p>Puissance totale requise :<br>
-        <span class="highlight"><%= Math.ceil(resultat.panneaux.puissanceTotale) %></span> <span class="unit">Wc</span></p>
-        <p>Nombre de panneaux : <span class="highlight"><%= resultat.panneaux.nombre %></span></p>
+        <p class="label-sm">Puissance crête requise</p>
+        <span class="highlight"><%= Math.ceil(resultat.panneaux.puissanceTotale) %></span>
+        <span class="unit"> Wc</span>
+        <p style="margin:8px 0 0;">Nombre de panneaux : <strong><%= resultat.panneaux.nombre %></strong></p>
       </div>
       <div>
-        <p>Tension du système : <span class="badge"><%= resultat.panneaux.tensionSysteme %> V</span></p>
-        <p>Montage : <br>
-          <b><%= resultat.panneaux.serie %></b> en série <br>
-          <b><%= resultat.panneaux.parallele %></b> branche(s) en parallèle
+        <p class="label-sm">Tension système</p>
+        <span class="badge"><%= resultat.panneaux.tensionSysteme %> V</span>
+        <p style="margin:12px 0 0;">
+          Montage : <strong><%= resultat.panneaux.serie %></strong> en série<br>
+          <strong><%= resultat.panneaux.parallele %></strong> branche(s) en parallèle
         </p>
       </div>
       <div>
-        <p>Pose optimisée :<br>
-        Inclinaison : <b><%= resultat.panneaux.inclinaison %>°</b><br>
-        Orientation : <b><%= resultat.panneaux.orientation %></b></p>
+        <p class="label-sm">Pose optimisée</p>
+        <p style="margin:4px 0;">
+          Inclinaison : <strong><%= resultat.panneaux.inclinaison %>°</strong><br>
+          Orientation : <strong><%= resultat.panneaux.orientation %></strong>
+        </p>
       </div>
     </div>
   </div>
@@ -48,12 +56,17 @@
     <h3>Parc de Batteries</h3>
     <div class="grid-3">
       <div>
-        <p>Capacité totale utile :<br>
-        <span class="highlight"><%= resultat.stockage.capaciteAh %></span> <span class="unit">Ah</span></p>
+        <p class="label-sm">Capacité requise</p>
+        <span class="highlight"><%= resultat.stockage.capaciteAh %></span>
+        <span class="unit"> Ah</span>
       </div>
       <div>
-        <p>Nombre de batteries : <span class="highlight"><%= resultat.stockage.nbTotal %></span></p>
-        <p>Montage : <b><%= resultat.stockage.montage.serie %></b> série / <b><%= resultat.stockage.montage.parallele %></b> parallèle</p>
+        <p class="label-sm">Nombre de batteries</p>
+        <span class="highlight"><%= resultat.stockage.nbTotal %></span>
+        <p style="margin:8px 0 0;">
+          Montage : <strong><%= resultat.stockage.montage.serie %></strong> série /
+          <strong><%= resultat.stockage.montage.parallele %></strong> parallèle
+        </p>
       </div>
     </div>
   </div>
@@ -61,41 +74,57 @@
 
   <div class="card">
     <h3>Appareillage Électronique</h3>
-    <div class="grid-3">
-      <div style="border-right: 1px solid #eee;">
-        <p><strong>Régulateur de charge</strong></p>
-        <p>Type : <span class="badge"><%= resultat.electronique.regulateur.type %></span></p>
-        <p>Calibre min : <b><%= resultat.electronique.regulateur.courantMin.toFixed(2) %> A</b></p>
+    <div class="grid-2">
+      <div>
+        <p class="label-sm">Régulateur de charge</p>
+        <span class="badge"><%= resultat.electronique.regulateur.type %></span>
+        <p style="margin:10px 0 0;">
+          Calibre min : <strong><%= resultat.electronique.regulateur.courantMin.toFixed(1) %> A</strong><br>
+          Tension : <strong><%= resultat.electronique.regulateur.tensionFonctionnement %> V</strong>
+        </p>
       </div>
       <div>
-        <p><strong>Onduleur</strong></p>
-        <p>Type : <span class="badge"><%= resultat.electronique.onduleur.type %></span></p>
-        <p>Puissance min : <b><%= Math.ceil(resultat.electronique.onduleur.puissanceMin) %> W</b></p>
+        <p class="label-sm">Onduleur</p>
+        <span class="badge"><%= resultat.electronique.onduleur.type %></span>
+        <p style="margin:10px 0 0;">
+          Puissance min : <strong><%= Math.ceil(resultat.electronique.onduleur.puissanceMin) %> W</strong><br>
+          Tension entrée : <strong><%= resultat.electronique.onduleur.tensionEntree %> V</strong>
+        </p>
       </div>
     </div>
   </div>
 
   <div class="card">
     <h3>Dispositifs de Protection (DC)</h3>
-    
+
     <div class="protection-item">
-      <strong>Protection Générale PV :</strong> <%= resultat.protections.generalPV.equipement %> <br>
-      <small>Calibre : <%= resultat.protections.generalPV.Icc.toFixed(2) %> A | <%= resultat.protections.generalPV.localisation %></small>
+      <strong>Protection générale PV → Régulateur</strong><br>
+      <%= resultat.protections.generalPV.equipement %>
+      <br><small>Calibre : <%= resultat.protections.generalPV.Icc.toFixed(1) %> A &nbsp;|&nbsp; <%= resultat.protections.generalPV.localisation %></small>
     </div>
 
     <div class="protection-item">
-      <strong>Protection des Strings :</strong> <%= resultat.protections.individuelString.equipement %> <br>
-      <small>Calibre : <%= resultat.protections.individuelString.Icc.toFixed(2) %> A | <%= resultat.protections.individuelString.localisation %></small>
+      <strong>Protection individuelle par string</strong><br>
+      <%= resultat.protections.individuelString.equipement %>
+      <br><small>Calibre : <%= resultat.protections.individuelString.Icc.toFixed(1) %> A &nbsp;|&nbsp; <%= resultat.protections.individuelString.localisation %></small>
     </div>
 
     <div class="protection-item">
-      <strong>Protection Batterie-Onduleur :</strong> <%= resultat.protections.batterieOnduleur.equipement %> <br>
-      <small>Calibre : <%= resultat.protections.batterieOnduleur.Icc.toFixed(2) %> A | <%= resultat.protections.batterieOnduleur.localisation %></small>
+      <strong>Protection Batteries → Onduleur</strong><br>
+      <%= resultat.protections.batterieOnduleur.equipement %>
+      <br><small>Calibre : <%= resultat.protections.batterieOnduleur.Icc.toFixed(1) %> A &nbsp;|&nbsp; <%= resultat.protections.batterieOnduleur.localisation %></small>
     </div>
 
+    <% if (resultat.stockage) { %>
     <div class="protection-item">
-      <strong>Isolation :</strong> <%= resultat.protections.sectionneurBatt.equipement %> <br>
-      <small><%= resultat.protections.sectionneurBatt.localisation %></small>
+      <strong>Isolation parc batterie</strong><br>
+      <%= resultat.protections.sectionneurBatt.equipement %>
+      <br><small>Calibre ref. : <%= resultat.protections.sectionneurBatt.Icc %> A &nbsp;|&nbsp; <%= resultat.protections.sectionneurBatt.localisation %></small>
     </div>
+    <% } %>
   </div>
+
+  <p style="text-align:center; opacity:0.4; font-size:0.8rem; margin-top:40px;">
+    ⚠ Ce rapport est indicatif. Faites valider le dimensionnement par un électricien qualifié avant installation.
+  </p>
 </div>
