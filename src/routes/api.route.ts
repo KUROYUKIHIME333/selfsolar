@@ -2,10 +2,9 @@ import type { FastifyInstance } from "fastify";
 import { dimensionnementController } from "../controllers/dimensionnement.controller.js";
 
 export default async function apiRoutes (fastify: FastifyInstance) {
-  // page accueil
-  fastify.get('/api/documentation', async (req, reply) => {});
-  
-  
-  // traitement formulaire et dumensionnement PV
-  fastify.post('/api/dimensionner', ()=>{});
+  fastify.get('/api/documentation', async (_req, reply) => {
+    return reply.send({ message: 'Documentation à venir' });
+  });
+
+  fastify.post('/api/dimensionner', dimensionnementController.dimensionnementPV.bind(dimensionnementController));
 };

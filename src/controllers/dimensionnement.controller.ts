@@ -1,4 +1,4 @@
-//import { FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyRequest, FastifyReply } from "fastify";
 import { batteriesService } from "../services/batteries.service.js";
 import { consoJournaliereService } from "../services/consoJournaliere.service.js";
 import { generateursService } from "../services/generateurs.service.js";
@@ -16,7 +16,7 @@ export type Priorites = "rendement" | "performance" | "economie";
 export type TypeInstallation = "pompage" | "reseau" | "isole";
 
 export class DimensionnementController {
-  async dimensionnementPV(req, reply) {
+  async dimensionnementPV(req: FastifyRequest, reply: FastifyReply) {
     const {
       equipements,
       localisation,
@@ -97,7 +97,7 @@ export class DimensionnementController {
       };
 
       // 7. Réponse
-      return reply.view('pages/result.ejs', {
+      return reply.view('pages/results.ejs', {
         resultat: {
           energie: { journaliere: ec, puissanceMax: pCharge },
           geographie: { hsp, hemisphere },
@@ -121,7 +121,7 @@ export class DimensionnementController {
 
     } catch (error: any) {
       console.error("Erreur Dimensionnement:", error);
-      return res.status(500).send({ error: "Erreur lors du calcul technique" });
+      return reply.code(500).send({ error: "Erreur lors du calcul technique" });
     }
   }
 }

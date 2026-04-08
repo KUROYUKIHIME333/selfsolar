@@ -1,13 +1,14 @@
 export class GenerateursService {
-  puissanceCrete(Ec: number, HSP: number, k: number | null) {
+  puissanceCrete(Ec: number, HSP: number, k: number): number {
     return Ec / (HSP * k);
   };
   
-  tensionSysteme(Pc: number) {
-    if (Pc >0 & Pc<500) return 12;
-    if (Pc>500 & Pc<2000) return 24;
-    if (Pc>2000 & Pc<10000) return 48;
-    if (Pc>10000) return 96;
+  tensionSysteme(Pc: number): number {
+    if (Pc > 0    && Pc <= 500)   return 12;
+    if (Pc > 500  && Pc <= 2000)  return 24;
+    if (Pc > 2000 && Pc <= 10000) return 48;
+    if (Pc > 10000)               return 96;
+    return 12; // fallback : Pc = 0 ou valeur hors plage
   };
   
   panneauxSerie(Usystem: number, Upanneau: number) {
@@ -24,9 +25,8 @@ export class GenerateursService {
     return Nparallele;
   };
   
-  determinerK(inGridNoBatteries: boolean){
-    if(!inGridNoBatteries) return 0.75;
-    if(inGridNoBatteries) return 0.65;
+  determinerK(inGridNoBatteries: boolean): number {
+    return inGridNoBatteries ? 0.65 : 0.75;
   };
 }
 

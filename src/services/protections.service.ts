@@ -26,9 +26,9 @@ export class ProtectionsService {
 
   // Sectionneur fusible spécifique pour le parc batterie
   sectionneurBatterie(CapaciteBatterieAh: number) {
-    // On dimensionne souvent selon le courant de décharge max ou la capacité
-    // Ici basé sur le calibre de sécurité standard
-    return protectionReturn("sectionneur à couteaux (NH)", "DC", null, "Coupure générale et isolation du parc batterie");
+    // Calibre conventionnel : courant de décharge max ≈ C/1 (capacité en Ah)
+    const calibre = CapaciteBatterieAh > 0 ? CapaciteBatterieAh : 0;
+    return protectionReturn("sectionneur à couteaux (NH)", "DC", calibre, "Coupure générale et isolation du parc batterie");
   }
 }
 
