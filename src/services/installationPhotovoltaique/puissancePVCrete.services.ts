@@ -110,7 +110,8 @@ export class PuissanceCretePVService {
         // 600 V, 1000 V ou 1500 V selon gamme)
 
         return {
-            tensionPV: tension_system, // en V DC
+            appareil: "panneaux photovoltaiques",
+            tensionParcPV: tension_system, // en V DC
             panneauxParString: nombre_strings,
             stringsEnParallele: nombre_strings_parallele,
             totalPanneaux: nombre_total_panneaux,
@@ -120,6 +121,8 @@ export class PuissanceCretePVService {
             }
         }
     };
+
+    onduleur() { }; // TODO: continuer
 };
 
 export const puissanceCretePVService = new PuissanceCretePVService();
