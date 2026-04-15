@@ -48,3 +48,6 @@ export type TemperaturesMinMax = {
     temperatureMax: number
 }
 
+export type TechnologieBatterie = "Plomb-acide" | "AGM/Gel" | "LiFePO4" | "Lithium NMC/NCA" | "NiCd";
+
+
