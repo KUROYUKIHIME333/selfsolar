@@ -51,3 +51,27 @@ export type TemperaturesMinMax = {
 export type TechnologieBatterie = "Plomb-acide" | "AGM/Gel" | "LiFePO4" | "Lithium NMC/NCA" | "NiCd";
 
 
+ export interface ResultatModulesPV {
+     appareil: string;
+     tensionParcPV: number;
+     panneauxParString: number;
+     stringsEnParallele: number;
+     totalPanneaux: number;
+     puissancePVInstallee: { min: number; max: number };
+}
+
+ export interface ParametresOnduleur {
+     puissanceACNominale: number;   // W
+     tensionDCMax: number;          // V — limite absolue de sécurité
+     tensionMPPTMin: number;        // V
+     tensionMPPTMax: number;        // V
+     courantDCMax: number;          // A
+     puissanceDCMax: number;        // W
+     puissanceSurcharge?: number;   // W — pic de démarrage moteurs (défaut: 1.5 × P_AC)
+     // Hybride / off-grid
+     tensionBatterieMin?: number;
+     tensionBatterieMax?: number;
+     puissanceChargeBatterieMax?: number;
+}
+
+export type TypeSystemePV = "on-grid" | "off-grid" | "hybride";
