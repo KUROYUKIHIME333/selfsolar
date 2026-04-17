@@ -122,7 +122,9 @@ export class PuissanceCretePVService {
         }
     };
 
-    onduleur() { }; // TODO: continuer
+    onduleur() {
+        
+     }; // TODO: continer plus tard
 };
 
 export const puissanceCretePVService = new PuissanceCretePVService();
