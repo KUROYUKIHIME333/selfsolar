@@ -66,8 +66,10 @@ export class StockageService {
             appareil: "Battery Management System",
             IChargeMax: courant_charge_max,
             IDechargeMax: courant_decharge_max,
-        }
+        };
     };
+
+    
 };
 
 export const stockageService = new StockageService();
