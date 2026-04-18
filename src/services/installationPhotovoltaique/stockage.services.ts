@@ -39,12 +39,21 @@ export class StockageService {
         const capacite_nominale_Ah = capacite_nominale_Wh / tensionSysteme; // en Ah
 
         return {
+            appareil: "Batteries",
             typeBatterie: technologie,
             DoDMax: profondeur_decharge,
-            cyclesDoDMax: `${min_cycles_DoD_Max} - ${max_cycles_DoD_Max} cycles`,
-            plageTemperatureFonctionnement: `${temperatue_min}°C à ${temperatue_min}°C`,
-            capaciteWh: capacite_nominale_Wh,
-            capaciteAh: capacite_nominale_Ah
+            cyclesDoDMax: {
+                min: min_cycles_DoD_Max,
+                max: max_cycles_DoD_Max
+            },
+            plageTemperatureFonctionnement: {
+                min: temperatue_min,
+                max: temperatue_min
+            },
+            capacite: {
+                Wh: capacite_nominale_Wh,
+                Ah: capacite_nominale_Ah
+            }
         }
     };
 
@@ -52,6 +61,15 @@ export class StockageService {
         const batteries_par_string = Math.round(tensionSystem / tensionBatterie);
 
         const strings_en_parallele = Math.ceil(capaciteTotal / capaciteBatterie);
+
+        return {
+            appareil: "Batteries",
+            nombre: batteries_par_string * strings_en_parallele,
+            disposition: {
+                batteriesParString: batteries_par_string,
+                modulesEnParallele: strings_en_parallele,
+            }
+        }
     };
 
     regulateurBMS(puissancePVCrete: number, tensionBatteries: number, puissanceChargeMax: number, rendementOnduleur: number) {
@@ -69,7 +87,7 @@ export class StockageService {
         };
     };
 
-    
+
 };
 
 export const stockageService = new StockageService();
