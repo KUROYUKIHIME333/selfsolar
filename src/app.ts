@@ -33,9 +33,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 
     // Plugins core
     await app.register(cors as any, {
-        origin: process.env.CORS_ORIGIN ?? "*",
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"]
+        origin: process.env.CORS_ORIGIN ?? "*"
     });
     await app.register(sensible);
 
@@ -43,9 +41,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     // await app.register(webRoutes, {
     //     prefix: "/web/"
     // });
-    await app.register(apiRoutes, {
-        prefix: "/api/"
-    });
+    await app.register(apiRoutes);
 
     return app;
 
