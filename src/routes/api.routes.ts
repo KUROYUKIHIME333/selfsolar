@@ -1,36 +1,22 @@
 import { FastifyInstance } from "fastify";
+import { installationPhotovoltaiqueRoutes } from "./installationPhotovoltaique.routes.js";
 
 export const apiRoutes = async (app: FastifyInstance) => {
+    // Documentation OpenAPI/Swagger
     app.get("/documentation", async (request, reply) => {
+        return {
+            api: "Dimensionnement Photovoltaïque API",
+            version: "2.0.0",
+            description: "API de dimensionnement d'installations photovoltaïques conformes normes NFC 15-100, IEC 61215",
+            endpoints: {
+                "POST /api/v1/pv/dimensionner": "Dimensionnement complet installation PV",
+                "GET /api/v1/pv/sante": "État des services",
+                "GET /api/v1/pv/normes-reference": "Liste des normes applicables"
+            },
+            documentation: "/documentation"
+        };
     });
 
-    app.route({
-        method: 'POST',
-        url: '/dimensionner',
-        schema: {
-            body: {
-                type: 'object',
-                required: ['name', 'email'], //TODO: A changer
-                properties: {
-                    name: { type: 'string', minLength: 2 },
-                    email: { type: 'string', format: 'email' }
-                } //TODO: A changer
-            },
-            response: {
-                201: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'string', format: 'uuid' },
-                        name: { type: 'string' },
-                        email: { type: 'string' }
-                    } //TODO: A changer
-                }
-            }
-        },
-        handler: async (request, reply) => {
-            const body = request.body as { name: string; email: string } //TODO: A changer
-            reply.code(201)
-            return { id: 'uuid-...', ...body }
-        }
-    })
+    // Routes PV sous préfixe /api/v1/pv
+    app.register(installationPhotovoltaiqueRoutes, { prefix: "/api/v1/pv" });
 };
