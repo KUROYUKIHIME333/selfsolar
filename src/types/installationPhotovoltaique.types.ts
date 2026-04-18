@@ -35,12 +35,13 @@ export type PompageSolaireCaracteristiques = {
 
 export type ParametresSTCPanneau = {
     puissanceCreteModule: number, // (Wp) Puissance en point MPP en STC
-    tensionCircuitOuvert: number, // Voc; Tension à courant nul — détermine tenue des équipements
+    tensionVoc: number, // Voc; Tension à courant nul — détermine tenue des équipements
     courantCourtCircuit: number, // Isc; Courant max — dimensionne câbles et protections
     tensionMPP: number, // Vmpp; Tension au point de puissance max
     courantMPP: number, // Impp; Courant au point de puissance max
     coeffTempTension: number, // β (Voc); Typique : −0,30 à −0,45 %/°C
     coeffTempPuissance: number, // γ (Pmax); Typique : −0,35 à −0,45 %/°C
+    noct: number, // NOCT (°C); Température de fonctionnement à 800 W/m², 20 °C ambiant, vent 1 m/s
 };
 
 export type TemperaturesMinMax = {
@@ -51,27 +52,27 @@ export type TemperaturesMinMax = {
 export type TechnologieBatterie = "Plomb-acide" | "AGM/Gel" | "LiFePO4" | "Lithium NMC/NCA" | "NiCd";
 
 
- export interface ResultatModulesPV {
-     appareil: string;
-     tensionParcPV: number;
-     panneauxParString: number;
-     stringsEnParallele: number;
-     totalPanneaux: number;
-     puissancePVInstallee: { min: number; max: number };
+export interface ResultatModulesPV {
+    appareil: string;
+    tensionParcPV: number;
+    panneauxParString: number;
+    stringsEnParallele: number;
+    totalPanneaux: number;
+    puissancePVInstallee: { min: number; max: number };
 }
 
- export interface ParametresOnduleur {
-     puissanceACNominale: number;   // W
-     tensionDCMax: number;          // V — limite absolue de sécurité
-     tensionMPPTMin: number;        // V
-     tensionMPPTMax: number;        // V
-     courantDCMax: number;          // A
-     puissanceDCMax: number;        // W
-     puissanceSurcharge?: number;   // W — pic de démarrage moteurs (défaut: 1.5 × P_AC)
-     // Hybride / off-grid
-     tensionBatterieMin?: number;
-     tensionBatterieMax?: number;
-     puissanceChargeBatterieMax?: number;
+export interface ParametresOnduleur {
+    puissanceACNominale: number;   // W
+    tensionDCMax: number;          // V — limite absolue de sécurité
+    tensionMPPTMin: number;        // V
+    tensionMPPTMax: number;        // V
+    courantDCMax: number;          // A
+    puissanceDCMax: number;        // W
+    puissanceSurcharge?: number;   // W — pic de démarrage moteurs (défaut: 1.5 × P_AC)
+    // Hybride / off-grid
+    tensionBatterieMin?: number;
+    tensionBatterieMax?: number;
+    puissanceChargeBatterieMax?: number;
 }
 
 export type TypeSystemePV = "on-grid" | "off-grid" | "hybride";
