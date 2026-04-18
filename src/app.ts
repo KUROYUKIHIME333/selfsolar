@@ -1,7 +1,7 @@
 import fastify, { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
-// import { webRoutes, apiRoutes } from './routes/index.js';
+import { apiRoutes } from './routes/api.routes.js';
 
 
 export const buildApp = async (): Promise<FastifyInstance> => {
@@ -39,9 +39,9 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     // await app.register(webRoutes, {
     //     prefix: "/web/"
     // });
-    // await app.register(apiRoutes, {
-    //     prefix: "/api/"
-    // });
+    await app.register(apiRoutes, {
+        prefix: "/api/"
+    });
 
     return app;
 
