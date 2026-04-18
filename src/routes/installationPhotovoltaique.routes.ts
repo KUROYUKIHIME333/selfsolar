@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { installationPhotovoltaiqueController } from "../controllers/installationPhotovoltaique.controllers";
+import { installationPhotovoltaiqueController } from "../controllers/installationPhotovoltaique.controllers.js";
 
 // Routes API pour le dimensionnement photovoltaïque
 // Base: /api/v1/pv/*
@@ -347,8 +347,19 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
                 200: {
                     type: "object",
                     properties: {
-                        status: { type: "string" },
-                        services: { type: "object" },
+                        status: {
+                            type: "string"
+                        },
+                        services: {
+                            type: "object",
+                            properties: {
+                                bilanConso: { type: "string" },
+                                parametresSite: { type: "string" },
+                                puissancePV: { type: "string" },
+                                stockage: { type: "string" },
+                                cablageProtections: { type: "string" }
+                            }
+                        },
                         normesReference: { type: "array", items: { type: "string" } },
                         version: { type: "string" }
                     }
