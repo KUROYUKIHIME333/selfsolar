@@ -2,14 +2,14 @@
   "name": "selfsolar",
   "version": "1.0.0",
   "description": "API de dimensionnement photovoltaïque conforme NFC 15-100, IEC 61215, IEC 62109",
-  "main": "dist/index.js",
+  "main": "dist/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
 
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "start:prod": "NODE_ENV=production node dist/index.js",
+    "start": "node dist/server.js",
+    "start:prod": "NODE_ENV=production node dist/server.js",
     
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist",
