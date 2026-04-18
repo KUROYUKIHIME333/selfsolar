@@ -32,7 +32,11 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     });
 
     // Plugins core
-    // await app.register(cors, { origin: process.env.CORS_ORIGIN ?? "*" });
+    await app.register(cors, {
+        origin: process.env.CORS_ORIGIN ?? "*",
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"]
+    });
     await app.register(sensible);
 
     // Routes
