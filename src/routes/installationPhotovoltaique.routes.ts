@@ -764,14 +764,14 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
     })
 
     // ========== ROUTE LISTE DES PANNEAUX ==========
-    app.get("/liste/panneaux", {
+    app.get("/listes/panneaux", {
         handler: installationPhotovoltaiqueController.listePanneaux.bind(
             installationPhotovoltaiqueController
         )
     })
 
     // ========== ROUTE LISTE DES PANNEAUX ==========
-    app.get("/liste/batteries", {
+    app.get("/listes/batteries", {
         handler: installationPhotovoltaiqueController.listeBatteries.bind(
             installationPhotovoltaiqueController
         )
