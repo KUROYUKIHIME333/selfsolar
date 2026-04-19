@@ -199,9 +199,9 @@ export class InstallationPhotovoltaiqueController {
             }
 
             // ========== 9. ASSEMBLAGE RÉPONSE ==========
-            const chuteTensionGlobaleDC =
+            const chuteTensionGlobaleDC = dimensionnementCablage.cablesString[0] ?
                 dimensionnementCablage.cablesString[0].chuteTensionPourcent +
-                dimensionnementCablage.cablePrincipalDC.chuteTensionPourcent;
+                dimensionnementCablage.cablePrincipalDC.chuteTensionPourcent : 3;
 
             const response: DimensionnementPVResponse = {
                 resume: {
