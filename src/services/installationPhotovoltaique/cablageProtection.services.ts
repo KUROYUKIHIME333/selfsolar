@@ -210,7 +210,7 @@ export class CablageEtProtectionsService {
         const alpha = COEFF_TEMP[materiau];
         const rho = rho20 * (1 + alpha * (temperatureConducteur - 20));
 
-        const kT = this.interpolerFacteurTemperature(temperatureAmbiante);
+        const kT = this.interpolerFacteurTemperature(temperatureAmbiante) ?? 1;
         const kP = FACTEUR_POSE[methodePose];
         const kG = FACTEUR_GROUPEMENT[Math.min(nombreCircuitsGroupe, 6)] || 0.57;
         const kM = materiau === "aluminium" ? FACTEUR_ALUMINIUM : 1.0;
@@ -289,7 +289,7 @@ export class CablageEtProtectionsService {
 
         const deltaUmax = typeCharge === "eclairage" ? 3.0 : 5.0;
 
-        const kT = this.interpolerFacteurTemperature(temperatureAmbiante);
+        const kT = this.interpolerFacteurTemperature(temperatureAmbiante) ?? 1;
         const kP = FACTEUR_POSE[methodePose];
         const kM = materiau === "aluminium" ? FACTEUR_ALUMINIUM : 1.0;
         const kTotal = kT * kP * kM;
@@ -337,10 +337,14 @@ export class CablageEtProtectionsService {
         );
     }
 
-    private interpolerFacteurTemperature(temperature: number): number {
-        const temperatures = Object.keys(FACTEUR_TEMPERATURE_PVC)
+    private interpolerFacteurTemperature(temperature: number): number | undefined {
+        const temperatures: any[] = Object.keys(FACTEUR_TEMPERATURE_PVC)
             .map(Number)
             .sort((a, b) => a - b);
+
+        if (!temperature || !temperatures) {
+            return undefined
+        }
 
         if (temperature <= temperatures[0]) {
             return FACTEUR_TEMPERATURE_PVC[temperatures[0]];
@@ -357,7 +361,7 @@ export class CablageEtProtectionsService {
                 const f1 = FACTEUR_TEMPERATURE_PVC[t1];
                 const f2 = FACTEUR_TEMPERATURE_PVC[t2];
                 const ratio = (temperature - t1) / (t2 - t1);
-                return f1 + (f2 - f1) * ratio;
+                return (f1 && f2 ? f1 + (f2 - f1) * ratio : undefined);
             }
         }
 
