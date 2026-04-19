@@ -343,6 +343,32 @@ export class InstallationPhotovoltaiqueController {
             });
         }
     }
+
+    /**
+     *  Endpoint pour récupérer la liste des panneaux et des batteries en meme temps
+     */
+    async listes(request: FastifyRequest, reply: FastifyReply) {
+        const startTime = Date.now();
+
+        try {
+            const response = {
+                listeBatteries: LISTE_BATTERIES,
+                listesPanneaux: LISTE_PANNEAUX,
+            };
+
+            const duration = Date.now() - startTime;
+            request.log.info(`Liste des panneaux et des batteries rendue en ${duration}ms`);
+
+            return reply.code(200).send(response);
+        } catch (error: any) {
+            request.log.error(error);
+            return reply.code(500).send({
+                error: "Erreur Liste Panneaux & Batteries",
+                message: error.message,
+                details: process.env.NODE_ENV === "development" ? error.stack : undefined
+            });
+        }
+    }
 }
 
 export const installationPhotovoltaiqueController = new InstallationPhotovoltaiqueController();
