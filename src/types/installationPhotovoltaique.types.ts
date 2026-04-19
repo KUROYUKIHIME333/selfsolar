@@ -252,6 +252,7 @@ export interface DimensionnementAC {
 }
 
 export interface ResultatDimensionnementCablage {
+    panneauVoc?: number,
     // Câbles DC
     cablesString: CableDCDimensionnement[];
     cablePrincipalDC: CableDCDimensionnement;

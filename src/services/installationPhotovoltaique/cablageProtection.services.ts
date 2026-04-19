@@ -147,7 +147,7 @@ export class CablageEtProtectionsService {
             });
         }
 
-        // ✅ CORRECTION : parafoudreDC est un objet ProtectionDC, pas un tableau
+        // IDEA: parafoudreDC objet ProtectionDC, pas un array
         const typeParafoudre = (longueurString > 10 || conditionEnvironnement === "extreme")
             ? "Type 1+2 (Imax 12.5kA 10/350μs)"
             : "Type 2 (Imax 5kA 8/20μs)";
@@ -178,13 +178,14 @@ export class CablageEtProtectionsService {
             );
         }
 
-        // ✅ CORRECTION : retour avec parafoudreDC comme objet unique
+        // IDEA: retour avec parafoudreDC comme objet unique
         return {
+            panneauVoc: tensionVoc,
             cablesString: Array(nombreStrings).fill(cableString),
             cablePrincipalDC: cablePrincipal,
             protectionsString,
             protectionOnduleurDC,
-            parafoudreDC,  // ✅ Objet unique, pas tableau
+            parafoudreDC,
             sectionsStandardUtilisees: [...new Set(sectionsUtilisees)],
             verificationChuteTensionGlobale: verificationChuteTension,
             avertissements
