@@ -74,7 +74,7 @@ export class PuissanceCretePVService {
 
             if (!response.ok) throw new Error(`PVGIS erreur HTTP ${response.status}`);
 
-            const datas = await response.json();
+            const datas: any = await response.json();
 
             if (datas.outputs?.totals?.fixed?.l_total !== undefined) {
                 const total_pourcentage_pertes = datas.outputs.totals.fixed.l_total;
