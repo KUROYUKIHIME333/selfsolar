@@ -39,5 +39,5 @@
     "noUncheckedIndexedAccess": true // Recommandé pour la sécurité des tableaux/objets
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist",, "**/*.test.ts" "**/*.brouillon.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.brouillon.ts"]
 }
