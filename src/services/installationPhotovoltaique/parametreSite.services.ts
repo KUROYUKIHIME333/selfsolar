@@ -93,7 +93,7 @@ export class ParametresSiteService {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
 
-            const datas = await response.json();
+            const datas: any = await response.json();
 
             if (!datas.outputs || !datas.outputs.monthly) {
                 throw new Error("Format de réponse PVGIS invalide");
