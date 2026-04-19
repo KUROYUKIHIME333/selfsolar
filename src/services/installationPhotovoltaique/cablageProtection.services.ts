@@ -22,7 +22,7 @@ import {
     FACTEUR_GROUPEMENT,
     CALIBRES_FUSIBLES_DC,
     CALIBRES_DISJONCTEURS
-} from "../../utils/constantesPhysiques.js"
+} from "../../utils/constantesPhysiques.utils.js"
 
 
 // Service de dimensionnement des câbles et protections électriques
