@@ -4,7 +4,7 @@ import { installationPhotovoltaiqueController } from "../controllers/installatio
 // Routes API pour le dimensionnement photovoltaïque
 // Base: /api/v1/pv/*
 export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => {
-    
+
     // ========== ROUTE PRINCIPALE: DIMENSIONNEMENT COMPLET ==========
     app.post("/dimensionner", {
         schema: {
@@ -14,9 +14,9 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
             body: {
                 type: "object",
                 required: [
-                    "localisation", 
-                    "equipements", 
-                    "typeInstallation", 
+                    "localisation",
+                    "equipements",
+                    "typeInstallation",
                     "typeSysteme",
                     "parametresPanneau",
                     "temperaturesAttendue"
@@ -28,25 +28,25 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
                         description: "Coordonnées géographiques du site",
                         required: ["lat", "long"],
                         properties: {
-                            lat: { 
-                                type: "number", 
-                                minimum: -90, 
+                            lat: {
+                                type: "number",
+                                minimum: -90,
                                 maximum: 90,
                                 description: "Latitude en degrés décimaux"
                             },
-                            long: { 
-                                type: "number", 
-                                minimum: -180, 
+                            long: {
+                                type: "number",
+                                minimum: -180,
                                 maximum: 180,
-                                description: "Longitude en degrés décimaux" 
+                                description: "Longitude en degrés décimaux"
                             },
-                            altitude: { 
-                                type: "number", 
-                                description: "Altitude en mètres (pour déclassement)" 
+                            altitude: {
+                                type: "number",
+                                description: "Altitude en mètres (pour déclassement)"
                             }
                         }
                     },
-                    
+
                     // ÉQUIPEMENTS
                     equipements: {
                         type: "array",
@@ -55,26 +55,26 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
                             type: "object",
                             required: ["P", "h", "ks"],
                             properties: {
-                                nom: { 
+                                nom: {
                                     type: "string",
-                                    description: "Nom de l'équipement" 
+                                    description: "Nom de l'équipement"
                                 },
-                                P: { 
-                                    type: "number", 
+                                P: {
+                                    type: "number",
                                     minimum: 0,
-                                    description: "Puissance nominale (W)" 
+                                    description: "Puissance nominale (W)"
                                 },
-                                h: { 
-                                    type: "number", 
-                                    minimum: 0, 
+                                h: {
+                                    type: "number",
+                                    minimum: 0,
                                     maximum: 24,
-                                    description: "Durée d'utilisation journalière (h/j)" 
+                                    description: "Durée d'utilisation journalière (h/j)"
                                 },
-                                ks: { 
-                                    type: "number", 
-                                    minimum: 0, 
+                                ks: {
+                                    type: "number",
+                                    minimum: 0,
                                     maximum: 1,
-                                    description: "Facteur de simultanéité (0-1)" 
+                                    description: "Facteur de simultanéité (0-1)"
                                 }
                             }
                         }
@@ -86,7 +86,7 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
                         default: 0.8,
                         description: "Kf - Facteur de foisonnement global entre usages"
                     },
-                    
+
                     // TYPE INSTALLATION
                     typeInstallation: {
                         type: "string",
@@ -98,126 +98,126 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
                         enum: ["on-grid", "off-grid", "hybride"],
                         description: "Architecture système PV"
                     },
-                    
+
                     // PARAMÈTRES PANNEAU
                     parametresPanneau: {
                         type: "object",
                         description: "Caractéristiques STC du module PV (IEC 61215)",
                         required: [
-                            "puissanceCreteModule", 
-                            "tensionVoc", 
+                            "puissanceCreteModule",
+                            "tensionVoc",
                             "courantCourtCircuit",
-                            "tensionMPP", 
-                            "coeffTempTension", 
+                            "tensionMPP",
+                            "coeffTempTension",
                             "coeffTempPuissance"
                         ],
                         properties: {
-                            puissanceCreteModule: { 
-                                type: "number", 
+                            puissanceCreteModule: {
+                                type: "number",
                                 minimum: 50,
-                                description: "Pmax (Wp) - Puissance crête en STC" 
+                                description: "Pmax (Wp) - Puissance crête en STC"
                             },
-                            tensionVoc: { 
+                            tensionVoc: {
                                 type: "number",
-                                description: "Voc (V) - Tension circuit ouvert" 
+                                description: "Voc (V) - Tension circuit ouvert"
                             },
-                            courantCourtCircuit: { 
+                            courantCourtCircuit: {
                                 type: "number",
-                                description: "Isc (A) - Courant court-circuit" 
+                                description: "Isc (A) - Courant court-circuit"
                             },
-                            tensionMPP: { 
+                            tensionMPP: {
                                 type: "number",
-                                description: "Vmpp (V) - Tension point puissance max" 
+                                description: "Vmpp (V) - Tension point puissance max"
                             },
-                            courantMPP: { 
+                            courantMPP: {
                                 type: "number",
-                                description: "Impp (A) - Courant point puissance max" 
+                                description: "Impp (A) - Courant point puissance max"
                             },
-                            coeffTempTension: { 
+                            coeffTempTension: {
                                 type: "number",
-                                description: "β (Voc) en /°C - Ex: -0.35%/°C → 0.0035" 
+                                description: "β (Voc) en /°C - Ex: -0.35%/°C → 0.0035"
                             },
-                            coeffTempPuissance: { 
+                            coeffTempPuissance: {
                                 type: "number",
-                                description: "γ (Pmax) en /°C - Ex: -0.40%/°C → 0.0040" 
+                                description: "γ (Pmax) en /°C - Ex: -0.40%/°C → 0.0040"
                             },
-                            noct: { 
-                                type: "number", 
+                            noct: {
+                                type: "number",
                                 default: 45,
-                                description: "NOCT (°C) - Température nominale cellule" 
+                                description: "NOCT (°C) - Température nominale cellule"
                             }
                         }
                     },
-                    
+
                     // TEMPÉRATURES
                     temperaturesAttendue: {
                         type: "object",
                         description: "Températures ambiantes extrêmes du site",
                         required: ["temperatureMin", "temperatureMax"],
                         properties: {
-                            temperatureMin: { 
+                            temperatureMin: {
                                 type: "number",
-                                description: "°C - Température minimale (hiver, pour Voc max)" 
+                                description: "°C - Température minimale (hiver, pour Voc max)"
                             },
-                            temperatureMax: { 
+                            temperatureMax: {
                                 type: "number",
-                                description: "°C - Température maximale (été, pour Vmpp min)" 
+                                description: "°C - Température maximale (été, pour Vmpp min)"
                             }
                         }
                     },
-                    
+
                     // CONTRAINTES ONDULEUR
                     contraintesOnduleur: {
                         type: "object",
                         description: "Caractéristiques onduleur candidat (vérification)",
                         properties: {
-                            puissanceACNominale: { 
+                            puissanceACNominale: {
                                 type: "number",
-                                description: "W - Puissance sortie AC nominale" 
+                                description: "W - Puissance sortie AC nominale"
                             },
-                            tensionDCMax: { 
+                            tensionDCMax: {
                                 type: "number",
-                                description: "V - Limite ABSOLUE sécurité" 
+                                description: "V - Limite ABSOLUE sécurité"
                             },
-                            tensionMPPTMin: { 
+                            tensionMPPTMin: {
                                 type: "number",
-                                description: "V - Minimum pour fonctionnement MPPT" 
+                                description: "V - Minimum pour fonctionnement MPPT"
                             },
-                            tensionMPPTMax: { 
+                            tensionMPPTMax: {
                                 type: "number",
-                                description: "V - Maximum plage MPPT" 
+                                description: "V - Maximum plage MPPT"
                             },
-                            courantDCMax: { 
+                            courantDCMax: {
                                 type: "number",
-                                description: "A - Courant entrée DC max" 
+                                description: "A - Courant entrée DC max"
                             },
-                            puissanceDCMax: { 
+                            puissanceDCMax: {
                                 type: "number",
-                                description: "W - Puissance entrée max" 
+                                description: "W - Puissance entrée max"
                             },
-                            puissanceSurcharge: { 
+                            puissanceSurcharge: {
                                 type: "number",
-                                description: "W - Pic soutenable (démarrage moteurs)" 
+                                description: "W - Pic soutenable (démarrage moteurs)"
                             },
-                            rendementMPPT: { 
+                            rendementMPPT: {
                                 type: "number",
-                                description: "Rendement MPPT (0.96-0.99)" 
+                                description: "Rendement MPPT (0.96-0.99)"
                             },
-                            tensionBatterieMin: { 
+                            tensionBatterieMin: {
                                 type: "number",
-                                description: "V - Pour hybride" 
+                                description: "V - Pour hybride"
                             },
-                            tensionBatterieMax: { 
+                            tensionBatterieMax: {
                                 type: "number",
-                                description: "V - Pour hybride" 
+                                description: "V - Pour hybride"
                             },
-                            puissanceChargeBatterieMax: { 
+                            puissanceChargeBatterieMax: {
                                 type: "number",
-                                description: "W - Pour hybride" 
+                                description: "W - Pour hybride"
                             }
                         }
                     },
-                    
+
                     // STOCKAGE
                     autonomieBatterie: {
                         type: "number",
@@ -235,31 +235,31 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
                         enum: [12, 24, 48],
                         description: "V - Pour systèmes off-grid basse tension"
                     },
-                    
+
                     // CÂBLAGE
                     cablage: {
                         type: "object",
                         properties: {
-                            materiau: { 
-                                type: "string", 
-                                enum: ["cuivre", "aluminium"], 
+                            materiau: {
+                                type: "string",
+                                enum: ["cuivre", "aluminium"],
                                 default: "cuivre",
                                 description: "Matériau conducteur"
                             },
-                            longueurString: { 
-                                type: "number", 
+                            longueurString: {
+                                type: "number",
                                 default: 15,
-                                description: "m - Câble string (champ → boîte jonction)" 
+                                description: "m - Câble string (champ → boîte jonction)"
                             },
-                            longueurPrincipalDC: { 
-                                type: "number", 
+                            longueurPrincipalDC: {
+                                type: "number",
                                 default: 10,
-                                description: "m - Câble principal DC (boîte → onduleur)" 
+                                description: "m - Câble principal DC (boîte → onduleur)"
                             },
-                            longueurAC: { 
-                                type: "number", 
+                            longueurAC: {
+                                type: "number",
                                 default: 20,
-                                description: "m - Câble AC (onduleur → tableau)" 
+                                description: "m - Câble AC (onduleur → tableau)"
                             },
                             methodePoseDC: {
                                 type: "string",
@@ -279,44 +279,44 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
                             }
                         }
                     },
-                    
+
                     // POMPAGE
-                    pompageSolaire: { 
+                    pompageSolaire: {
                         type: "boolean",
-                        description: "Application pompage d'eau" 
+                        description: "Application pompage d'eau"
                     },
                     pompageCaracteristiques: {
                         type: "object",
                         properties: {
                             batteries: { type: "boolean" },
-                            masseVolumique: { 
-                                type: "number", 
+                            masseVolumique: {
+                                type: "number",
                                 default: 1000,
-                                description: "kg/m³ - Eau: 1000" 
+                                description: "kg/m³ - Eau: 1000"
                             },
-                            accelerationPesanteur: { 
-                                type: "number", 
+                            accelerationPesanteur: {
+                                type: "number",
                                 default: 9.81,
-                                description: "m/s² - Standard: 9.81" 
+                                description: "m/s² - Standard: 9.81"
                             },
-                            debit: { 
-                                type: "number", 
-                                description: "m³/j - Débit journalier requis" 
+                            debit: {
+                                type: "number",
+                                description: "m³/j - Débit journalier requis"
                             },
-                            hauteurMano: { 
-                                type: "number", 
-                                description: "m - Hauteur manométrique totale" 
+                            hauteurMano: {
+                                type: "number",
+                                description: "m - Hauteur manométrique totale"
                             },
-                            rendementPompe: { 
-                                type: "number", 
-                                minimum: 0.4, 
+                            rendementPompe: {
+                                type: "number",
+                                minimum: 0.4,
                                 maximum: 0.7,
-                                description: "η pompe (0.4-0.7)" 
+                                description: "η pompe (0.4-0.7)"
                             }
                         },
                         required: ["batteries", "debit", "hauteurMano", "rendementPompe"]
                     },
-                    
+
                     // AVANCÉ
                     irradianceMax: {
                         type: "number",
@@ -755,4 +755,25 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
             };
         }
     });
+
+    // ========== ROUTE LISTE DES PANNEAUX & BATTERIES ==========
+    app.get("/listes", {
+        handler: installationPhotovoltaiqueController.listes.bind(
+            installationPhotovoltaiqueController
+        )
+    })
+
+    // ========== ROUTE LISTE DES PANNEAUX ==========
+    app.get("/liste/panneaux", {
+        handler: installationPhotovoltaiqueController.listePanneaux.bind(
+            installationPhotovoltaiqueController
+        )
+    })
+
+    // ========== ROUTE LISTE DES PANNEAUX ==========
+    app.get("/liste/batteries", {
+        handler: installationPhotovoltaiqueController.listeBatteries.bind(
+            installationPhotovoltaiqueController
+        )
+    })
 };
