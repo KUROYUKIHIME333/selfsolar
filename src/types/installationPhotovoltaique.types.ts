@@ -111,7 +111,7 @@ export interface ResultatStockage {
     };
     plageTemperatureFonctionnement: {
         min: number;
-        max: number;                // ✅ CORRIGÉ: était min avant
+        max: number;
     };
     capacite: {
         utile_Wh: number;
@@ -395,4 +395,11 @@ export interface ResultatOnduleur {
     } | null;
     avertissements: string[];
     erreurs: string[];
+}
+
+// TYPES REPONSES
+export type Orientation = {
+    hemisphère: string;
+    orientation: string;
+    angle: number;
 }
