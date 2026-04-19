@@ -9,6 +9,8 @@ import type {
     DimensionnementPVResponse,
     ResultatStockage
 } from "../types/installationPhotovoltaique.types.js";
+import { LISTE_PANNEAUX } from "../utils/modulesPVListe.utils.js";
+import { LISTE_BATTERIES } from "../utils/batteriesListe.utils.js";
 
 // Contrôleur d'installation photovoltaïque
 // Orchestre les services de dimensionnement selon normes NFC 15-100, IEC 61215, etc.
@@ -294,6 +296,52 @@ export class InstallationPhotovoltaiqueController {
             ],
             version: "2.0.0"
         };
+    }
+
+    /**
+     *  Endpoint pour récupérer la liste des panneaux photovoltaiques
+     */
+    async listePanneaux(request: FastifyRequest, reply: FastifyReply) {
+        const startTime = Date.now();
+
+        try {
+            const response = LISTE_PANNEAUX;
+
+            const duration = Date.now() - startTime;
+            reply.log.info(`Liste des panneaux solaires rendue en ${duration}ms`);
+
+            return reply.code(200).send(response);
+        } catch (error: any) {
+            request.log.error(error);
+            return reply.code(500).send({
+                error: "Erreur Liste des panneaux",
+                message: error.message,
+                details: process.env.NODE_ENV === "development" ? error.stack : undefined
+            });
+        }
+    }
+
+    /**
+     *  Endpoint pour récupérer la liste des batteries
+     */
+    async listeBatteries(request: FastifyRequest, reply: FastifyReply) {
+        const startTime = Date.now();
+
+        try {
+            const response = LISTE_BATTERIES;
+
+            const duration = Date.now() - startTime;
+            request.log.info(`Liste des batteries rendue en ${duration}ms`);
+
+            return reply.code(200).send(response);
+        } catch (error: any) {
+            request.log.error(error);
+            return reply.code(500).send({
+                error: "Erreur Liste des Batteries",
+                message: error.message,
+                details: process.env.NODE_ENV === "development" ? error.stack : undefined
+            });
+        }
     }
 }
 
