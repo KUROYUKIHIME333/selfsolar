@@ -7,6 +7,11 @@ const start = async () => {
     // Initialisation de l'instance via la Factory
     const app = await buildApp();
 
+    // Verifier les routes enregistrées avant de démarrer le serveur
+    app.ready(() => {
+        console.log("Application prète à recevoir des requêtes.");
+    });
+
     try {
         // Démarrage de l'écoute réseau
         await app.listen({
@@ -24,6 +29,9 @@ const start = async () => {
         app.log.info(`|  API:         http://${displayHost}:${PORT}/api/v1/        |`);
         app.log.info(`|  Swagger UI:  http://${displayHost}:${PORT}/documentation/ |`);
         app.log.info(`|  OpenAPI:     http://${displayHost}:${PORT}/api-spec.json  |`);
+        app.log.info("|====================================================|");
+        app.log.info("📋 Routes enregistrées:");
+        app.log.info(app.printRoutes());
         app.log.info("|====================================================|");
 
     } catch (error) {
