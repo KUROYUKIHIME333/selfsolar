@@ -132,7 +132,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
     });
 
     // Gestion des erreurs globale
-    app.setErrorHandler((error: any, request, reply) => {
+    app.setErrorHandler((error: any, _request, reply) => {
         app.log.error(error);
         if (error.validation) {
             return reply.status(400).send({
