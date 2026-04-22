@@ -1,17 +1,30 @@
-# Théorie du Dimensionnement Photovoltaïque
+# Logique du Dimensionnement Photovoltaïque - Algorithme et Implémentation
 
-## Introduction
+## Vue d'Ensemble
 
-Le dimensionnement d'une installation photovoltaïque (PV) est un processus critique qui vise à déterminer les composants optimaux (modules PV, onduleurs, batteries, câblage) pour répondre aux besoins énergétiques d'un site tout en respectant les normes de sécurité, d'efficacité et d'économie. Ce processus est essentiel pour garantir la viabilité technique et économique du système solaire, en évitant les surdimensionnements coûteux ou les sous-dimensionnements inefficaces.
+Ce document décrit la logique algorithmique du système de dimensionnement photovoltaïque SelfSolar, implémentée dans les services TypeScript. L'approche suit une séquence déterministe basée sur les normes internationales (NFC 15-100, IEC 61215, IEC 62109, etc.), intégrant calculs physiques, données météorologiques et contraintes techniques pour produire un dimensionnement optimal et sécurisé.
 
-### Pourquoi dimensionner correctement ?
+### Architecture Logicielle
 
-- **Efficacité énergétique** : Assurer que la production PV couvre la consommation sans pertes excessives.
-- **Sécurité** : Respecter les normes électriques (NFC 15-100, IEC) pour éviter les risques d'incendie, électrocution ou surchauffe.
-- **Économie** : Optimiser les coûts d'investissement et de maintenance sur la durée de vie du système (20-30 ans).
-- **Durabilité** : Contribuer à la transition énergétique en maximisant l'utilisation des ressources renouvelables.
+Le dimensionnement est orchestré par `InstallationPhotovoltaiqueController.dimensionnerInstallation()`, qui enchaîne séquentiellement les services :
 
-Pour les professionnels (installateurs, ingénieurs), le dimensionnement repose sur des calculs normés et des données empiriques. Pour les scientifiques, il intègre des modèles physiques (thermodynamique, électrotechnique) et des données météorologiques (irradiation solaire).
+```mermaid
+graph TD
+    A[Requête API] --> B[Bilan Consommation]
+    B --> C[Paramètres Site]
+    C --> D[Performance Ratio]
+    D --> E[Puissance Crête PV]
+    E --> F[Modules PV]
+    F --> G[Onduleur]
+    G --> H{Type Système}
+    H -->|Off-Grid/Hybride| I[Stockage]
+    H -->|On-Grid| J[Pas de Stockage]
+    I --> K[Câblage & Protections]
+    J --> K
+    K --> L[Réponse API]
+```
+
+Chaque service applique des formules normées avec validations et corrections environnementales.
 
 ## Étapes du Dimensionnement
 
@@ -19,152 +32,294 @@ Le processus suit une séquence logique, orchestrée par les services logiciels 
 
 ### 1. Bilan de Consommation Électrique
 
-**Objectif** : Évaluer la demande énergétique du site.
+**Service** : `BilanConsommationService` (`bilanConso.services.ts`)
 
-**Méthode** : Utilisation de la méthode des coefficients de simultanéité (NFC 15-100 §771).
+**Objectif** : Quantifier la demande énergétique journalière et de crête.
 
-- **Énergie journalière totale** :
-  \[
-  E_{\text{charge}} [\text{Wh/j}] = \sum (P_i \times h_i \times k_{s,i})
-  \]
-  Où :
-  - \(P_i\) : Puissance nominale de l'équipement \(i\) (W)
-  - \(h_i\) : Durée d'utilisation journalière (h/j)
-  - \(k_{s,i}\) : Facteur de simultanéité (0-1)
+**Algorithme** :
 
-- **Puissance de crête apparente** :
-  \[
-  P_{\text{crête}} = \sum (P_i \times k_{s,i}) \times K_f
-  \]
-  Où \(K_f\) est le facteur de foisonnement global (0.6-1.0, défaut 0.8).
+1. **Énergie totale journalière** :
+   \[
+   E_{\text{charge}} = \sum_{i=1}^{n} (P_i \times h_i \times k_{s,i})
+   \]
+   - \(P_i\) : Puissance nominale équipement \(i\) (W)
+   - \(h_i\) : Heures utilisation journalière (h/j)
+   - \(k_{s,i}\) : Facteur simultanéité (0-1, NFC 15-100 §771)
 
-**Justification** : Les équipements ne fonctionnent pas simultanément à pleine puissance. Le coefficient \(k_s\) et \(K_f\) tiennent compte de la diversité des usages.
+2. **Puissance apparente de crête** :
+   \[
+   P_{\text{crête}} = \left( \sum_{i=1}^{n} (P_i \times k_{s,i}) \right) \times K_f
+   \]
+   - \(K_f\) : Facteur foisonnement global (0.6-1.0, défaut 0.8)
 
-### 2. Paramètres du Site et Ressource Solaire
+**Validations** :
+- \(E_{\text{charge}} > 0\) sinon erreur "Consommation nulle"
+- Coefficients dans plages réalistes (0 < ks ≤ 1)
 
-**Objectif** : Déterminer l'exposition solaire et l'orientation optimale.
+**Justification Physique** : Les équipements domestiques/industriels n'opèrent pas simultanément à 100%. Les coefficients \(k_s\) et \(K_f\) modélisent la diversité temporelle des usages.
 
-**Méthode** : Calcul de l'angle d'inclinaison optimal et récupération des données d'irradiation via PVGIS (API de la Commission Européenne).
+### 2. Paramètres du Site Solaire
 
-- **Angle d'inclinaison optimal** (méthode simplifiée) :
-  - Latitude < 15° : Quasi-horizontal (0-10°)
-  - 15-25° : Angle = latitude
-  - > 25° : Angle = 0.76 × latitude + 3.1
+**Service** : `ParametresSiteService` (`parametreSite.services.ts`)
 
-- **Peak Sun Hours (PSH)** : Heures équivalentes à 1 kW/m²/jour, calculées pour le mois le plus défavorable pour un dimensionnement conservateur.
+**Objectif** : Déterminer l'exposition solaire et orientation optimale.
 
-**Justification** : L'irradiation solaire varie avec la latitude, la saison et les conditions météorologiques. PVGIS fournit des données précises basées sur des modèles satellitaires.
+**Algorithme** :
 
-### 3. Performance Ratio (PR) et Pertes Système
+1. **Angle d'inclinaison optimal** (méthode simplifiée, p.4 guide) :
+   ```typescript
+   if (absLat < 15) angle = (absLat * 0.9) + 1;
+   else if (absLat <= 25) angle = absLat;
+   else angle = (absLat * 0.76) + 3.1;
+   ```
 
-**Objectif** : Évaluer les pertes globales du système PV.
+2. **Données irradiation via PVGIS** :
+   - API : `https://re.jrc.ec.europa.eu/api/v5.2/MRcalc`
+   - Paramètres : `lat`, `lon`, `optimal=1` (angle optimal calculé)
+   - Sortie : `H_h` (kWh/m²/j) pour chaque mois
+   - **PSH défavorable** : Minimum mensuel pour dimensionnement conservateur
 
-**Méthode** : Estimation basée sur le type d'installation (qualité, maintenance, environnement).
+**Fallback** : Si API indisponible, estimation par latitude :
+- < 20° : 4.5 h/j
+- 20-35° : 4.0 h/j
+- 35-50° : 2.5 h/j
+- > 50° : 2.0 h/j
 
-- **PR** : Rapport entre l'énergie AC produite et l'énergie DC incidente (0.75-0.85 typique).
-- Pertes incluent : Température, câblage, MPPT, poussière, vieillissement.
+**Validations** :
+- Coordonnées valides (-90/+90 lat, -180/+180 lon)
+- Altitude pour déclassement si > 2000m
 
-**Justification** : Le PR intègre toutes les inefficacités réelles, permettant un dimensionnement réaliste plutôt qu'idéal.
+**Justification Scientifique** : L'irradiation suit des modèles météorologiques satellitaires. Le mois défavorable assure une production minimale garantie.
+
+### 3. Performance Ratio et Pertes Système
+
+**Service** : `PuissanceCretePVService.performanceRatio()` (`puissancePVCrete.services.ts`)
+
+**Objectif** : Évaluer les pertes globales du système.
+
+**Algorithme** :
+
+1. **Pertes par type d'installation** :
+   - `HAUTE_QUALITE` : 15-18%
+   - `STANDARD` : 18-22%
+   - `POUSSIEREUX` : 22-25%
+   - `FAIBLE_MAINTENANCE` : 20-24%
+   - `ANCIEN` : 25-30%
+   - `CABLE_LONG` : 20-25%
+
+2. **Performance Ratio** :
+   \[
+   PR = 1 - \frac{\text{Pertes totales}}{100}
+   \]
+
+**Facteurs de pertes** :
+- Température modules (NOCT)
+- Câblage (résistance, chute tension)
+- Onduleur (MPPT, rendement)
+- Poussière, vieillissement, orientation
+
+**Justification** : Le PR (0.75-0.85) intègre toutes inefficacités réelles vs conditions STC idéales.
 
 ### 4. Puissance Crête PV Requise
 
-**Objectif** : Calculer la puissance PV nécessaire.
+**Service** : `PuissanceCretePVService.puissanceCretePV()`
 
-**Formules** :
-- Standard :
-  \[
-  P_{\text{PV}} = \frac{E_{\text{charge}}}{\text{PSH} \times \text{PR}}
-  \]
-- Pompage solaire :
-  \[
-  P_{\text{PV}} = \frac{E_{\text{hydraulique}}}{\text{PSH} \times \eta_{\text{onduleur}} \times \text{PR}}
-  \]
+**Objectif** : Calculer la puissance DC nécessaire.
 
-**Justification** : La puissance doit couvrir la demande énergétique en tenant compte des pertes et de la variabilité solaire.
+**Algorithme** :
+
+1. **Cas standard** :
+   \[
+   P_{\text{PV}} = \frac{E_{\text{charge}}}{\text{PSH} \times PR}
+   \]
+
+2. **Cas pompage solaire** :
+   \[
+   P_{\text{PV}} = \frac{E_{\text{hydraulique}}}{\text{PSH} \times \eta_{\text{onduleur}} \times PR}
+   \]
+   Avec \(E_{\text{hydraulique}} = \frac{Q \times H_{\text{man}} \times \rho \times g}{\eta_{\text{pompe}}}\)
+
+**Paramètres pompage** :
+- \(Q\) : Débit (m³/j)
+- \(H_{\text{man}}\) : Hauteur manométrique (m)
+- \(\rho, g\) : Constantes physiques
+- \(\eta_{\text{pompe}}\) : Rendement pompe (0.65 typique)
+
+**Validations** :
+- Puissance > 0
+- PSH > 0 (éviter division par zéro)
+
+**Justification Physique** : La puissance doit compenser les pertes système et la variabilité solaire saisonnière.
 
 ### 5. Dimensionnement des Modules PV
 
-**Objectif** : Déterminer le nombre et la disposition des panneaux.
+**Service** : `PuissanceCretePVService.modulesPV()`
 
-**Méthode** : Calcul basé sur les contraintes de l'onduleur (tension MPPT) ou du système batterie.
+**Objectif** : Déterminer nombre et disposition des panneaux.
 
-- **Disposition** : Modules en série (strings) et parallèle.
-- **Vérifications** : Tension Voc max (conditions froides), Vmpp min (conditions chaudes), courants Isc.
+**Algorithme** :
 
-**Formules clés** :
-- Température de cellule (modèle NOCT) :
-  \[
-  T_{\text{cell}} = T_{\text{amb}} + \frac{\text{NOCT} - 20}{800} \times G
-  \]
-- Tension avec température :
-  \[
-  V = V_{\text{STC}} \times (1 + \beta \times (T_{\text{cell}} - 25))
-  \]
+1. **Température cellule (modèle NOCT)** :
+   \[
+   T_{\text{cell}} = T_{\text{amb}} + \frac{\text{NOCT} - 20}{800} \times G
+   \]
+   - \(G\) : Irradiance (W/m², défaut 1000)
 
-**Justification** : Les modules doivent opérer dans les plages de l'onduleur pour maximiser l'efficacité MPPT.
+2. **Corrections température** :
+   - Tension : \(V = V_{\text{STC}} \times (1 + \beta \times (T_{\text{cell}} - 25))\)
+   - Puissance : \(P = P_{\text{STC}} \times (1 + \gamma \times (T_{\text{cell}} - 25))\)
+   - Courant : \(I = I_{\text{STC}} \times (1 + \alpha \times (T_{\text{cell}} - 25))\)
 
-### 6. Vérification de l'Onduleur
+3. **Disposition strings** :
+   - **On-grid/Hybride** : Respect plage MPPT onduleur
+   - **Off-grid** : Tension système batterie (12/24/48V)
+   - Nombre strings : \(\lceil \frac{P_{\text{PV}}}{P_{\text{module}} \times N_{\text{série}}}\rceil\)
 
-**Objectif** : Assurer la compatibilité avec les modules et la charge.
+4. **Vérifications sécurité** :
+   - \(V_{\text{oc,string froid}} \leq V_{\text{max onduleur}}\)
+   - \(V_{\text{mpp,string chaud}} \geq V_{\text{min MPPT}}\)
+   - \(I_{\text{sc,total}} \leq I_{\text{max onduleur}}\)
 
-**Méthode** : Vérification du ratio DC/AC (1.15 typique), tensions MPPT, courants max.
+**Validations** :
+- Ns_min ≤ Ns ≤ Ns_max (plage MPPT)
+- Températures dans plages module (-40/+85°C)
 
-**Justification** : L'onduleur transforme le DC en AC et gère la sécurité (IEC 62109).
+**Justification Électrotechnique** : Les modules forment un générateur DC dont la tension varie avec température. Les contraintes onduleur assurent fonctionnement MPPT optimal.
 
-### 7. Dimensionnement du Stockage (Batteries)
+### 6. Vérification et Dimensionnement Onduleur
 
-**Objectif** : Calculer la capacité de stockage pour l'autonomie.
+**Service** : `PuissanceCretePVService.onduleur()`
 
-**Formules** :
-- Capacité utile :
-  \[
-  C_{\text{utile}} [\text{Wh}] = E_{\text{charge}} [\text{Wh/j}] \times N_{\text{aut}}
-  \]
-- Capacité nominale :
-  \[
-  C_{\text{nominale}} [\text{Wh}] = \frac{C_{\text{utile}}}{\text{DoD}_{\text{max}}}
-  \]
-- En Ah :
-  \[
-  C_{\text{Ah}} = \frac{C_{\text{nominale}} [\text{Wh}]}{U_{\text{batt}} [\text{V}]}
-  \]
+**Objectif** : Valider compatibilité et calculer ratio DC/AC.
 
-**Technologies** : Plomb-acide, LiFePO4, etc., avec dé-rating température pour plomb.
+**Algorithme** :
 
-**Justification** : Le stockage assure la continuité en cas d'absence de soleil (IEC 62619).
+1. **Ratio DC/AC** :
+   \[
+   \text{Ratio} = \frac{P_{\text{DC crête}}}{P_{\text{AC nominale}}}
+   \]
+   - Cible : 1.15 (tropiques), limites [1.0-1.4]
 
-### 8. Câblage et Protections
+2. **Vérifications** :
+   - Tension MPPT : Vmpp_string ∈ [V_min, V_max]
+   - Courant DC : I_sc_total ≤ I_max
+   - Puissance DC : P_DC ≤ P_DC_max
 
-**Objectif** : Dimensionner les câbles et protections pour minimiser les pertes et assurer la sécurité.
+3. **Gestion surcharge** :
+   - Puissance pic : P_surcharge ≥ P_demarrage_moteurs
 
-**Méthode** : Calcul des sections selon NFC 15-100, IEC 60364.
+**Validations** :
+- Ratio dans plage admissible
+- Toutes vérifications "OK" sinon erreur
 
-- **Chute de tension** : ≤ 3% total.
-- **Protections** : Fusibles, disjoncteurs, parafoudres (IEC 61643-31).
+**Justification** : L'onduleur est l'interface critique entre DC solaire et AC réseau/consommation (IEC 62109).
 
-**Formules** :
-- Section câble :
-  \[
-  S = \frac{\rho \times L \times I}{\Delta U \times U}
-  \]
-  Avec corrections température et méthode de pose.
+### 7. Dimensionnement du Stockage
 
-**Justification** : Les câbles transportent l'énergie sans pertes excessives ; les protections évitent les surintensités.
+**Service** : `StockageService.capaciteStockage()` (`stockage.services.ts`)
 
-## Normes et Références
+**Objectif** : Calculer capacité batterie pour autonomie.
 
-- **Électriques** : NFC 15-100, IEC 60364.
-- **Modules PV** : IEC 61215.
-- **Onduleurs** : IEC 62109.
-- **Injection réseau** : NF EN 50549.
-- **Groupes électrogènes** : ISO 8528.
-- **Batteries** : IEC 62619.
-- **Parafoudres** : IEC 61643-31.
+**Algorithme** :
 
-## Considérations pour Professionnels et Scientifiques
+1. **Capacité utile** :
+   \[
+   C_{\text{utile}} = E_{\text{charge}} \times N_{\text{autonomie}}
+   \]
 
-**Professionnels** : Utilisez des logiciels de simulation (PVGIS, PVSyst) pour valider les calculs. Tenez compte des conditions locales (poussière, humidité) et des évolutions futures de la consommation.
+2. **Capacité nominale** :
+   \[
+   C_{\text{nominale}} = \frac{C_{\text{utile}}}{\text{DoD}_{\text{max}}}
+   \]
 
-**Scientifiques** : Les modèles intègrent la thermodynamique (températures), l'électrotechnique (circuits DC/AC) et la météorologie (irradiation). Des améliorations possibles incluent l'IA pour prédire les consommations ou optimiser les MPPT en temps réel.
+3. **Dé-rating température (plomb-acide)** :
+   - Si T > 25°C : C_nominale × (1 - 0.01 × (T - 25))
 
-Ce dimensionnement assure un système PV robuste, efficient et conforme aux standards internationaux.
+4. **Disposition modules** :
+   - Série : \(\lceil \frac{U_{\text{système}}}{U_{\text{batterie}}}\rceil\)
+   - Parallèle : \(\lceil \frac{C_{\text{totale}}}{C_{\text{batterie}}}\rceil\)
+
+**Technologies** :
+- **LiFePO4** : DoD 80-90%, cycles 2000-5000
+- **AGM/Gel** : DoD 50-70%, cycles 800-1500
+- **Plomb-acide** : DoD 50%, cycles 500-1000
+
+**Validations** :
+- Autonomie ≥ 1 jour
+- Température dans plage technologie
+
+**Justification Chimique** : Les batteries stockent énergie chimiquement. DoD limite préserve durée vie (IEC 62619).
+
+### 8. Câblage et Protections Électriques
+
+**Service** : `CablageEtProtectionsService` (`cablageProtection.services.ts`)
+
+**Objectif** : Dimensionner câbles et protections pour sécurité et efficacité.
+
+**Algorithme** :
+
+1. **Section câbles DC** :
+   \[
+   S = \frac{\rho \times L \times I \times k_t \times k_g \times k_p \times k_m}{U \times \Delta U_{\text{max}}}
+   \]
+   - Facteurs correction : température (k_t), groupement (k_g), pose (k_p), matériau (k_m)
+
+2. **Protections** :
+   - **Fusibles string** : I_n = 1.25 × I_sc_string
+   - **Disjoncteurs** : I_n ≥ I_emploi × 1.45
+   - **Parafoudres** : Type 2, Up ≤ 2.0kV (IEC 61643-31)
+
+3. **Câblage AC** :
+   - Section selon NFC 15-100, chute ≤ 3%
+   - DDR : Type B, sensibilité 300mA
+
+**Validations** :
+- Chute tension ≤ 3%
+- Courants admissibles respectés
+- Sélectivité protections vérifiée
+
+**Justification Électrique** : Les câbles transportent puissance sans pertes excessives. Protections évitent surintensités et surtensions (NFC 15-100).
+
+## Gestion des Erreurs et Robustesse
+
+**Erreurs communes** :
+- **Dimensionnement impossible** : Contraintes onduleur incompatibles (Ns_min > Ns_max)
+- **Section insuffisante** : Chute tension > 3%
+- **Température hors plage** : Module/batterie non adapté climat
+
+**Fallbacks** :
+- PVGIS indisponible → Estimations conservatrices
+- Paramètres manquants → Valeurs défauts standardisées
+
+**Optimisations** :
+- Marge sécurité 10-20% sur puissance PV
+- Évolution consommation future (+20%/an)
+- Maintenance préventive (nettoyage annuel)
+
+---
+
+## Références Normatives
+
+- **NFC 15-100** : Installations électriques basse tension
+- **IEC 61215** : Modules photovoltaïques terrestres
+- **IEC 62109** : Sécurité onduleurs
+- **NF EN 50549** : Injection réseau
+- **IEC 62619** : Batteries lithium-ion stationnaires
+- **IEC 61643-31** : Parafoudres DC
+- **ISO 8528** : Groupes électrogènes
+
+---
+
+## Perspectives d'Amélioration
+
+**Techniques** :
+- Intégration IA pour prédiction consommation
+- Optimisation temps réel MPPT avancé
+- Modèles météo haute résolution
+
+**Scientifiques** :
+- Simulation Monte Carlo pour incertitudes
+- Modèles thermiques 3D modules
+- Analyse cycle vie (LCA) composants
+
+Cette logique assure un dimensionnement rigoureux, conforme et optimisé pour tous types d'installations PV.
