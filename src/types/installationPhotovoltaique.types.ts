@@ -366,6 +366,7 @@ export interface DimensionnementPVResponse {
 export interface ResultatOnduleur {
     appareil: string;
     typeSysteme: TypeSystemePV;
+    rappelVocStringFroid: number | null;         // V - Pour vérification sécurité
     grandeursChamp: {
         tCellMin: number;
         tCellMax: number;

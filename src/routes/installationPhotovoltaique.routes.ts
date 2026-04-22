@@ -736,7 +736,7 @@ export const installationPhotovoltaiqueRoutes = async (app: FastifyInstance) => 
                 }
             }
         },
-        handler: async (request, reply) => {
+        handler: async () => {
             return {
                 normes: [
                     { code: "NF C 15-100", titre: "Installations électriques BT - Règle générale", domaine: "Électricité générale" },

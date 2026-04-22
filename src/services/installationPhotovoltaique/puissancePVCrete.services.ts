@@ -483,6 +483,7 @@ export class PuissanceCretePVService {
         return {
             appareil: "onduleur",
             typeSysteme,
+            rappelVocStringFroid: vocStringFroid || null,
             grandeursChamp: {
                 tCellMin: Math.round(tCellMin * 10) / 10,
                 tCellMax: Math.round(tCellMax * 10) / 10,

@@ -275,7 +275,7 @@ export class InstallationPhotovoltaiqueController {
     /**
      * Endpoint de vérification santé des services
      */
-    async sante(request: FastifyRequest, reply: FastifyReply) {
+    async sante() {
         return {
             status: "opérationnel",
             services: {
