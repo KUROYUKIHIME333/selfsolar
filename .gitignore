@@ -39,6 +39,8 @@ coverage/
 *.njsproj
 *.sln
 *.sw?
+.VSCodeCounter/*
+.VSCodeCounter
 
 # OS (Fichiers système)
 .DS_Store
