@@ -106,7 +106,9 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 
     // Plugins core
     await app.register(cors, {
-        origin: process.env.CORS_ORIGIN ?? "*"
+        origin: process.env.CORS_ORIGIN || "*",
+        methods: ["GET", "POST", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
     });
     await app.register(sensible);
 
