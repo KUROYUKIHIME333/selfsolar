@@ -1,21 +1,58 @@
 {
   "name": "selfsolar",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "API de dimensionnement photovoltaïque conforme NFC 15-100, IEC 61215, IEC 62109",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "start:prod": "NODE_ENV=production node dist/server.js",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "docker:build": "docker build -t selfsolar-api .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env selfsolar-api",
+    "test:api": "bash scripts/test-api.sh",
+    "test:ongrid": "bash scripts/test-ongrid.sh",
+    "test:offgrid": "bash scripts/test-offgrid.sh",
+    "test:hybride": "bash scripts/test-hybride.sh",
+    "test:pompage": "bash scripts/test-pompage.sh",
+    "test:all": "npm run test:ongrid && npm run test:offgrid && npm run test:hybride && npm run test:pompage"
   },
-  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KUROYUKIHIME333/selfsolar.git"
+  },
+  "keywords": [
+    "photovoltaïque",
+    "solaire",
+    "dimensionnement",
+    "NFC-15-100",
+    "IEC-61215",
+    "API",
+    "fastify"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/KUROYUKIHIME333/selfsolar/issues"
+  },
+  "homepage": "https://github.com/KUROYUKIHIME333/selfsolar#readme",
   "dependencies": {
-    "fastify": "^5.8.4"
+    "@fastify/cors": "^11.2.0",
+    "@fastify/jwt": "^10.0.0",
+    "@fastify/sensible": "^6.0.4",
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^5.2.5",
+    "fastify": "^5.8.5",
+    "pino-pretty": "^13.1.3",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
-    "ts-node-dev": "^2.0.0",
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.2"
   }
 }
