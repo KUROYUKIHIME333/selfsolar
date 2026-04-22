@@ -108,7 +108,7 @@ export class CablageEtProtectionsService {
         const protectionsString: ProtectionDC[] = [];
 
         if (nombreStrings > 2) {
-            const InMin = Isc * 1.5;
+            const InMin = Isc * 1.56;
             const InMax = Isc * 2.0;
             const calibreFusible = this.calibrerFusibleDC(InMin, InMax);
 
