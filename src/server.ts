@@ -30,9 +30,10 @@ const start = async () => {
         app.log.info(`|  Swagger UI:  http://${displayHost}:${PORT}/documentation/ |`);
         app.log.info(`|  OpenAPI:     http://${displayHost}:${PORT}/api-spec.json  |`);
         app.log.info("|====================================================|");
-        app.log.info("📋 Routes enregistrées:");
-        app.log.info(app.printRoutes());
         app.log.info("|====================================================|");
+
+        console.log("📋 Routes enregistrées:");
+        console.log(app.printRoutes());
 
     } catch (error) {
         // Instance app est utilise pour logger l'erreur avant de couper
