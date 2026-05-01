@@ -270,6 +270,13 @@ export interface ResultatDimensionnementCablage {
   avertissements: string[];
 }
 
+export interface ModeleBatterie {
+  nom?: string;
+  v: number;
+  ah: number;
+  desc?: string;
+} 
+
 // REQUETE/RESPONSE API
 
 export interface DimensionnementPVRequest {
@@ -292,6 +299,7 @@ export interface DimensionnementPVRequest {
   // Stockage (off-grid/hybride)
   autonomieBatterie?: number; // jours
   technologieBatterie?: TechnologieBatterie;
+  modeleBatterie?: ModeleBatterie;
 
   // Câblage
   cablage?: {
