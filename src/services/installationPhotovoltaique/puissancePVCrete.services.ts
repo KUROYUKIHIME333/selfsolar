@@ -156,8 +156,8 @@ export class PuissanceCretePVService {
     }
 
     /**
-     * CORRIGÉ: Dimensionnement du champ de modules avec contraintes onduleur réelles
-     * Basé sur NFC 15-100 §771 et IEC 62109 (p.5-6 guide)
+     * Dimensionnement du champ de modules avec contraintes onduleur réelles
+     * Basé sur NFC 15-100 §771 et IEC 62109
      * 
      * Pour onduleurs modernes: utiliser plage MPPT (100-800V typique)
      * Pour systèmes batterie: utiliser tension système (12/24/48V)
