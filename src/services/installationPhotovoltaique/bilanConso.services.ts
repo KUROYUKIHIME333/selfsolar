@@ -29,14 +29,14 @@ export class BilanConsommationService {
    * Formule: P_crête = kf * Σ (P_i × h/24)
    * @param equipements Liste des équipements
    * @param kf Facteur de foisonnement global (0.6-1.0, défaut 0.8)
-   * @returns Puissance apparente en W
+   * @returns Puissance appelée en W
    */
   puissanceAppelee(
     equipements: Equipement[],
     kf: number | null | undefined
   ): number {
     const P_crête_charge = equipements.reduce(
-      (acc, { P, h }) => acc + (P * h) / 24,
+      (acc, { P, h }) => acc + P * (h / 24),
       0
     );
 
@@ -50,11 +50,22 @@ export class BilanConsommationService {
   }
 
   /**
+   * Calcule la puissance totale installée, en AC (charges simultanées)
+   * Formule: P_crête = Σ P_i
+   * @param equipements Liste des équipements
+   * @returns Puissance  totale installée en W
+   */
+  puissanceInstaleeAC(equipements: Equipement[]): number {
+    const P_installee = equipements.reduce((acc, { P }) => acc + P, 0);
+    return P_installee; // en W
+  }
+
+  /**
    * Calcule la puissance appelée aux pics ou pointes (démarages moteurs, etc.)
    * Formule: P_pic = Σ (P_i × k_pic)
    * @param equipements Liste des équipements
    * @param kf Facteur de foisonnement global (0.6-1.0, défaut 0.8)
-   * @returns Puissance apparente en W
+   * @returns Puissance appelée aux pics en W
    */
   puissancePic(equipements: Equipement[]): number {
     const P_pic = equipements.reduce((acc, { P, k }) => acc + P * (k ?? 1), 0);
