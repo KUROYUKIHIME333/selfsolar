@@ -55,7 +55,7 @@ export const installationPhotovoltaiqueRoutes = async (
             description: "Inventaire des équipements électriques",
             items: {
               type: "object",
-              required: ["P", "h", "ks"],
+              required: ["P", "h"],
               properties: {
                 nom: {
                   type: "string",
@@ -71,13 +71,7 @@ export const installationPhotovoltaiqueRoutes = async (
                   minimum: 0,
                   maximum: 24,
                   description: "Durée d'utilisation journalière (h/j)",
-                },
-                ks: {
-                  type: "number",
-                  minimum: 0,
-                  maximum: 1,
-                  description: "Facteur de simultanéité (0-1)",
-                },
+                }
               },
             },
           },
@@ -247,7 +241,7 @@ export const installationPhotovoltaiqueRoutes = async (
           },
           tensionSystemeBatterie: {
             type: "number",
-            enum: [12, 24, 48],
+            enum: [12, 24, 48, 96],
             description: "V - Pour systèmes off-grid basse tension",
           },
           modeleBatterie: {

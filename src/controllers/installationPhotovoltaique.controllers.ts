@@ -47,12 +47,13 @@ export class InstallationPhotovoltaiqueController {
         irradianceMax,
         facteurFoisonnementGlobal,
         tensionSystemeBatterie,
+        modeleBatterie,
       } = request.body;
 
       // ========== 1. BILAN DE CONSOMMATION ==========
       const energieJournaliere =
         bilanConsommationService.energieTotal(equipements);
-      const puissanceCreteCharge = bilanConsommationService.puissanceTotal(
+      const puissanceCreteCharge = bilanConsommationService.puissanceAppelee(
         equipements,
         facteurFoisonnementGlobal
       );
@@ -61,15 +62,20 @@ export class InstallationPhotovoltaiqueController {
         return reply.code(400).send({
           error: "Données invalides",
           message:
-            "L'énergie journalière calculée est nulle ou négative - vérifiez les équipements",
+            "L'énergie journalière calculée est nulle ou négative - vérifiez les équipements ou les données entrées",
         });
       }
+
+      console.log("L'Ec", energieJournaliere) //WARNING: To remove after tests
 
       // ========== 2. PARAMÈTRES SITE ET RESSOURCE SOLAIRE ==========
       const parametresSite = await parametresSiteService.PVGISDatas(
         localisation
       );
       const angleOptimal = parametresSiteService.angleOptimal(localisation.lat);
+
+      console.log("L'angle optimal et tout' :", JSON.stringify(angleOptimal)) //WARNING: To remove after tests
+      console.log("L'angle optimal et tout' :", angleOptimal) //WARNING: To remove after tests
 
       // ========== 3. PERFORMANCE RATIO ET PERTES ==========
       const { PR, pertesTotales } =
@@ -78,20 +84,25 @@ export class InstallationPhotovoltaiqueController {
           localisation
         );
 
+      console.log("Le ratio de performance calculée :",PR, " mais avec des pertes ", pertesTotales) //WARNING: To remove after tests
+
       // ========== 4. PUISSANCE CRÊTE PV REQUISE ==========
       const puissanceCretePV = puissanceCretePVService.puissanceCretePV(
         pompageSolaire || false,
         energieJournaliere,
-        parametresSite.PSH,
+        parametresSite.G_moy,
         PR,
         pompageCaracteristiques,
         contraintesOnduleur?.rendementMPPT
       );
 
+      console.log(pompageCaracteristiques)
+      console.log("La puisance crète calculée :", puissanceCreteCharge) //WARNING: To remove after tests
+
       // ========== 5. DIMENSIONNEMENT MODULES PV ==========
       // Détermination contraintes selon type système
       let contraintesOnduleurModules = null;
-      let tensionBatt = undefined;
+      let tensionBatt = 24;
       let tensionConventionnelleSys = 48;
 
       if (typeSysteme !== "off-grid" && contraintesOnduleur) {
@@ -114,17 +125,22 @@ export class InstallationPhotovoltaiqueController {
           tensionConventionnelleSys = 96;
         }
         // Off-grid: tension batterie basse tension
-        tensionBatt = tensionSystemeBatterie || tensionConventionnelleSys;
+        tensionBatt = tensionSystemeBatterie
+          ? tensionSystemeBatterie
+          : tensionConventionnelleSys;
       }
 
       const resultatModules = puissanceCretePVService.modulesPV(
         parametresPanneau,
         puissanceCretePV,
         temperaturesAttendue,
-        irradianceMax || 1000,
-        contraintesOnduleurModules,
-        tensionBatt
+        parametresSite.G_moy,
+        parametresSite.G_max,
+        tensionBatt,
+        contraintesOnduleurModules
       );
+
+      console.log("Verification des modules : ", resultatModules) 
 
       // ========== 6. VÉRIFICATION ONDULEUR ==========
       let resultatOnduleur = null;
@@ -139,49 +155,56 @@ export class InstallationPhotovoltaiqueController {
           contraintesOnduleur,
           puissanceCreteCharge * 1.5 // Estimation puissance démarrage
         );
+
+
+        console.log("L'onduleur testé:", resultatOnduleur) //WARNING: To remove after tests
       }
 
       // ========== 7. DIMENSIONNEMENT STOCKAGE ==========
       let resultatStockage: ResultatStockage | null = null;
-      if (typeSysteme !== "on-grid" && autonomieBatterie) {
-        const tensionSysteme =
-          typeSysteme === "off-grid"
-            ? tensionSystemeBatterie || tensionConventionnelleSys
-            : 400; // Hybride: tension batterie onduleur
+      if (modeleBatterie) {
+        if (typeSysteme !== "on-grid" && autonomieBatterie) {
+          const tensionSysteme =
+            typeSysteme === "off-grid"
+              ? tensionSystemeBatterie || tensionConventionnelleSys
+              : 400; // Hybride: tension batterie onduleur
 
-        resultatStockage = stockageService.capaciteStockage(
-          technologieBatterie || "LiFePO4",
-          energieJournaliere,
-          autonomieBatterie,
-          tensionSysteme,
-          temperaturesAttendue.temperatureMax
-        );
+          resultatStockage = stockageService.capaciteStockage(
+            technologieBatterie || "LiFePO4",
+            energieJournaliere,
+            autonomieBatterie,
+            tensionSysteme,
+            temperaturesAttendue.temperatureMax
+          );
 
-        // Disposition modules batterie
-        const tensionUnitaire = technologieBatterie === "LiFePO4" ? 12.8 : 12.0; // V
-        const capaciteUnitaire = 200; // Ah - à paramétrer
+          // Disposition modules batterie
+          const tensionUnitaire = modeleBatterie.v; // V
+          const capaciteUnitaire = modeleBatterie.ah; // Ah - à paramétrer
 
-        const dispositionBatt = stockageService.modulesBatteries(
-          tensionSysteme,
-          tensionUnitaire,
-          capaciteUnitaire,
-          resultatStockage?.capacite.nominale_Ah
-        );
+          const dispositionBatt = stockageService.modulesBatteries(
+            tensionSysteme,
+            tensionUnitaire,
+            capaciteUnitaire,
+            resultatStockage?.capacite.nominale_Ah
+          );
 
-        // Fusion avec résultat stockage
-        (resultatStockage as any).disposition = dispositionBatt;
+          // Fusion avec résultat stockage
+          (resultatStockage as any).disposition = dispositionBatt;
 
-        // Dimensionnement BMS
-        const bms = stockageService.regulateurBMS(
-          puissanceCretePV,
-          tensionSysteme,
-          puissanceCreteCharge,
-          resultatOnduleur?.dimensionnement.puissanceACRecommandee
-            ? puissanceCreteCharge /
-                resultatOnduleur.dimensionnement.puissanceACRecommandee
-            : 0.95
-        );
-        (resultatStockage as any).bms = bms;
+          // Dimensionnement BMS
+          const bms = stockageService.regulateurBMS(
+            puissanceCretePV,
+            tensionSysteme,
+            puissanceCreteCharge,
+            resultatOnduleur?.dimensionnement.puissanceACRecommandee
+              ? puissanceCreteCharge /
+                  resultatOnduleur.dimensionnement.puissanceACRecommandee
+              : 0.95
+          );
+          (resultatStockage as any).bms = bms;
+        }
+
+        console.log("Les batteries:", resultatStockage) //WARNING: To remove after tests
       }
 
       // ========== 8. DIMENSIONNEMENT CÂBLAGE ET PROTECTIONS ==========
@@ -220,6 +243,8 @@ export class InstallationPhotovoltaiqueController {
         );
 
         dimensionnementCablage.cablageAC = dimensionnementAC;
+
+        console.log("Les cables :", dimensionnementCablage) //WARNING: To remove after tests
       }
 
       // ========== 9. ASSEMBLAGE RÉPONSE ==========

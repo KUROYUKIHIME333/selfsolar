@@ -264,9 +264,12 @@ export class CablageEtProtectionsService {
             );
         }
 
+        console.log("La section normalisée :", sectionNormaliseeSuivante || "aucune disponible")
+            console.log("La section theorique :", sectionMinTheorique)
         throw new Error(
             `Dimensionnement impossible: 300mm² ${materiau} insuffisant pour ${courant}A sur ${longueur}m`
         );
+        
     }
 
     // Dimensionnement câblage AC

@@ -2,7 +2,7 @@ export type Equipement = {
   nom: string | null | undefined;
   P: number; // Puissance nominale en W
   h: number; // Durée d'utilisation en h/j
-  ks: number; // Facteur de simultanéité (0-1)
+  k?: number; // Facteur de pic
 };
 
 export type Localisation = {
@@ -152,6 +152,7 @@ export interface ResultatModulesPV {
   puissancePVInstallee: {
     min: number; // Condition chaude (déclassée)
     max: number; // Condition froide
+    stc: number; // Puissance nominale à STC (pour ratio DC/AC)
   };
 
   // Métadonnées internes
@@ -378,9 +379,12 @@ export interface ResultatOnduleur {
     tCellMax: number;
     vocChampFroid: number; // V - CRITIQUE
     vmppChampChaud: number; // V
+    vmppChampFroid: number; // V
     vmppNominal: number; // V
     iscChamp: number; // A
-    puissanceChampsWc: number; // W
+    //puissanceChampsWc: number; // W
+    puissanceChampsWcSTC: number;
+    puissanceChampsWcMax : number;
   };
   dimensionnement: {
     puissanceACMin: number;

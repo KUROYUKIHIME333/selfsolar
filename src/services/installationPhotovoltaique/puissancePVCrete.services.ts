@@ -1,36 +1,68 @@
-// services/puissancePVCrete.services.ts
-
 import type {
-    TypeInstallationPourPertes,
-    Localisation,
-    PompageSolaireCaracteristiques,
-    ParametresSTCPanneau,
-    TemperaturesMinMax,
-    TypeSystemePV,
-    ParametresOnduleur,
-    ContraintesOnduleurModules,
-    ResultatModulesPV,
-    ResultatOnduleur
+  TypeInstallationPourPertes,
+  Localisation,
+  PompageSolaireCaracteristiques,
+  ParametresSTCPanneau,
+  TemperaturesMinMax,
+  TypeSystemePV,
+  ParametresOnduleur,
+  ContraintesOnduleurModules,
+  ResultatModulesPV,
+  ResultatOnduleur,
 } from "../../types/installationPhotovoltaique.types.js";
 
 // Constantes physiques et normatives
-const IRRADIANCE_NOCT = 800;        // W/m² - Condition NOCT (p.5 guide)
-const T_AMB_NOCT = 20;              // °C - Température ambiante référence NOCT
-const IRRADIANCE_STC = 1000;        // W/m² - Standard Test Conditions
+const IRRADIANCE_NOCT = 800; // W/m² - Condition NOCT (p.5 guide)
+const T_AMB_NOCT = 20; // °C - Température ambiante référence NOCT
+const IRRADIANCE_STC = 1000; // W/m² - Standard Test Conditions
+const FACTEUR_SECURITE_COURANT = 1.25; // Facteur IEC 62109 pour tolérance + vieillissement
+const T_STC = 25;
 
 /**
  * Calcule la température de cellule selon modèle NOCT (p.4-5 guide)
  * Formule: T_cell = T_amb + (NOCT - 20) × G / 800
- * 
- * @param tAmbient Température ambiante (°C)
- * @param irradiance Irradiance incidente (W/m²)
- * @param noct Température nominale de cellule du module (°C)
- * @returns Température de cellule estimée (°C)
  */
-function temperatureCellule(tAmbient: number, irradiance: number, noct: number): number {
-    // Protection: irradiance minimale pour éviter températures aberrantes
-    const G_eff = Math.max(irradiance, 100);
-    return tAmbient + ((noct - T_AMB_NOCT) / IRRADIANCE_NOCT) * G_eff;
+
+const temperatureCellule=(
+  tAmbient: number,
+  irradiance: number, //G
+  noct: number, // Temperature noct de la cellule
+): number => {
+
+  const tCell: number = tAmbient + ((noct - T_AMB_NOCT)*irradiance)/(IRRADIANCE_NOCT);
+
+  return tCell;
+}
+
+/**
+ * Déterminer la tension minimisant les pertes P = RI² (J'en déduit que U = RI),
+ * Si on augmente U, on diminue I pour la meme puissance, 
+ * mais il faut garder la praticité en tete
+ */
+
+const tensionSystemePV = (puissanceCretePV: number): number => {
+  let tensionSystem: number = 2 ;
+
+  if (puissanceCretePV > 2000 && puissanceCretePV < 5000) {
+    tensionSystem = 48
+  }
+  if (puissanceCretePV > 5000 && puissanceCretePV < 15000) {
+    tensionSystem = 120
+  }
+  if (puissanceCretePV > 15000 && puissanceCretePV < 50000) {
+    tensionSystem = 240
+  }
+  if (puissanceCretePV > 50000 && puissanceCretePV < 500000) {
+    tensionSystem = 600
+  }
+  if (puissanceCretePV > 500000 && puissanceCretePV < 1000000) {
+    tensionSystem = 1000
+  }
+  if (puissanceCretePV > 1000000) {
+    tensionSystem = 1500
+  }
+
+  return tensionSystem
 }
 
 /**
@@ -38,476 +70,587 @@ function temperatureCellule(tAmbient: number, irradiance: number, noct: number):
  * Conforme IEC 61215 (modules), IEC 62109 (onduleurs), NF EN 50549 (injection)
  */
 export class PuissanceCretePVService {
+  async performanceRatio(
+    typeInstallation: TypeInstallationPourPertes | string,
+    localisation: Localisation
+  ): Promise<{ pertesTotales: number; PR: number }> {
+    // Pertes système selon qualité installation (p.4 guide)
+    // Standard: 18-22% pertes → PR = 0.78-0.82
+    let pertes_system: number = 18; // Standard
 
-    /**
-     * Calcule le Performance Ratio (PR) via PVGIS ou estimations normatives
-     * Le PR intègre toutes les pertes système (température, câblage, MPPT, etc.)
-     * Valeur typique: 0.75-0.85 (p.4 guide)
-     * 
-     * @param typeInstallation Type d'installation (qualité, maintenance, etc.)
-     * @param localisation Coordonnées pour appel PVGIS
-     * @returns Pertes totales (%) et PR (0-1)
-     */
-    async performanceRatio(
-        typeInstallation: TypeInstallationPourPertes | string,
-        localisation: Localisation
-    ): Promise<{ pertesTotales: number; PR: number }> {
-
-        // Pertes système selon qualité installation (p.4 guide)
-        // Standard: 18-22% pertes → PR = 0.78-0.82
-        let pertes_system: number = 18; // Standard
-
-        switch (typeInstallation) {
-            case "HAUTE_QUALITE": pertes_system = 10; break;      // PR ~0.90
-            case "STANDARD": pertes_system = 18; break;            // PR ~0.82
-            case "POUSSIEREUX": pertes_system = 22; break;         // PR ~0.78
-            case "FAIBLE_MAINTENANCE": pertes_system = 25; break;  // PR ~0.75
-            case "ANCIEN": pertes_system = 28; break;              // PR ~0.72
-            case "CABLE_LONG": pertes_system = 25; break;          // PR ~0.75
-        }
-
-        try {
-            // Appel PVGIS pour obtenir PR réel du site
-            const URL = `${process.env.PVGIS_URL || "https://re.jrc.ec.europa.eu/api/v5.2/"}PVcalc?lat=${localisation.lat}&lon=${localisation.long}&peakpower=1&loss=${pertes_system}&optimalangles=1&outputformat=json`;
-
-            const response = await fetch(URL, { signal: AbortSignal.timeout(15000) });
-
-            if (!response.ok) throw new Error(`PVGIS erreur HTTP ${response.status}`);
-
-            const datas: any = await response.json();
-
-            if (datas.outputs?.totals?.fixed?.l_total !== undefined) {
-                const total_pourcentage_pertes = datas.outputs.totals.fixed.l_total;
-                const performance_ratio = 1 - (total_pourcentage_pertes / 100);
-
-                return {
-                    pertesTotales: total_pourcentage_pertes,
-                    PR: performance_ratio
-                };
-            }
-
-            throw new Error("Structure réponse PVGIS inattendue");
-
-        } catch (error: any) {
-            console.warn("PVGIS PR indisponible, utilisation estimation:", error.message);
-
-            // Fallback: PR estimé basé sur pertes configurées
-            const PR_fallback = 1 - (pertes_system / 100);
-            return {
-                pertesTotales: pertes_system,
-                PR: PR_fallback
-            };
-        }
+    switch (typeInstallation) {
+      case "HAUTE_QUALITE":
+        pertes_system = 10;
+        break; // PR ~0.90
+      case "STANDARD":
+        pertes_system = 18;
+        break; // PR ~0.82
+      case "POUSSIEREUX":
+        pertes_system = 22;
+        break; // PR ~0.78
+      case "FAIBLE_MAINTENANCE":
+        pertes_system = 25;
+        break; // PR ~0.75
+      case "ANCIEN":
+        pertes_system = 28;
+        break; // PR ~0.72
+      case "CABLE_LONG":
+        pertes_system = 25;
+        break; // PR ~0.75
     }
 
-    /**
-     * Calcule la puissance crête PV nécessaire
-     * 
-     * Standard: P_PV = E_charge / (PSH × PR)
-     * Pompage: P_PV = E_hydraulique / (PSH × η_onduleur × PR) (p.4-5 guide)
-     * 
-     * @param pompageSolaire true si application pompage
-     * @param energieCrete Énergie journalière requise (Wh/j) ou énergie hydraulique
-     * @param PSH Peak Sun Hours du mois défavorable (h/j)
-     * @param PR Performance Ratio (0-1)
-     * @param pompageCaracteristiques Paramètres pompage si applicable
-     * @param rendementOnduleurMTTP Rendement MPPT (défaut 0.98)
-     * @returns Puissance crête PV requise (Wc)
-     */
-    puissanceCretePV(
-        pompageSolaire: boolean,
-        energieCrete: number,           // Wh/j (consommation ou énergie hydraulique)
-        PSH: number,                    // h/j
-        PR: number,                     // 0-1
-        pompageCaracteristiques: PompageSolaireCaracteristiques | null | undefined,
-        rendementOnduleurMTTP: number | null | undefined
-    ): number {
+    try {
+      // Appel PVGIS pour obtenir PR réel du site
+      const URL = `${
+        process.env.PVGIS_URL || "https://re.jrc.ec.europa.eu/api/v5.2/"
+      }PVcalc?lat=${localisation.lat}&lon=${
+        localisation.long
+      }&peakpower=1&loss=${pertes_system}&optimalangles=1&outputformat=json`;
 
-        let P_PV: number;
+      const response = await fetch(URL, { signal: AbortSignal.timeout(15000) });
 
-        if (pompageSolaire && pompageCaracteristiques) {
-            // Dimensionnement pompage solaire (p.5 guide)
-            // E_hydraulique = ρ × g × Q × H_man / (3600 × η_pompe)
-            const {
-                masseVolumique,
-                accelerationPesanteur,
-                debit,
-                hauteurMano,
-                rendementPompe
-            } = pompageCaracteristiques;
+      if (!response.ok) throw new Error(`PVGIS erreur HTTP ${response.status}`);
 
-            const E_hydraulique = (masseVolumique * accelerationPesanteur * debit * hauteurMano) /
-                (3600 * rendementPompe);
+      const datas: any = await response.json();
 
-            const rendementOnduleur = rendementOnduleurMTTP ?? 0.98;
-
-            // P_PV_pompe = E_hydraulique / (PSH × η_onduleur × PR_réduit)
-            // PR_réduit car pas de batterie tampon en pompage direct
-            const PR_reduit = PR * 0.95; // Perte supplémentaire variabilité
-            P_PV = E_hydraulique / (PSH * rendementOnduleur * PR_reduit);
-
-        } else {
-            // Dimensionnement standard (p.4 guide)
-            // P_PV [Wc] = E_charge [Wh/j] / (PSH [h] × PR)
-            P_PV = energieCrete / (PSH * PR);
-        }
-
-        return Math.ceil(P_PV); // Arrondi supérieur pour sécurité
-    }
-
-    /**
-     * Dimensionnement du champ de modules avec contraintes onduleur réelles
-     * Basé sur NFC 15-100 §771 et IEC 62109
-     * 
-     * Pour onduleurs modernes: utiliser plage MPPT (100-800V typique)
-     * Pour systèmes batterie: utiliser tension système (12/24/48V)
-     * 
-     * @param panneauParametres Caractéristiques STC du module
-     * @param puissanceCretePV Puissance crête requise (Wc)
-     * @param temperaturesAttendue Températures min/max ambiantes
-     * @param irradianceMax Irradiance max locale (W/m², typiquement 1000-1200)
-     * @param contraintesOnduleur Contraintes MPPT et sécurité (null si batterie basse tension)
-     * @param tensionSystemeBatterie Tension batterie pour off-grid (12/24/48V)
-     * @returns Configuration modules avec vérifications de tension
-     */
-    modulesPV(
-        panneauParametres: ParametresSTCPanneau,
-        puissanceCretePV: number,
-        temperaturesAttendue: TemperaturesMinMax,
-        irradianceMax: number,
-        contraintesOnduleur: ContraintesOnduleurModules | null,
-        tensionSystemeBatterie?: number
-    ): ResultatModulesPV {
-
-        const {
-            puissanceCreteModule,
-            tensionMPP,
-            tensionVoc,
-            coeffTempTension,
-            coeffTempPuissance,
-            noct
-        } = panneauParametres;
-
-        const { temperatureMin, temperatureMax } = temperaturesAttendue;
-        const noctModule = noct ?? 45;
-
-        // --- Calcul températures de cellule ---
-        // Condition froide: faible irradiance (aube/crépuscule) → Voc max
-        // Utilisation 200 W/m² pour ciel clair froid
-        const tCellMin = temperatureCellule(temperatureMin, 200, noctModule);
-
-        // Condition chaude: irradiance max → Vmpp min, P min
-        const tCellMax = temperatureCellule(temperatureMax, irradianceMax, noctModule);
-
-        // --- Tensions corrigées en température ---
-        // β en valeur absolue (ex: -0.35%/°C → 0.0035 /°C)
-        const facteurTempMin = 1 + coeffTempTension * (tCellMin - 25);  // Froid
-        const facteurTempMax = 1 + coeffTempTension * (tCellMax - 25);  // Chaud
-
-        // Vmpp: chaud = tension basse, froid = tension haute
-        const tension_mpp_min = tensionMPP * facteurTempMax;   // Condition chaude (pire cas MPPT)
-        const tension_mpp_max = tensionMPP * facteurTempMin;   // Condition froide
-        const voc_module_froid = tensionVoc * facteurTempMin;  // Voc max à froid (CRITIQUE sécurité)
-
-        // --- Détermination Ns (modules en série) ---
-        let Ns_min: number;
-        let Ns_max: number;
-        let configuration: "haute_tension" | "basse_tension";
-
-        if (contraintesOnduleur) {
-            // CAS ON-GRID / HYBRIDE / ONDULEUR MPPT HAUTE TENSION
-            // N_série_max = V_MPPT_max_onduleur / V_mpp_module_à_T_min (p.5 guide)
-            // N_série_min = V_MPPT_min_onduleur / V_mpp_module_à_T_max
-
-            Ns_max = Math.floor(contraintesOnduleur.tensionMPPTMax / tension_mpp_max);
-            Ns_min = Math.ceil(contraintesOnduleur.tensionMPPTMin / tension_mpp_min);
-
-            // VÉRIFICATION SÉCURITÉ: Voc à froid < tension DC max onduleur (p.5 guide)
-            // ⚠ C'est la contrainte absolue de sécurité
-            const vocChampFroidEstime = Ns_max * voc_module_froid;
-            if (vocChampFroidEstime > contraintesOnduleur.tensionDCMax) {
-                // Réduction Ns_max pour respecter limite sécurité
-                const Ns_max_securite = Math.floor(contraintesOnduleur.tensionDCMax / voc_module_froid);
-                console.warn(`Ajustement Ns pour sécurité: ${Ns_max} → ${Ns_max_securite} (Voc limit)`);
-                Ns_max = Ns_max_securite;
-            }
-
-            configuration = "haute_tension";
-
-        } else if (tensionSystemeBatterie) {
-            // CAS OFF-GRID BASSE TENSION (PWM ou MPPT 12/24/48V)
-            // Tension de charge batterie: 14.4V (12V), 28.8V (24V), 57.6V (48V)
-            const tensionChargeMax = tensionSystemeBatterie * 1.25; // Marge régulateur
-            const tensionChargeMin = tensionSystemeBatterie * 0.85; // Décharge profonde
-
-            Ns_max = Math.floor(tensionChargeMax / tension_mpp_max);
-            Ns_min = Math.ceil(tensionChargeMin / tension_mpp_min);
-            configuration = "basse_tension";
-
-        } else {
-            throw new Error(
-                "Dimensionnement modules: soit 'contraintesOnduleur', soit 'tensionSystemeBatterie' doit être fourni"
-            );
-        }
-
-        // Vérification faisabilité
-        if (Ns_min > Ns_max) {
-            throw new Error(
-                `Impossible de dimensionner: Ns_min (${Ns_min}) > Ns_max (${Ns_max}). ` +
-                `Vérifiez les contraintes de tension onduleur ou tension batterie.`
-            );
-        }
-
-        // Choix optimal: valeur médiane pour centrer dans plage MPPT
-        const Ns = Math.round((Ns_min + Ns_max) / 2);
-
-        // --- Calcul Np (strings en parallèle) ---
-        // Puissance module à chaud (déclassée)
-        const puissanceModuleChaud = puissanceCreteModule *
-            (1 + coeffTempPuissance * (tCellMax - 25));
-
-        // Nombre total modules minimum pour puissance requise
-        const nbModulesMin = Math.ceil(puissanceCretePV / puissanceModuleChaud);
-        const Np = Math.ceil(nbModulesMin / Ns);
-
-        const totalPanneaux = Ns * Np;
-
-        // Puissances installées (min à chaud, max à froid)
-        const puissanceModuleFroid = puissanceCreteModule *
-            (1 + coeffTempPuissance * (tCellMin - 25));
-
-        const puissancePVInstalleeMin = totalPanneaux * puissanceModuleChaud;
-        const puissancePVInstalleeMax = totalPanneaux * puissanceModuleFroid;
+      if (datas.outputs?.totals?.fixed?.l_total !== undefined) {
+        const total_pourcentage_pertes = datas.outputs.totals.fixed.l_total;
+        const performance_ratio = 1 - total_pourcentage_pertes / 100;
 
         return {
-            appareil: "panneaux photovoltaiques",
-            configuration,
-            tensionParcPV: configuration === "basse_tension" ? tensionSystemeBatterie : undefined,
-            panneauxParString: Ns,
-            stringsEnParallele: Np,
-            totalPanneaux: totalPanneaux,
-            tensionStringSTC: Ns * tensionMPP,
-            tensionStringMin: Ns * tension_mpp_min,   // Vmpp condition chaude
-            tensionStringMax: Ns * tension_mpp_max,   // Vmpp condition froide
-            vocStringFroid: Ns * voc_module_froid,    // VOC CRITIQUE sécurité
-            puissancePVInstallee: {
-                min: Math.round(puissancePVInstalleeMin),
-                max: Math.round(puissancePVInstalleeMax)
-            },
-            _temperaturesCellule: {
-                tCellMin: Math.round(tCellMin * 10) / 10,
-                tCellMax: Math.round(tCellMax * 10) / 10
-            },
-            _tensionModuleCorrigee: {
-                mppMin: Math.round(tension_mpp_min * 100) / 100,
-                mppMax: Math.round(tension_mpp_max * 100) / 100,
-                vocFroid: Math.round(voc_module_froid * 100) / 100
-            }
+          pertesTotales: total_pourcentage_pertes,
+          PR: performance_ratio,
         };
+      }
+
+      throw new Error("Structure réponse PVGIS inattendue");
+    } catch (error: any) {
+      console.warn(
+        "PVGIS PR indisponible, utilisation estimation:",
+        error.message
+      );
+
+      // Fallback: PR estimé basé sur pertes configurées
+      const PR_fallback = 1 - pertes_system / 100;
+      return {
+        pertesTotales: pertes_system, //en %
+        PR: PR_fallback,
+      };
+    }
+  }
+
+  /**
+   * Calcule la puissance crête PV nécessaire
+   *
+   * Standard: P_PV = E_charge / (PSH × PR)
+   * Pompage: P_PV = E_hydraulique / (PSH × η_onduleur × PR) (p.4-5 guide)
+   */
+  puissanceCretePV(
+    pompageSolaire: boolean,
+    energieCrete: number, // Wh/j (consommation ou énergie hydraulique)
+    PSH: number, // h/j
+    PR: number, // 0-1
+    pompageCaracteristiques: PompageSolaireCaracteristiques | null | undefined,
+    rendementOnduleurMTTP: number | null | undefined
+  ): number {
+    let P_PV: number;
+
+    if (pompageSolaire && pompageCaracteristiques) {
+      // Dimensionnement pompage solaire : E_hydraulique = ρ × g × Q × H_man / (3600 × η_pompe)
+      const {
+        masseVolumique, // kg/metre cube
+        accelerationPesanteur, // m/s²
+        debit, // metre cube/j
+        hauteurMano, // metre
+        rendementPompe, // 0.4 - 0.7
+      } = pompageCaracteristiques;
+
+      const E_hydraulique =
+        (masseVolumique * accelerationPesanteur * debit * hauteurMano) /
+        (3600 * rendementPompe);
+
+      const rendementOnduleur = rendementOnduleurMTTP ?? 0.98;
+
+      // WARNING: CORRECTION PR en pompage direct sans batterie tampon
+      // Les pertes sont plus élevées: démarrage/stop fréquent, rendement pompe variable.
+      // Selon des guides techniques, PR_pompage = PR × 0.90 (perte variabilité significative) au lieu de 0.95.
+      const PR_pompage = PR * 0.9;
+      P_PV = E_hydraulique / (PSH * rendementOnduleur * PR_pompage);
+    } else {
+      // Dimensionnement standard (p.4 guide)
+      // P_PV [Wc] = E_charge [Wh/j] / (PSH [h] × PR)
+      P_PV = energieCrete / (PSH * PR);
     }
 
-    /**
-     * Vérification et dimensionnement onduleur
-     * Ratio DC/AC cible: 1.15 (tropiques), limites [1.0-1.4] (p.6 guide)
-     * 
-     * @param resultatsModules Résultat de modulesPV()
-     * @param panneauParametres Paramètres modules
-     * @param temperaturesAttendue Températures ambiantes
-     * @param irradianceMax Irradiance max (W/m²)
-     * @param typeSysteme Type de système PV
-     * @param puissanceChargeContinue Puissance charge continue (W)
-     * @param onduleurCandidat Paramètres onduleur candidat (optionnel)
-     * @param puissanceDemarrage Puissance démarrage moteurs (optionnel)
-     * @returns Résultat complet avec vérifications
-     */
-    onduleur(
-        resultatsModules: ResultatModulesPV,
-        panneauParametres: ParametresSTCPanneau,
-        temperaturesAttendue: TemperaturesMinMax,
-        irradianceMax: number,
-        typeSysteme: TypeSystemePV,
-        puissanceChargeContinue: number,
-        onduleurCandidat?: ParametresOnduleur | null,
-        puissanceDemarrage?: number | null
-    ): ResultatOnduleur {
+    return Math.ceil(P_PV); // Arrondi supérieur pour sécurité
+  }
 
-        const {
-            panneauxParString: Ns,
-            stringsEnParallele: Np,
-            vocStringFroid,
-            _temperaturesCellule,
-            _tensionModuleCorrigee,
-            puissancePVInstallee
-        } = resultatsModules;
+  /**
+   * Dimensionnement du champ de modules avec contraintes onduleur réelles
+   * Basé sur NFC 15-100 §771 et IEC 62109
+   *
+   * Pour onduleurs modernes: utiliser plage MPPT (100-800V typique)
+   * Pour systèmes batterie: utiliser tension système (12/24/48/96V)
+   */
+  modulesPV(
+    panneauParametres: ParametresSTCPanneau,
+    puissanceCretePV: number,
+    temperaturesAttendue: TemperaturesMinMax,
+    irradianceMin: number,
+    irradianceMax: number,
+    tensionSystemeBatterie: number | null | undefined,
+    contraintesOnduleur?: ContraintesOnduleurModules | null
+  ): ResultatModulesPV {
+    const {
+      puissanceCreteModule,
+      tensionMPP,
+      tensionVoc,
+      coeffTempTension,
+      coeffTempPuissance,
+      noct,
+    } = panneauParametres;
 
-        const {
-            tensionVoc,
-            tensionMPP,
-            courantCourtCircuit: Isc,
-            coeffTempTension,
-            noct
-        } = panneauParametres;
+    const { temperatureMin, temperatureMax } = temperaturesAttendue;
+    const noctModule = noct ?? 45;
 
-        const noctModule = noct ?? 45;
-        const { temperatureMin, temperatureMax } = temperaturesAttendue;
+    // --- Calcul températures de cellule ---
+    // Condition froide: faible irradiance (aube/crépuscule) → Voc max
+    const tCellMin = temperatureCellule(
+      temperatureMin,
+      irradianceMin,
+      noctModule,
+    );
+    // Condition chaude: irradiance max → Vmpp min, P min
+    const tCellMax = temperatureCellule(
+      temperatureMax,
+      irradianceMax,
+      noctModule,
+    );
 
-        // Recalcul ou réutilisation températures
-        const tCellMin = _temperaturesCellule?.tCellMin ??
-            temperatureCellule(temperatureMin, 200, noctModule);
-        const tCellMax = _temperaturesCellule?.tCellMax ??
-            temperatureCellule(temperatureMax, irradianceMax, noctModule);
+    // --- Tensions corrigées en température ---
+    // β en valeur absolue pour eviter les erreurs de signe 
+    // Et aussi en decimal pas pourcentage (ex: -0.35%/°C → 0.0035 /°C)
+    const pratiqueBeta = (0 - Math.abs(coeffTempTension))/100; // Forcer négatif pour tension on ne sait jamais ce que le front enverra, pas confiance
 
-        // --- Grandeurs électriques du champ ---
+    const tensionPanneauMax = tensionVoc * (1 + (pratiqueBeta*(tCellMin - T_STC))); 
+    const tensionPanneauMin = tensionMPP * (1 + (pratiqueBeta*(tCellMax - T_STC)));
 
-        // Voc champ à froid (sécurité absolue)
-        const vocModuleFroid = _tensionModuleCorrigee?.vocFroid ??
-            tensionVoc * (1 + coeffTempTension * (tCellMin - 25));
-        const vocChampFroidCalc = Ns * vocModuleFroid;
-
-        // Vmpp champ à chaud (risque décrochage MPPT)
-        const vmppModuleChaud = _tensionModuleCorrigee?.mppMin ??
-            tensionMPP * (1 + coeffTempTension * (tCellMax - 25));
-        const vmppChampChaud = Ns * vmppModuleChaud;
-
-        // Vmpp nominal (STC)
-        const vmppNominal = Ns * tensionMPP;
-
-        // Isc champ à irradiance max (pire cas courant)
-        const facteurIrradiance = irradianceMax / IRRADIANCE_STC;
-        const iscChamp = Np * Isc * facteurIrradiance;
-
-        // Puissance champ (pire cas = chaud = min)
-        const puissanceChampsWc = puissancePVInstallee.max;
-
-        // --- Dimensionnement recommandé ---
-        // Ratio DC/AC selon ensoleillement (p.6 guide)
-        // Fort ensoleillement (Afrique): 1.20-1.40
-        // Modéré (Europe sud): 1.10-1.25  
-        // Faible (Europe nord): 1.00-1.15
-        const ratioCible = 1.15; // Valeur standard
-        const ratioMin = 1.0;
-        const ratioMax = 1.4;
-
-        const puissanceACMin = Math.round(puissanceChampsWc / ratioMax);
-        const puissanceACRecommandee = Math.round(puissanceChampsWc / ratioCible);
-        const puissanceACMax = Math.round(puissanceChampsWc / ratioMin);
-
-        const ratioDCAC = onduleurCandidat
-            ? puissanceChampsWc / onduleurCandidat.puissanceACNominale
-            : puissanceChampsWc / puissanceACRecommandee;
-
-        // Évaluation ratio
-        let evaluationRatio: ResultatOnduleur["dimensionnement"]["evaluationRatio"];
-        if (ratioDCAC < ratioMin) evaluationRatio = "sous-dimensionne";
-        else if (ratioDCAC <= 1.25) evaluationRatio = "optimal";
-        else if (ratioDCAC <= ratioMax) evaluationRatio = "acceptable";
-        else evaluationRatio = "eleve";
-
-        // --- Vérifications compatibilité ---
-        const avertissements: string[] = [];
-        const erreurs: string[] = [];
-
-        // let verificationsCompatibilite: ResultatOnduleur["verification"]["details"]| null = null;
-        let verificationsCompatibilite: Exclude<ResultatOnduleur["verification"], null>["details"] | null = null;
+    // Tension système pv
+    const tensionDCSystemPV = tensionSystemePV(puissanceCretePV);
 
 
-        if (onduleurCandidat) {
-            const vocOk = vocChampFroidCalc < onduleurCandidat.tensionDCMax;
-            const vmppMinOk = vmppChampChaud > onduleurCandidat.tensionMPPTMin;
-            const vmppMaxOk = vmppNominal <= onduleurCandidat.tensionMPPTMax;
-            const vmppPlageOk = vmppMinOk && vmppMaxOk;
-            const iscOk = iscChamp <= onduleurCandidat.courantDCMax;
-            const pdcOk = puissanceChampsWc <= (onduleurCandidat.puissanceDCMax ||
-                onduleurCandidat.puissanceACNominale * 1.5) * 1.4;
-            const chargeOk = onduleurCandidat.puissanceACNominale >= puissanceChargeContinue;
 
-            const puissanceSurcharge = onduleurCandidat.puissanceSurcharge ??
-                onduleurCandidat.puissanceACNominale * 1.5;
-            const surchargeOk = puissanceDemarrage != null
-                ? puissanceSurcharge >= puissanceDemarrage
-                : null;
 
-            verificationsCompatibilite = {
-                vocSousLimite: vocOk,
-                vmppAuDessusMinimum: vmppMinOk,
-                vmppDansPlageMPPT: vmppPlageOk,
-                iscSousLimite: iscOk,
-                puissanceDCOk: pdcOk,
-                chargeACOk: chargeOk,
-                surchargeOk
-            };
 
-            // Messages d'erreur/avertissement
-            if (!vocOk) {
-                erreurs.push(
-                    `CRITIQUE: Voc champ à froid (${vocChampFroidCalc.toFixed(1)} V) ≥ ` +
-                    `tensionDCMax onduleur (${onduleurCandidat.tensionDCMax} V) - RISQUE DESTRUCTION`
-                );
-            }
-            if (!vmppMinOk) {
-                avertissements.push(
-                    `Vmpp champ à chaud (${vmppChampChaud.toFixed(1)} V) < ` +
-                    `tensionMPPTMin (${onduleurCandidat.tensionMPPTMin} V) - Risque décrochage MPPT hiver`
-                );
-            }
-            if (!vmppMaxOk) {
-                avertissements.push(
-                    `Vmpp nominal (${vmppNominal.toFixed(1)} V) > ` +
-                    `tensionMPPTMax (${onduleurCandidat.tensionMPPTMax} V) - Perte production été`
-                );
-            }
-            if (!iscOk) {
-                erreurs.push(
-                    `Isc champ (${iscChamp.toFixed(2)} A) > courantDCMax ` +
-                    `(${onduleurCandidat.courantDCMax} A) - Surcharge entrée DC`
-                );
-            }
-            if (!pdcOk) {
-                avertissements.push(
-                    `Ratio DC/AC (${ratioDCAC.toFixed(2)}) élevé - Clipping significatif envisageable`
-                );
-            }
-            if (!chargeOk) {
-                erreurs.push(
-                    `Puissance AC onduleur (${onduleurCandidat.puissanceACNominale} W) < ` +
-                    `charge continue (${puissanceChargeContinue} W) - Sous-dimensionnement`
-                );
-            }
-            if (surchargeOk === false) {
-                avertissements.push(
-                    `Capacité surcharge (${puissanceSurcharge} W) < démarrage requis (${puissanceDemarrage} W)`
-                );
-            }
-        }
+    // // --- Détermination Ns (modules en série) ---
+    // let Ns_min: number;
+    // let Ns_max: number;
+    // let configuration: "haute_tension" | "basse_tension";
 
-        return {
-            appareil: "onduleur",
-            typeSysteme,
-            rappelVocStringFroid: vocStringFroid || null,
-            grandeursChamp: {
-                tCellMin: Math.round(tCellMin * 10) / 10,
-                tCellMax: Math.round(tCellMax * 10) / 10,
-                vocChampFroid: Math.round(vocChampFroidCalc * 100) / 100,
-                vmppChampChaud: Math.round(vmppChampChaud * 100) / 100,
-                vmppNominal: Math.round(vmppNominal * 100) / 100,
-                iscChamp: Math.round(iscChamp * 1000) / 1000,
-                puissanceChampsWc
-            },
-            dimensionnement: {
-                puissanceACMin,
-                puissanceACRecommandee,
-                puissanceACMax,
-                ratioDCAC: Math.round(ratioDCAC * 1000) / 1000,
-                evaluationRatio
-            },
-            verification: onduleurCandidat ? {
-                compatible: erreurs.length === 0,
-                details: verificationsCompatibilite!
-            } : null,
-            avertissements,
-            erreurs
-        };
+    // if (contraintesOnduleur) {
+    //   // CAS ON-GRID / HYBRIDE / ONDULEUR MPPT HAUTE TENSION
+
+    //   // Étape 1: Ns max limité par plage MPPT à froid (Vmpp haute)
+    //   // Ns ne doit pas dépasser V_MPPT_max / Vmpp_froid
+    //   const Ns_max_mppt = Math.floor(
+    //     contraintesOnduleur.tensionMPPTMax / tension_mpp_max
+    //   );
+
+    //   // Étape 2: Ns max limité par sécurité Voc absolue à froid
+    //   // C'est la contrainte absolue de sécurité IEC 62109
+    //   const Ns_max_voc = Math.floor(
+    //     contraintesOnduleur.tensionDCMax / voc_module_froid
+    //   );
+
+    //   // Étape 3: Ns_max est le MINIMUM des deux contraintes
+    //   Ns_max = Math.min(Ns_max_mppt, Ns_max_voc);
+
+    //   // Étape 4: Ns min pour atteindre V_MPPT_min à chaud (Vmpp basse)
+    //   Ns_min = Math.ceil(contraintesOnduleur.tensionMPPTMin / tension_mpp_min);
+
+    //   configuration = "haute_tension";
+    // } else {
+    //   // CAS OFF-GRID BASSE TENSION (PWM ou MPPT 12/24/48V)
+    //   // CORRECTION: tensionSystemeBatterie doit être fourni pour ce cas
+    //   if (!tensionSystemeBatterie) {
+    //     throw new Error(
+    //       "Dimensionnement off-grid: tensionSystemeBatterie est requise " +
+    //         "quand aucune contrainte onduleur n'est fournie."
+    //     );
+    //   }
+
+    //   // Tension de charge batterie: 14.4V (12V), 28.8V (24V), 57.6V (48V)
+    //   const tensionChargeMax = tensionSystemeBatterie * 1.25; // Marge régulateur
+    //   const tensionChargeMin = tensionSystemeBatterie * 0.85; // Décharge profonde
+
+    //   Ns_max = Math.floor(tensionChargeMax / tension_mpp_max);
+    //   Ns_min = Math.ceil(tensionChargeMin / tension_mpp_min);
+    //   configuration = "basse_tension";
+    // }
+
+    // // Vérification faisabilité
+    // if (Ns_min > Ns_max) {
+    //   throw new Error(
+    //     `Impossible de dimensionner: Ns_min (${Ns_min}) > Ns_max (${Ns_max}). ` +
+    //       `Vérifiez les contraintes de tension onduleur ou tension batterie. ` +
+    //       `Contraintes: Vmpp_chaud=${tension_mpp_min.toFixed(1)}V, ` +
+    //       `Vmpp_froid=${tension_mpp_max.toFixed(1)}V, ` +
+    //       `Voc_froid=${voc_module_froid.toFixed(1)}V.`
+    //   );
+    // }
+
+    // // Choix optimal: valeur médiane pour centrer dans plage MPPT
+    // // CORRECTION: Si la plage est large, on privilégie un Ns qui maximise
+    // // la puissance tout en restant loin des limites (marge de sécurité 10%)
+    // const Ns = Math.round((Ns_min + Ns_max) / 2);
+
+    // // --- Vérification finale Voc avec Ns CHOISI ---
+    // // CORRECTION: Vérification critique avec le Ns réel, pas Ns_max
+    // const vocStringFroidReel = Ns * voc_module_froid;
+    // if (
+    //   contraintesOnduleur &&
+    //   vocStringFroidReel > contraintesOnduleur.tensionDCMax
+    // ) {
+    //   // Sécurité: ne devrait pas arriver si Ns_max_voc est correct
+    //   throw new Error(
+    //     `CRITIQUE SECURITE: Voc string à froid (${vocStringFroidReel.toFixed(
+    //       1
+    //     )}V) ` +
+    //       `dépasse tensionDCMax onduleur (${contraintesOnduleur.tensionDCMax}V) ` +
+    //       `avec Ns=${Ns}. Réduire Ns ou changer module/onduleur.`
+    //   );
+    // }
+
+    // // --- Calcul Np (strings en parallèle) ---
+    // // CORRECTION: La puissance requise est en Wc STC.
+    // // On doit couvrir cette puissance même à chaud (pire cas).
+    // // Puissance module à chaud (déclassée)
+    // const puissanceModuleChaud =
+    //   puissanceCreteModule * (1 + beta * (tCellMax - 25));
+
+    // // CORRECTION: Protection contre puissance négative ou nulle
+    // const puissanceModuleEffective = Math.max(
+    //   puissanceModuleChaud,
+    //   puissanceCreteModule * 0.5
+    // );
+
+    // // Nombre total modules minimum pour puissance requise
+    // const nbModulesMin = Math.ceil(puissanceCretePV / puissanceModuleEffective);
+    // const Np = Math.ceil(nbModulesMin / Ns);
+
+    // const totalPanneaux = Ns * Np;
+
+    // // Puissances installées (min à chaud, max à froid)
+    // const puissanceModuleFroid =
+    //   puissanceCreteModule * (1 + beta * (tCellMin - 25));
+
+    // const puissancePVInstalleeMin = totalPanneaux * puissanceModuleChaud;
+    // const puissancePVInstalleeMax = totalPanneaux * puissanceModuleFroid;
+
+    // // CORRECTION: Puissance nominale STC (pour ratio DC/AC correct)
+    // const puissancePVInstalleeSTC = totalPanneaux * puissanceCreteModule;
+
+    return {
+      appareil: "panneaux photovoltaiques",
+      configuration,
+      tensionParcPV:
+        configuration === "basse_tension"
+          ? tensionSystemeBatterie ?? undefined
+          : undefined,
+      panneauxParString: Ns,
+      stringsEnParallele: Np,
+      totalPanneaux: totalPanneaux,
+      tensionStringSTC: Ns * tensionMPP,
+      tensionStringMin: Ns * tension_mpp_min, // Vmpp condition chaude
+      tensionStringMax: Ns * tension_mpp_max, // Vmpp condition froide
+      vocStringFroid: Ns * voc_module_froid, // VOC CRITIQUE sécurité
+      puissancePVInstallee: {
+        min: Math.round(puissancePVInstalleeMin),
+        max: Math.round(puissancePVInstalleeMax),
+        stc: Math.round(puissancePVInstalleeSTC), // AJOUT: puissance nominale
+      },
+      _temperaturesCellule: {
+        tCellMin: Math.round(tCellMin * 10) / 10,
+        tCellMax: Math.round(tCellMax * 10) / 10,
+      },
+      _tensionModuleCorrigee: {
+        mppMin: Math.round(tension_mpp_min * 100) / 100,
+        mppMax: Math.round(tension_mpp_max * 100) / 100,
+        vocFroid: Math.round(voc_module_froid * 100) / 100,
+      },
+    };
+  }
+
+  /**
+   * Vérification et dimensionnement onduleur
+   * Ratio DC/AC cible: 1.15 (tropiques), limites [1.0-1.4] (p.6 guide)
+   *
+   * CORRECTIONS MAJEURES:
+   * 1. Ratio DC/AC calculé avec puissance STC, pas puissance à froid
+   * 2. Vérification Vmpp max avec tension froide (pas nominal)
+   * 3. Courant avec facteur de sécurité IEC 62109
+   * 4. Puissance DC max comparée à puissance STC
+   *
+   * @param resultatsModules Résultat de modulesPV()
+   * @param panneauParametres Paramètres modules
+   * @param temperaturesAttendue Températures ambiantes
+   * @param irradianceMax Irradiance max (W/m²)
+   * @param typeSysteme Type de système PV
+   * @param puissanceChargeContinue Puissance charge continue (W)
+   * @param onduleurCandidat Paramètres onduleur candidat (optionnel)
+   * @param puissanceDemarrage Puissance démarrage moteurs (optionnel)
+   * @returns Résultat complet avec vérifications
+   */
+  onduleur(
+    resultatsModules: ResultatModulesPV,
+    panneauParametres: ParametresSTCPanneau,
+    temperaturesAttendue: TemperaturesMinMax,
+    irradianceMax: number,
+    typeSysteme: TypeSystemePV,
+    puissanceChargeContinue: number,
+    onduleurCandidat?: ParametresOnduleur | null,
+    puissanceDemarrage?: number | null
+  ): ResultatOnduleur {
+    const {
+      panneauxParString: Ns,
+      stringsEnParallele: Np,
+      vocStringFroid,
+      _temperaturesCellule,
+      _tensionModuleCorrigee,
+      puissancePVInstallee,
+    } = resultatsModules;
+
+    const {
+      tensionVoc,
+      tensionMPP,
+      courantCourtCircuit: Isc,
+      coeffTempTension,
+      noct,
+    } = panneauParametres;
+
+    const noctModule = noct ?? 45;
+    const { temperatureMin, temperatureMax } = temperaturesAttendue;
+
+    // Recalcul ou réutilisation températures
+    const tCellMin =
+      _temperaturesCellule?.tCellMin ??
+      temperatureCellule(temperatureMin, 200, noctModule);
+    const tCellMax =
+      _temperaturesCellule?.tCellMax ??
+      temperatureCellule(temperatureMax, irradianceMax, noctModule);
+
+    // --- Grandeurs électriques du champ ---
+
+    // CORRECTION: Coefficient température négatif pour tension
+    const beta = -Math.abs(coeffTempTension);
+
+    // Voc champ à froid (sécurité absolue)
+    const vocModuleFroid =
+      _tensionModuleCorrigee?.vocFroid ??
+      tensionVoc * (1 + beta * (tCellMin - 25));
+    const vocChampFroidCalc = Ns * vocModuleFroid;
+
+    // Vmpp champ à chaud (risque décrochage MPPT)
+    const vmppModuleChaud =
+      _tensionModuleCorrigee?.mppMin ??
+      tensionMPP * (1 + beta * (tCellMax - 25));
+    const vmppChampChaud = Ns * vmppModuleChaud;
+
+    // CORRECTION: Vmpp champ à froid (risque dépassement MPPT max)
+    const vmppModuleFroid =
+      _tensionModuleCorrigee?.mppMax ??
+      tensionMPP * (1 + beta * (tCellMin - 25));
+    const vmppChampFroid = Ns * vmppModuleFroid;
+
+    // Vmpp nominal (STC)
+    const vmppNominal = Ns * tensionMPP;
+
+    // Isc champ à irradiance max avec facteur de sécurité IEC 62109
+    const facteurIrradiance = irradianceMax / IRRADIANCE_STC;
+    const iscChampBrut = Np * Isc * facteurIrradiance;
+    const iscChamp = iscChampBrut * FACTEUR_SECURITE_COURANT; // Marge sécurité
+
+    // CORRECTION: Puissance champ pour ratio DC/AC = puissance STC nominale
+    // La puissance à froid est un pic transitoire, pas la puissance de dimensionnement
+    const puissanceChampsWcSTC =
+      puissancePVInstallee.stc ?? puissancePVInstallee.max;
+
+    // Puissance max à froid (pour vérification puissance DC max)
+    const puissanceChampsWcMax = puissancePVInstallee.max;
+
+    // --- Dimensionnement recommandé ---
+    // Ratio DC/AC selon ensoleillement (p.6 guide)
+    // Fort ensoleillement (Afrique): 1.20-1.40
+    // Modéré (Europe sud): 1.10-1.25
+    // Faible (Europe nord): 1.00-1.15
+    const ratioCible = 1.15; // Valeur standard
+    const ratioMin = 1.0;
+    const ratioMax = 1.4;
+
+    const puissanceACMin = Math.round(puissanceChampsWcSTC / ratioMax);
+    const puissanceACRecommandee = Math.round(
+      puissanceChampsWcSTC / ratioCible
+    );
+    const puissanceACMax = Math.round(puissanceChampsWcSTC / ratioMin);
+
+    const ratioDCAC = onduleurCandidat
+      ? puissanceChampsWcSTC / onduleurCandidat.puissanceACNominale
+      : puissanceChampsWcSTC / puissanceACRecommandee;
+
+    // Évaluation ratio
+    let evaluationRatio: ResultatOnduleur["dimensionnement"]["evaluationRatio"];
+    if (ratioDCAC < ratioMin) evaluationRatio = "sous-dimensionne";
+    else if (ratioDCAC <= 1.25) evaluationRatio = "optimal";
+    else if (ratioDCAC <= ratioMax) evaluationRatio = "acceptable";
+    else evaluationRatio = "eleve";
+
+    // --- Vérifications compatibilité ---
+    const avertissements: string[] = [];
+    const erreurs: string[] = [];
+
+    let verificationsCompatibilite:
+      | Exclude<ResultatOnduleur["verification"], null>["details"]
+      | null = null;
+
+    if (onduleurCandidat) {
+      // CORRECTION: Vérifications avec bonnes grandeurs
+
+      // 1. Voc à froid < tension DC max (sécurité absolue)
+      const vocOk = vocChampFroidCalc < onduleurCandidat.tensionDCMax;
+
+      // 2. Vmpp à chaud > MPPT min (éviter décrochage)
+      const vmppMinOk = vmppChampChaud > onduleurCandidat.tensionMPPTMin;
+
+      // 3. CORRECTION: Vmpp à froid < MPPT max (éviter dépassement plage)
+      // Pas vmppNominal! À froid, Vmpp est plus haute.
+      const vmppMaxOk = vmppChampFroid < onduleurCandidat.tensionMPPTMax;
+      const vmppPlageOk = vmppMinOk && vmppMaxOk;
+
+      // 4. Isc avec facteur sécurité < courant DC max
+      const iscOk = iscChamp <= onduleurCandidat.courantDCMax;
+
+      // 5. CORRECTION: Puissance DC max comparée à puissance STC (pas max froid)
+      // Si puissanceDCMax non spécifiée, utiliser puissanceAC * 1.1 (convention moderne)
+      const puissanceDCMaxOnduleur =
+        onduleurCandidat.puissanceDCMax ??
+        onduleurCandidat.puissanceACNominale * 1.1;
+      const pdcOk = puissanceChampsWcSTC <= puissanceDCMaxOnduleur;
+
+      // 6. Puissance AC nominale >= charge continue
+      const chargeOk =
+        onduleurCandidat.puissanceACNominale >= puissanceChargeContinue;
+
+      // 7. Capacité surcharge pour démarrage moteurs
+      const puissanceSurcharge =
+        onduleurCandidat.puissanceSurcharge ??
+        onduleurCandidat.puissanceACNominale * 1.5;
+      const surchargeOk =
+        puissanceDemarrage != null
+          ? puissanceSurcharge >= puissanceDemarrage
+          : null;
+
+      verificationsCompatibilite = {
+        vocSousLimite: vocOk,
+        vmppAuDessusMinimum: vmppMinOk,
+        vmppDansPlageMPPT: vmppPlageOk,
+        iscSousLimite: iscOk,
+        puissanceDCOk: pdcOk,
+        chargeACOk: chargeOk,
+        surchargeOk,
+      };
+
+      // Messages d'erreur/avertissement
+      if (!vocOk) {
+        erreurs.push(
+          `CRITIQUE: Voc champ à froid (${vocChampFroidCalc.toFixed(1)} V) ≥ ` +
+            `tensionDCMax onduleur (${onduleurCandidat.tensionDCMax} V) - RISQUE DESTRUCTION. ` +
+            `Ns doit être ≤ ${Math.floor(
+              onduleurCandidat.tensionDCMax / vocModuleFroid
+            )}.`
+        );
+      }
+      if (!vmppMinOk) {
+        avertissements.push(
+          `Vmpp champ à chaud (${vmppChampChaud.toFixed(1)} V) < ` +
+            `tensionMPPTMin (${onduleurCandidat.tensionMPPTMin} V) - Risque décrochage MPPT hiver. ` +
+            `Ns doit être ≥ ${Math.ceil(
+              onduleurCandidat.tensionMPPTMin / vmppModuleChaud
+            )}.`
+        );
+      }
+      if (!vmppMaxOk) {
+        erreurs.push(
+          `Vmpp champ à froid (${vmppChampFroid.toFixed(1)} V) > ` +
+            `tensionMPPTMax (${onduleurCandidat.tensionMPPTMax} V) - MPPT hors plage hiver. ` +
+            `Ns doit être ≤ ${Math.floor(
+              onduleurCandidat.tensionMPPTMax / vmppModuleFroid
+            )}.`
+        );
+      }
+      if (!iscOk) {
+        erreurs.push(
+          `Isc champ avec marge sécurité (${iscChamp.toFixed(
+            2
+          )} A) > courantDCMax ` +
+            `(${onduleurCandidat.courantDCMax} A) - Surcharge entrée DC. ` +
+            `Np max = ${Math.floor(
+              onduleurCandidat.courantDCMax /
+                (Isc * facteurIrradiance * FACTEUR_SECURITE_COURANT)
+            )}.`
+        );
+      }
+      if (!pdcOk) {
+        avertissements.push(
+          `Puissance PV STC (${puissanceChampsWcSTC} W) > puissanceDCMax onduleur ` +
+            `(${puissanceDCMaxOnduleur} W) - Clipping ou surcharge DC possible.`
+        );
+      }
+      if (!chargeOk) {
+        erreurs.push(
+          `Puissance AC onduleur (${onduleurCandidat.puissanceACNominale} W) < ` +
+            `charge continue (${puissanceChargeContinue} W) - Sous-dimensionnement AC.`
+        );
+      }
+      if (surchargeOk === false) {
+        avertissements.push(
+          `Capacité surcharge (${puissanceSurcharge} W) < démarrage requis (${puissanceDemarrage} W) - ` +
+            `Risque blocage démarrage moteur.`
+        );
+      }
     }
+
+    return {
+      appareil: "onduleur",
+      typeSysteme,
+      rappelVocStringFroid: vocStringFroid || null,
+      grandeursChamp: {
+        tCellMin: Math.round(tCellMin * 10) / 10,
+        tCellMax: Math.round(tCellMax * 10) / 10,
+        vocChampFroid: Math.round(vocChampFroidCalc * 100) / 100,
+        vmppChampChaud: Math.round(vmppChampChaud * 100) / 100,
+        vmppChampFroid: Math.round(vmppChampFroid * 100) / 100, // AJOUT
+        vmppNominal: Math.round(vmppNominal * 100) / 100,
+        iscChamp: Math.round(iscChamp * 1000) / 1000,
+        puissanceChampsWcSTC, // AJOUT: puissance STC
+        puissanceChampsWcMax, // AJOUT: puissance max froid
+      },
+      dimensionnement: {
+        puissanceACMin,
+        puissanceACRecommandee,
+        puissanceACMax,
+        ratioDCAC: Math.round(ratioDCAC * 1000) / 1000,
+        evaluationRatio,
+      },
+      verification: onduleurCandidat
+        ? {
+            compatible: erreurs.length === 0,
+            details: verificationsCompatibilite!,
+          }
+        : null,
+      avertissements,
+      erreurs,
+    };
+  }
 }
 
 export const puissanceCretePVService = new PuissanceCretePVService();
