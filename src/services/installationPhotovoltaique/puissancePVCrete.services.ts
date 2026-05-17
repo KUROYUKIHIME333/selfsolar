@@ -189,19 +189,15 @@ export class PuissanceCretePVService {
       noct,
     } = panneauParametres;
 
-    const { temperatureMin, temperatureMax } = temperaturesAttendue;
     const noctModule = noct ?? 45;
 
-    // --- Calcul températures de cellule ---
-    // Condition froide: faible irradiance (aube/crépuscule) → Voc max
-    const tCellMin = temperatureCellule(
-      temperatureMin,
-      irradianceMin,
-      noctModule
-    );
-    // Condition chaude: irradiance max → Vmpp min, P min
-    const tCellMax = temperatureCellule(
-      temperatureMax,
+    /**
+     * Calcul températures de cellule
+     * Condition froide: faible irradiance (aube/crépuscule) → Voc max
+     * Condition chaude: irradiance max → Vmpp min, P min
+     */
+    const tCell = temperatureCelluleMinMax(
+      temperaturesAttendue,
       irradianceMax,
       noctModule
     );
