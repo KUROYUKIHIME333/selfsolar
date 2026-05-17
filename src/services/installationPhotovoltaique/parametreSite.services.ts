@@ -25,15 +25,15 @@ import {
  * H(i_opt)_m est en Wh/m²/mois → converti en PSH (kWh/m²/j).
  */
 const fetchMRcalc = async (
-  lat: number,
-  lon: number
+  localisation: Localisation
 ): Promise<{
   monthly: MRcalcMonthly[];
   angleOptimal: number | undefined;
 }> => {
+  const { lat, long } = localisation;
   const url =
     `${PVGIS_BASE}/MRcalc` +
-    `?lat=${lat}&lon=${lon}` +
+    `?lat=${lat}&lon=${long}` +
     `&optimalinclination=1` + // inclinaison optimale annuelle
     `&outputformat=json` +
     `&browser=0`;
@@ -60,17 +60,17 @@ const fetchMRcalc = async (
  * ce qui représente ~150 000 lignes de données (coût réseau significatif).
  */
 const fetchTMY = async (
-  lat: number,
-  lon: number
+  localisation: Localisation
 ): Promise<{
   T_min: number;
   T_max: number;
   windSpeed_mean: number;
   windSpeed_max: number;
 }> => {
+  const { lat, long } = localisation;
   const url =
     `${PVGIS_BASE}/tmy` +
-    `?lat=${lat}&lon=${lon}` +
+    `?lat=${lat}&lon=${long}` +
     `&outputformat=json` +
     `&browser=0`;
 
@@ -178,13 +178,11 @@ export class ParametresSiteService {
     localisation: Localisation,
     targetYear: number = DEFAULT_TARGET_YEAR
   ): Promise<PVGISDatasResult> {
-    const { lat, long: lon } = localisation;
-
     try {
       // Deux appels en parallèle
       const [mrcalcResult, tmyResult] = await Promise.all([
-        fetchMRcalc(lat, lon),
-        fetchTMY(lat, lon),
+        fetchMRcalc(localisation),
+        fetchTMY(localisation),
       ]);
 
       const { monthly, angleOptimal } = mrcalcResult;
@@ -253,7 +251,7 @@ export class ParametresSiteService {
       // Fallback conservateur basé sur la latitude
       // Valeurs issues de la littérature (Agence Internationale de l'Énergie,
       // Atlas Solaire de l'Afrique). Intentionnellement pessimistes.
-      const latAbs = Math.abs(lat);
+      const latAbs = Math.abs(localisation?.lat);
       let pshFallback: number;
 
       if (latAbs < 10) pshFallback = 4.5;
@@ -267,7 +265,7 @@ export class ParametresSiteService {
       else pshFallback = 1.8; // boréal/austral
 
       console.warn(
-        `[PVGISDatas] Fallback : PSH=${pshFallback} kWh/m²/j, lat=${lat}`
+        `[PVGISDatas] Fallback : PSH=${pshFallback} kWh/m²/j, lat=${localisation?.lat}`
       );
 
       return {
