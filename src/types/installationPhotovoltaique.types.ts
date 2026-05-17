@@ -276,10 +276,84 @@ export interface ModeleBatterie {
   v: number;
   ah: number;
   desc?: string;
-} 
+}
 
 // REQUETE/RESPONSE API
+/** Résultat principal retourné par PVGISDatas */
+export interface PVGISDatasResult {
+  // ── Irradiation / PSH ──────────────────────────────────────────────────────
+  /** PSH du mois défavorable, avec inclinaison optimale (kWh/m²/j) */
+  PSH: number;
+  /** PSH du mois favorable, avec inclinaison optimale (kWh/m²/j) */
+  PSH_max: number;
+  /** Alias PSH (compatibilité ancienne interface) */
+  G_moy: number;
+  /** Alias PSH_max (compatibilité ancienne interface) */
+  G_max: number;
 
+  // ── Températures (avec correction climatique) ──────────────────────────────
+  /** Température minimale (TMY + correction GIEC) en °C */
+  T_min: number;
+  /** Température maximale (TMY + correction GIEC) en °C */
+  T_max: number;
+
+  // ── Vent (TMY) ─────────────────────────────────────────────────────────────
+  /** Vitesse du vent moyenne annuelle à 10 m (m/s) */
+  windSpeed_mean: number;
+  /** Vitesse du vent maximale horaire relevée dans le TMY (m/s) */
+  windSpeed_max: number;
+
+  // ── Métadonnées ────────────────────────────────────────────────────────────
+  /** Inclinaison optimale calculée par PVGIS (°) */
+  angleOptimalPVGIS?: number;
+  /** Numéro du mois défavorable (1-12) */
+  moisDefavorable?: string;
+  /** Numéro du mois favorable (1-12) */
+  moisSurfavorable?: string;
+  /** Indique si les valeurs viennent du fallback (PVGIS injoignable) */
+  isFallback: boolean;
+  /** Correction climatique appliquée (informatif) */
+  climateCorrection?: {
+    dT: number;
+    dGPercent: number;
+    targetYear: number;
+    fraction: number;
+  };
+}
+
+export interface MRcalcMonthly {
+  year: number;
+  month: number;
+  "H(i_opt)_m": number; // Wh/m²/mois, plan optimal
+  "H(i)_m": number; // Wh/m²/mois, plan fixe défini
+  T2m: number; // °C, moyenne mensuelle
+}
+
+export interface MRcalcResponse {
+  inputs?: {
+    plane?: {
+      "fixed(i_opt)"?: {
+        slope?: { value?: number };
+      };
+    };
+  };
+  outputs?: {
+    monthly?: MRcalcMonthly[];
+  };
+}
+
+export interface TMYHourly {
+  time: string; // "YYYYMMDDhhmm"
+  T2m: number; // °C
+  WS10m: number; // m/s
+  "G(h)": number; // W/m², irradiance horizontale
+}
+
+export interface TMYResponse {
+  outputs?: {
+    tmy_hourly?: TMYHourly[];
+  };
+}
 export interface DimensionnementPVRequest {
   // Localisation et site
   localisation: Localisation;
@@ -384,7 +458,7 @@ export interface ResultatOnduleur {
     iscChamp: number; // A
     //puissanceChampsWc: number; // W
     puissanceChampsWcSTC: number;
-    puissanceChampsWcMax : number;
+    puissanceChampsWcMax: number;
   };
   dimensionnement: {
     puissanceACMin: number;
