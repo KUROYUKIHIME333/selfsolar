@@ -42,7 +42,7 @@ export class BilanConsommationService {
 
     // Facteur de foisonnement global selon NFC 15-100
     // Kf tient compte de la non-simultanéité entre usages différents
-    const facteurFoisonnement = kf ?? 0.8; // Valeur standard résidentiel
+    const facteurFoisonnement = kf ?? 1; // Valeur standard résidentiel
 
     const P_appelée = P_crête_charge * facteurFoisonnement;
 
