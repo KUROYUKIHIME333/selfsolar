@@ -24,21 +24,18 @@ import {
  * Pour la temperature min, on suppose le matin, avec le froid de la nuit
  */
 const temperatureCelluleMinMax = (
-  tAmbientMin: number,
-  tAmbientMax: number,
+  tAmbient: TemperaturesMinMax,
   irradianceMax: number, //G
   noct: number // Temperature noct de la cellule)
 ): {
   Tmin: number;
   Tmax: number;
 } => {
-  const tCellMax: number =
-    tAmbientMax + ((noct - T_AMB_NOCT) * irradianceMax) / IRRADIANCE_NOCT;
-  const tCellMin: number = tAmbientMin - 2;
+  const { temperatureMin: tAmbientMin, temperatureMax: tAmbientMax } = tAmbient;
 
   return {
-    Tmin: tCellMin,
-    Tmax: tCellMax,
+    Tmin: tAmbientMin - 2,
+    Tmax: tAmbientMax + ((noct - T_AMB_NOCT) * irradianceMax) / IRRADIANCE_NOCT,
   };
 };
 
