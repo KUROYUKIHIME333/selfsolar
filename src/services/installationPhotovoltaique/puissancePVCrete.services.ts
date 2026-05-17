@@ -17,19 +17,22 @@ import {
   FACTEUR_SECURITE_COURANT,
   T_STC,
 } from "../../utils/constantesPhysiques.utils.js";
+import { PVGIS_BASE } from "../../utils/meteoDatasAndConstantes.utils.js";
 
 /**
  * Calcule la température de cellule selon modèle NOCT (p.4-5 guide)
  * Formule: T_cell = T_amb + (NOCT - 20) × G / 800
  * Pour la temperature min, on suppose le matin, avec le froid de la nuit
  */
-
 const temperatureCelluleMinMax = (
   tAmbientMin: number,
   tAmbientMax: number,
   irradianceMax: number, //G
   noct: number // Temperature noct de la cellule)
-) => {
+): {
+  Tmin: number;
+  Tmax: number;
+} => {
   const tCellMax: number =
     tAmbientMax + ((noct - T_AMB_NOCT) * irradianceMax) / IRRADIANCE_NOCT;
   const tCellMin: number = tAmbientMin - 2;
@@ -44,8 +47,9 @@ const temperatureCelluleMinMax = (
  * Déterminer la tension minimisant les pertes P = RI² (J'en déduit que U = RI),
  * Si on augmente U, on diminue I pour la meme puissance,
  * mais il faut garder la praticité en tete
+ * TODO: Je dois changer et pauffiner ceci après
  */
-
+//WARNING:
 const tensionSystemePV = (puissanceCretePV: number): number => {
   let tensionSystem: number = 2;
 
@@ -70,16 +74,22 @@ const tensionSystemePV = (puissanceCretePV: number): number => {
 
   return tensionSystem;
 };
+//WARNING:
 
 /**
  * Service de dimensionnement de la puissance crête PV et des composants
  * Conforme IEC 61215 (modules), IEC 62109 (onduleurs), NF EN 50549 (injection)
  */
 export class PuissanceCretePVService {
-  async performanceRatio(
-    typeInstallation: TypeInstallationPourPertes | string,
-    localisation: Localisation
-  ): Promise<{ pertesTotales: number; PR: number }> {
+  /**
+   * Détermination du ratio de performance
+   * Il sera déterminer par rapport à la nature du systeme
+   * C'est bien sur améliorable par la suite
+   */
+  performanceRatio(typeInstallation: TypeInstallationPourPertes | string): {
+    pertesTotales: number;
+    PR: number;
+  } {
     // Pertes système selon qualité installation (p.4 guide)
     // Standard: 18-22% pertes → PR = 0.78-0.82
     let pertes_system: number = 18; // Standard
@@ -88,9 +98,6 @@ export class PuissanceCretePVService {
       case "HAUTE_QUALITE":
         pertes_system = 10;
         break; // PR ~0.90
-      case "STANDARD":
-        pertes_system = 18;
-        break; // PR ~0.82
       case "POUSSIEREUX":
         pertes_system = 22;
         break; // PR ~0.78
@@ -105,51 +112,19 @@ export class PuissanceCretePVService {
         break; // PR ~0.75
     }
 
-    try {
-      // Appel PVGIS pour obtenir PR réel du site
-      const URL = `${
-        process.env.PVGIS_URL || "https://re.jrc.ec.europa.eu/api/v5.2/"
-      }PVcalc?lat=${localisation.lat}&lon=${
-        localisation.long
-      }&peakpower=1&loss=${pertes_system}&optimalangles=1&outputformat=json`;
+    const performance_ratio = (100 - pertes_system) / 100;
 
-      const response = await fetch(URL, { signal: AbortSignal.timeout(15000) });
-
-      if (!response.ok) throw new Error(`PVGIS erreur HTTP ${response.status}`);
-
-      const datas: any = await response.json();
-
-      if (datas.outputs?.totals?.fixed?.l_total !== undefined) {
-        const total_pourcentage_pertes = datas.outputs.totals.fixed.l_total;
-        const performance_ratio = 1 - total_pourcentage_pertes / 100;
-
-        return {
-          pertesTotales: total_pourcentage_pertes,
-          PR: performance_ratio,
-        };
-      }
-
-      throw new Error("Structure réponse PVGIS inattendue");
-    } catch (error: any) {
-      console.warn(
-        "PVGIS PR indisponible, utilisation estimation:",
-        error.message
-      );
-
-      // Fallback: PR estimé basé sur pertes configurées
-      const PR_fallback = 1 - pertes_system / 100;
-      return {
-        pertesTotales: pertes_system, //en %
-        PR: PR_fallback,
-      };
-    }
+    return {
+      pertesTotales: pertes_system,
+      PR: performance_ratio,
+    };
   }
 
   /**
    * Calcule la puissance crête PV nécessaire
    *
-   * Standard: P_PV = E_charge / (PSH × PR)
-   * Pompage: P_PV = E_hydraulique / (PSH × η_onduleur × PR) (p.4-5 guide)
+   * Standard: Pc = E_charge / (PSH × PR)
+   * Pompage: Pc = E_hydraulique / (PSH × η_onduleur × PR) (p.4-5 guide)
    */
   puissanceCretePV(
     pompageSolaire: boolean,
@@ -159,10 +134,10 @@ export class PuissanceCretePVService {
     pompageCaracteristiques: PompageSolaireCaracteristiques | null | undefined,
     rendementOnduleurMTTP: number | null | undefined
   ): number {
-    let P_PV: number;
+    let Pc: number;
 
     if (pompageSolaire && pompageCaracteristiques) {
-      // Dimensionnement pompage solaire : E_hydraulique = ρ × g × Q × H_man / (3600 × η_pompe)
+      // Dimensionnement pompage solaire, on prend la formule E_hydraulique = ρ × g × Q × H_man / (3600 × η_pompe)
       const {
         masseVolumique, // kg/metre cube
         accelerationPesanteur, // m/s²
@@ -179,16 +154,18 @@ export class PuissanceCretePVService {
 
       // WARNING: CORRECTION PR en pompage direct sans batterie tampon
       // Les pertes sont plus élevées: démarrage/stop fréquent, rendement pompe variable.
-      // Selon des guides techniques, PR_pompage = PR × 0.90 (perte variabilité significative) au lieu de 0.95.
+      // Selon des guides techniques que j'avait consulté (j'ai oublié lesquels précisement), PR_pompage = PR × 0.90 (perte variabilité significative) au lieu de 0.95.
       const PR_pompage = PR * 0.9;
-      P_PV = E_hydraulique / (PSH * rendementOnduleur * PR_pompage);
+      Pc = E_hydraulique / (PSH * rendementOnduleur * PR_pompage);
     } else {
-      // Dimensionnement standard (p.4 guide)
-      // P_PV [Wc] = E_charge [Wh/j] / (PSH [h] × PR)
-      P_PV = energieCrete / (PSH * PR);
+      // Dimensionnement standard (p.4 de mon guide)
+      // Pc [en Wc] = E_charge [en Wh/j] / (PSH [en h] × PR)
+      Pc = energieCrete / (PSH * PR);
     }
 
-    return Math.ceil(P_PV); // Arrondi supérieur pour sécurité
+    return Math.ceil(Pc);
+    // Arrondi supérieur pour sécurité
+    // et aussi pas se faire chier avec trop de virgules ou autres
   }
 
   /**
