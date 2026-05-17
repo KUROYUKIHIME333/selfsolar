@@ -17,7 +17,6 @@ import {
   FACTEUR_SECURITE_COURANT,
   T_STC,
 } from "../../utils/constantesPhysiques.utils.js";
-import { PVGIS_BASE } from "../../utils/meteoDatasAndConstantes.utils.js";
 
 /**
  * Calcule la température de cellule selon modèle NOCT (p.4-5 guide)
