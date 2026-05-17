@@ -10,60 +10,66 @@ import type {
   ResultatModulesPV,
   ResultatOnduleur,
 } from "../../types/installationPhotovoltaique.types.js";
-
-// Constantes physiques et normatives
-const IRRADIANCE_NOCT = 800; // W/m² - Condition NOCT (p.5 guide)
-const T_AMB_NOCT = 20; // °C - Température ambiante référence NOCT
-const IRRADIANCE_STC = 1000; // W/m² - Standard Test Conditions
-const FACTEUR_SECURITE_COURANT = 1.25; // Facteur IEC 62109 pour tolérance + vieillissement
-const T_STC = 25;
+import {
+  IRRADIANCE_NOCT,
+  T_AMB_NOCT,
+  IRRADIANCE_STC,
+  FACTEUR_SECURITE_COURANT,
+  T_STC,
+} from "../../utils/constantesPhysiques.utils.js";
 
 /**
  * Calcule la température de cellule selon modèle NOCT (p.4-5 guide)
  * Formule: T_cell = T_amb + (NOCT - 20) × G / 800
+ * Pour la temperature min, on suppose le matin, avec le froid de la nuit
  */
 
-const temperatureCellule=(
-  tAmbient: number,
-  irradiance: number, //G
-  noct: number, // Temperature noct de la cellule
-): number => {
+const temperatureCelluleMinMax = (
+  tAmbientMin: number,
+  tAmbientMax: number,
+  irradianceMax: number, //G
+  noct: number // Temperature noct de la cellule)
+) => {
+  const tCellMax: number =
+    tAmbientMax + ((noct - T_AMB_NOCT) * irradianceMax) / IRRADIANCE_NOCT;
+  const tCellMin: number = tAmbientMin - 2;
 
-  const tCell: number = tAmbient + ((noct - T_AMB_NOCT)*irradiance)/(IRRADIANCE_NOCT);
-
-  return tCell;
-}
+  return {
+    Tmin: tCellMin,
+    Tmax: tCellMax,
+  };
+};
 
 /**
  * Déterminer la tension minimisant les pertes P = RI² (J'en déduit que U = RI),
- * Si on augmente U, on diminue I pour la meme puissance, 
+ * Si on augmente U, on diminue I pour la meme puissance,
  * mais il faut garder la praticité en tete
  */
 
 const tensionSystemePV = (puissanceCretePV: number): number => {
-  let tensionSystem: number = 2 ;
+  let tensionSystem: number = 2;
 
   if (puissanceCretePV > 2000 && puissanceCretePV < 5000) {
-    tensionSystem = 48
+    tensionSystem = 48;
   }
   if (puissanceCretePV > 5000 && puissanceCretePV < 15000) {
-    tensionSystem = 120
+    tensionSystem = 120;
   }
   if (puissanceCretePV > 15000 && puissanceCretePV < 50000) {
-    tensionSystem = 240
+    tensionSystem = 240;
   }
   if (puissanceCretePV > 50000 && puissanceCretePV < 500000) {
-    tensionSystem = 600
+    tensionSystem = 600;
   }
   if (puissanceCretePV > 500000 && puissanceCretePV < 1000000) {
-    tensionSystem = 1000
+    tensionSystem = 1000;
   }
   if (puissanceCretePV > 1000000) {
-    tensionSystem = 1500
+    tensionSystem = 1500;
   }
 
-  return tensionSystem
-}
+  return tensionSystem;
+};
 
 /**
  * Service de dimensionnement de la puissance crête PV et des composants
@@ -218,29 +224,27 @@ export class PuissanceCretePVService {
     const tCellMin = temperatureCellule(
       temperatureMin,
       irradianceMin,
-      noctModule,
+      noctModule
     );
     // Condition chaude: irradiance max → Vmpp min, P min
     const tCellMax = temperatureCellule(
       temperatureMax,
       irradianceMax,
-      noctModule,
+      noctModule
     );
 
     // --- Tensions corrigées en température ---
-    // β en valeur absolue pour eviter les erreurs de signe 
+    // β en valeur absolue pour eviter les erreurs de signe
     // Et aussi en decimal pas pourcentage (ex: -0.35%/°C → 0.0035 /°C)
-    const pratiqueBeta = (0 - Math.abs(coeffTempTension))/100; // Forcer négatif pour tension on ne sait jamais ce que le front enverra, pas confiance
+    const pratiqueBeta = (0 - Math.abs(coeffTempTension)) / 100; // Forcer négatif pour tension on ne sait jamais ce que le front enverra, pas confiance
 
-    const tensionPanneauMax = tensionVoc * (1 + (pratiqueBeta*(tCellMin - T_STC))); 
-    const tensionPanneauMin = tensionMPP * (1 + (pratiqueBeta*(tCellMax - T_STC)));
+    const tensionPanneauMax =
+      tensionVoc * (1 + pratiqueBeta * (tCellMin - T_STC));
+    const tensionPanneauMin =
+      tensionMPP * (1 + pratiqueBeta * (tCellMax - T_STC));
 
     // Tension système pv
     const tensionDCSystemPV = tensionSystemePV(puissanceCretePV);
-
-
-
-
 
     // // --- Détermination Ns (modules en série) ---
     // let Ns_min: number;
