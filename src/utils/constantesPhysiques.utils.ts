@@ -79,3 +79,10 @@ export const CALIBRES_DISJONCTEURS = [
 ] as const;
 
 export const PALIERS_PC_BAS_TENSION8SYSTEME_PV = 500;
+
+// Constantes physiques et normatives
+export const IRRADIANCE_NOCT = 800; // W/m² - Condition NOCT (p.5 guide)
+export const T_AMB_NOCT = 20; // °C - Température ambiante référence NOCT
+export const IRRADIANCE_STC = 1000; // W/m² - Standard Test Conditions
+export const FACTEUR_SECURITE_COURANT = 1.25; // Facteur IEC 62109 pour tolérance + vieillissement
+export const T_STC = 25;
