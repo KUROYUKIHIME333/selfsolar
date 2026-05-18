@@ -21,6 +21,8 @@ export type TypeInstallationPourPertes =
 
 export type TypeSystemePV = "on-grid" | "off-grid" | "hybride";
 
+export type TypeClimat = "chaud" | "froid";
+
 // PARAMETRES PANNEAU PV (STC)
 
 export type ParametresSTCPanneau = {
