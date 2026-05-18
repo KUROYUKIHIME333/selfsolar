@@ -208,7 +208,6 @@ export class PuissanceCretePVService {
    * Pour systèmes batterie: utiliser tension système (12/24/48/96V)
    */
   modulesPV(
-    typeClimat: TypeClimat,
     panneauParametres: ParametresSTCPanneau,
     puissanceCretePV: number,
     temperaturesAttendue: TemperaturesMinMax,
