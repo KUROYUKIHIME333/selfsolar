@@ -31,12 +31,12 @@ describe("BilanConsommationService", () => {
 
   // --- Tests pour puissanceAppelee ---
   describe("puissanceAppelee", () => {
-    it("doit appliquer le facteur de foisonnement par défaut (0.8)", () => {
+    it("doit appliquer le facteur de foisonnement par défaut (1)", () => {
       // P_crête_charge = (100*6/24) + (150*4/24) + (200*24/24)
       // = 25 + 25 + 200 = 250W
       // P_appelée = 250 * 0.8 = 200W
       const result = service.puissanceAppelee(mockEquipements, null);
-      expect(result).toBe(200);
+      expect(result).toBe(250);
     });
 
     it("doit appliquer un facteur kf personnalisé (ex: 1.0)", () => {
