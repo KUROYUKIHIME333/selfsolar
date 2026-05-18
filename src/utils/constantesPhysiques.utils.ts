@@ -1,3 +1,4 @@
+import { execPath } from "node:process";
 import type { MethodePose } from "../types/installationPhotovoltaique.types.js";
 
 export const RESISTIVITE = {
@@ -86,3 +87,7 @@ export const T_AMB_NOCT = 20; // °C - Température ambiante référence NOCT
 export const IRRADIANCE_STC = 1000; // W/m² - Standard Test Conditions
 export const FACTEUR_SECURITE_COURANT = 1.25; // Facteur IEC 62109 pour tolérance + vieillissement
 export const T_STC = 25;
+
+export const A_REF = 20;
+export const T_REF = 20;
+export const T_REF_Noct = 20;

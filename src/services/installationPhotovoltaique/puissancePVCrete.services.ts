@@ -17,6 +17,9 @@ import {
   IRRADIANCE_STC,
   FACTEUR_SECURITE_COURANT,
   T_STC,
+  A_REF,
+  T_REF,
+  T_REF_Noct,
 } from "../../utils/constantesPhysiques.utils.js";
 
 /**
@@ -46,7 +49,6 @@ const temperatureCelluleMinMax = (
  * mais il faut garder la praticité en tete
  * TODO: Je dois changer et pauffiner ceci après
  */
-//WARNING:
 const tensionSystemePV = (puissanceCretePV: number): number => {
   let tensionSystem: number = 2;
 
@@ -71,9 +73,40 @@ const tensionSystemePV = (puissanceCretePV: number): number => {
 
   return tensionSystem;
 };
-//WARNING:
+// WARNING:
 
+/**
+ * IDEA: En fonction du climat (chaud, froid, tempéré, ...) on a differentes priorités
+ * En climat chaud, on va chercher à se rapprocher de N_panneaux_par_string_min
+ * En climat froid, on va chercher à se rapprocher de N_panneaux_par_string_max
+ *
+ * Ce facteur nous permet de représenter le climat et de choisir N_panneaux_par_string EN FONCTION
+ *
+ * WARNING: C'est une petites lubie personnelle, et non un outils normalisé
+ * WARNING: Mais c'est mon api, donc je fait ce que je veux
+ */
 
+const panneauxParStringClimat = (
+  temperaturesAttendue: TemperaturesMinMax,
+  Nmin: number,
+  Nmax: number
+) => {
+  const { temperatureMin: Tmin, temperatureMax: Tmax } = temperaturesAttendue;
+
+  const temperature_moyenne: number = (Tmax + Tmin) / 2; // Tmoy
+  const amplitude_thermique: number = Tmax - Tmin; // A
+  const variable_climatique: number =
+    (T_REF_Noct - temperature_moyenne) / (amplitude_thermique - T_REF_Noct); // X
+  const sensibilite_climatique: number =
+    1 +
+    amplitude_thermique / A_REF +
+    (Math.abs(Tmax - T_REF_Noct) + Math.abs(Tmin - T_REF_Noct)) / (2 * T_REF); // k
+
+  const facteur_climatique: number =
+    1 / (1 + Math.exp(-sensibilite_climatique * variable_climatique)); // Fclim = 1 / (1 + exp(-kX))
+
+  return Nmin + facteur_climatique * (Nmax - Nmin);
+};
 
 /**
  * Service de dimensionnement de la puissance crête PV et des composants
@@ -182,7 +215,7 @@ export class PuissanceCretePVService {
     irradianceMin: number,
     irradianceMax: number,
     tensionSystemeBatterie: number | null | undefined,
-    contraintesOnduleur?: ContraintesOnduleurModules | null,
+    contraintesOnduleur?: ContraintesOnduleurModules | null
   ): ResultatModulesPV {
     const {
       puissanceCreteModule,
@@ -233,23 +266,21 @@ export class PuissanceCretePVService {
     // Tension système pv
     const tension_DC_system_PV = tensionSystemePV(puissanceCretePV);
 
-    let N_panneaux_par_string: number;
+    const N_panneaux_par_string_max: number = Math.ceil(
+      tension_DC_system_PV / tension_panneau_min
+    );
+    const N_panneaux_par_string_min: number = Math.floor(
+      tension_DC_system_PV / tension_panneau_max
+    );
 
-    const N_panneaux_par_string_max: number = Math.ceil(tension_DC_system_PV / tension_panneau_min);
-    const N_panneaux_par_string_min: number = Math.floor(tension_DC_system_PV / tension_panneau_max);
-
-    if (typeClimat === "chaud") {
-      N_panneaux_par_string = tension_DC_system_PV / tensionMPP;
-    }
-
-    if (typeClimat === "froid") {
-      
-    }
-
-
+    const N_panneaux_par_string: number = panneauxParStringClimat(
+      temperaturesAttendue,
+      N_panneaux_par_string_min,
+      N_panneaux_par_string_max
+    );
 
     // Détermination Ns (modules en série)
-    
+
     // let Ns_min: number;
     // let Ns_max: number;
     // let configuration: "haute_tension" | "basse_tension";
