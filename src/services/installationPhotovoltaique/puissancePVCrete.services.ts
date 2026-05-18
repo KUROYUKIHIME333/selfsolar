@@ -1,6 +1,7 @@
 import type {
   TypeInstallationPourPertes,
   Localisation,
+  TypeClimat,
   PompageSolaireCaracteristiques,
   ParametresSTCPanneau,
   TemperaturesMinMax,
@@ -71,6 +72,8 @@ const tensionSystemePV = (puissanceCretePV: number): number => {
   return tensionSystem;
 };
 //WARNING:
+
+
 
 /**
  * Service de dimensionnement de la puissance crête PV et des composants
@@ -172,13 +175,14 @@ export class PuissanceCretePVService {
    * Pour systèmes batterie: utiliser tension système (12/24/48/96V)
    */
   modulesPV(
+    typeClimat: TypeClimat,
     panneauParametres: ParametresSTCPanneau,
     puissanceCretePV: number,
     temperaturesAttendue: TemperaturesMinMax,
     irradianceMin: number,
     irradianceMax: number,
     tensionSystemeBatterie: number | null | undefined,
-    contraintesOnduleur?: ContraintesOnduleurModules | null
+    contraintesOnduleur?: ContraintesOnduleurModules | null,
   ): ResultatModulesPV {
     const {
       puissanceCreteModule,
@@ -189,33 +193,63 @@ export class PuissanceCretePVService {
       noct,
     } = panneauParametres;
 
-    const noctModule = noct ?? 45;
+    const noct_module = noct ?? 45;
 
     /**
      * Calcul températures de cellule
      * Condition froide: faible irradiance (aube/crépuscule) → Voc max
      * Condition chaude: irradiance max → Vmpp min, P min
      */
-    const tCell = temperatureCelluleMinMax(
+    const t_cell = temperatureCelluleMinMax(
       temperaturesAttendue,
       irradianceMax,
-      noctModule
+      noct_module
     );
 
-    // --- Tensions corrigées en température ---
-    // β en valeur absolue pour eviter les erreurs de signe
-    // Et aussi en decimal pas pourcentage (ex: -0.35%/°C → 0.0035 /°C)
+    /**
+     * Tensions corrigées en température
+     * β en valeur absolue pour eviter les erreurs de signe
+     * Et aussi en decimal pas pourcentage (ex: -0.35%/°C → 0.0035 /°C)
+     */
     const pratiqueBeta = (0 - Math.abs(coeffTempTension)) / 100; // Forcer négatif pour tension on ne sait jamais ce que le front enverra, pas confiance
+    const tension_panneau_max =
+      tensionVoc * (1 + pratiqueBeta * (t_cell.Tmin - T_STC));
+    const tension_panneau_min =
+      tensionMPP * (1 + pratiqueBeta * (t_cell.Tmax - T_STC));
 
-    const tensionPanneauMax =
-      tensionVoc * (1 + pratiqueBeta * (tCellMin - T_STC));
-    const tensionPanneauMin =
-      tensionMPP * (1 + pratiqueBeta * (tCellMax - T_STC));
+    /**
+     * Puissances corrigées en température
+     * γ en valeur absolue pour eviter les erreurs de signe
+     * Et aussi en decimal pas pourcentage (ex: -0.35%/°C → 0.0035 /°C)
+     * WARNING: Ici c'est pas encore bien fait comme logique
+     * WARNING: Je dois utiliser une logique basée sur les couples G et T_cell, nous le ferons après
+     */
+    const pratiqueGamma = (0 - Math.abs(coeffTempPuissance)) / 100;
+    const puissance_panneau_max =
+      puissanceCreteModule * (1 + pratiqueGamma * (t_cell.Tmin - T_STC));
+    const puissance_panneau_min =
+      puissanceCreteModule * (1 + pratiqueGamma * (t_cell.Tmax - T_STC));
 
     // Tension système pv
-    const tensionDCSystemPV = tensionSystemePV(puissanceCretePV);
+    const tension_DC_system_PV = tensionSystemePV(puissanceCretePV);
 
-    // // --- Détermination Ns (modules en série) ---
+    let N_panneaux_par_string: number;
+
+    const N_panneaux_par_string_max: number = Math.ceil(tension_DC_system_PV / tension_panneau_min);
+    const N_panneaux_par_string_min: number = Math.floor(tension_DC_system_PV / tension_panneau_max);
+
+    if (typeClimat === "chaud") {
+      N_panneaux_par_string = tension_DC_system_PV / tensionMPP;
+    }
+
+    if (typeClimat === "froid") {
+      
+    }
+
+
+
+    // Détermination Ns (modules en série)
+    
     // let Ns_min: number;
     // let Ns_max: number;
     // let configuration: "haute_tension" | "basse_tension";
@@ -401,16 +435,16 @@ export class PuissanceCretePVService {
       noct,
     } = panneauParametres;
 
-    const noctModule = noct ?? 45;
+    const noct_module = noct ?? 45;
     const { temperatureMin, temperatureMax } = temperaturesAttendue;
 
     // Recalcul ou réutilisation températures
     const tCellMin =
       _temperaturesCellule?.tCellMin ??
-      temperatureCellule(temperatureMin, 200, noctModule);
+      temperatureCellule(temperatureMin, 200, noct_module);
     const tCellMax =
       _temperaturesCellule?.tCellMax ??
-      temperatureCellule(temperatureMax, irradianceMax, noctModule);
+      temperatureCellule(temperatureMax, irradianceMax, noct_module);
 
     // --- Grandeurs électriques du champ ---
 
