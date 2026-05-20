@@ -134,7 +134,7 @@ export interface ResultatStockage {
 
 // RESULTATS MODULES PV
 
-export type ConfigurationTension = "haute_tension" | "basse_tension"
+export type ConfigurationTension = "haute_tension" | "basse_tension";
 
 export interface ResultatModulesPV {
   appareil: string;
@@ -152,19 +152,21 @@ export interface ResultatModulesPV {
   courantPVMin: number;
   courantPVMax: number;
   courantCourtCircuitPV: number;
-
   // Puissances
   puissancePVInstallee: {
     min: number; // Condition chaude (déclassée)
     max: number; // Condition froide
     stc: number; // Puissance nominale à STC (pour ratio DC/AC)
   };
-
-
   // Métadonnées internes
   _temperaturesCellule: {
     tCellMin: number;
     tCellMax: number;
+  };
+  _modules: {
+    vmppModuleChaud: number;
+    vmppModuleFroid: number;
+    vocModuleFroid: number;
   };
 }
 
@@ -445,6 +447,13 @@ export interface DimensionnementPVResponse {
   };
 }
 
+// ONDULEUR
+
+export type EvaluationRatioOnduleur =
+  | "sous-dimensionne"
+  | "optimal"
+  | "acceptable"
+  | "eleve";
 export interface ResultatOnduleur {
   appareil: string;
   typeSysteme: TypeSystemePV;
@@ -466,7 +475,7 @@ export interface ResultatOnduleur {
     puissanceACRecommandee: number;
     puissanceACMax: number;
     ratioDCAC: number;
-    evaluationRatio: "sous-dimensionne" | "optimal" | "acceptable" | "eleve";
+    evaluationRatio: EvaluationRatioOnduleur;
   };
   verification: {
     compatible: boolean;
