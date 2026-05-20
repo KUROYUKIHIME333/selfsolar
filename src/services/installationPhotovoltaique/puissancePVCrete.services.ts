@@ -214,7 +214,9 @@ export class PuissanceCretePVService {
     panneauParametres: ParametresSTCPanneau,
     puissanceCretePV: number,
     temperaturesAttendue: TemperaturesMinMax,
-    irradianceMax: number
+    irradianceMax: number,
+    tensionSystem?: number,
+    configurationSystem?: ConfigurationTension
   ): ResultatModulesPV {
     const {
       puissanceCreteModule,
@@ -279,7 +281,9 @@ export class PuissanceCretePVService {
 
     // Tension système pv
     const { config: configuration_system, tension: tension_DC_system_PV } =
-      tensionSystemePV(puissanceCretePV);
+      tensionSystem && configurationSystem
+        ? { config: configurationSystem, tension: tensionSystem }
+        : tensionSystemePV(puissanceCretePV);
 
     const N_panneaux_par_string_max: number = Math.ceil(
       tension_DC_system_PV / tension_panneau_min
