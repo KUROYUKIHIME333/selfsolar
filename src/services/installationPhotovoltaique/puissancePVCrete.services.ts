@@ -1,7 +1,5 @@
 import type {
   TypeInstallationPourPertes,
-  Localisation,
-  TypeClimat,
   PompageSolaireCaracteristiques,
   ParametresSTCPanneau,
   TemperaturesMinMax,
@@ -217,10 +215,7 @@ export class PuissanceCretePVService {
     panneauParametres: ParametresSTCPanneau,
     puissanceCretePV: number,
     temperaturesAttendue: TemperaturesMinMax,
-    irradianceMin: number,
-    irradianceMax: number,
-    tensionSystemeBatterie: number | null | undefined,
-    contraintesOnduleur?: ContraintesOnduleurModules | null
+    irradianceMax: number
   ): ResultatModulesPV {
     const {
       puissanceCreteModule,
