@@ -134,16 +134,15 @@ export interface ResultatStockage {
 
 // RESULTATS MODULES PV
 
+export type ConfigurationTension = "haute_tension" | "basse_tension"
+
 export interface ResultatModulesPV {
   appareil: string;
-  configuration: "haute_tension" | "basse_tension";
-  tensionParcPV?: number; // Pour systèmes batterie basse tension
-
+  configuration?: ConfigurationTension;
   // Disposition
   panneauxParString: number; // Ns
   stringsEnParallele: number; // Np
   totalPanneaux: number;
-
   // Tensions (important pour vérifications)
   tensionStringSTC: number; // Vmpp à 25°C
   tensionStringMin: number; // Vmpp à Tmax (condition chaude)
@@ -161,11 +160,6 @@ export interface ResultatModulesPV {
   _temperaturesCellule: {
     tCellMin: number;
     tCellMax: number;
-  };
-  _tensionModuleCorrigee: {
-    mppMin: number;
-    mppMax: number;
-    vocFroid: number;
   };
 }
 
