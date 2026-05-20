@@ -263,7 +263,7 @@ export class PuissanceCretePVService {
     const tension_panneau_min =
       tensionMPP * (1 + pratiqueBeta * (t_cell.Tmax - T_STC)); // vmpp_min
 
-    const voc_min = tensionVoc * (1 + pratiqueBeta * (t_cell.Tmax - T_STC));
+    // IDEA: Si on a besoin de voc minimal, ce serait : const voc_min = tensionVoc * (1 + pratiqueBeta * (t_cell.Tmax - T_STC));
     const vmpp_max = tensionMPP * (1 + pratiqueBeta * (t_cell.Tmin - T_STC));
 
     /**
@@ -317,9 +317,6 @@ export class PuissanceCretePVService {
       N_strings_en_parallele_max
     );
 
-    const N_panneaux_total: number =
-      N_panneaux_par_string * N_string_en_parallele;
-
     return {
       appareil: "panneaux photovoltaiques",
       configuration: configuration_system,
@@ -330,6 +327,9 @@ export class PuissanceCretePVService {
       tensionStringMax: N_panneaux_par_string * vmpp_max, // Vmpp à Tmin (condition froide)
       tensionStringSTC: N_panneaux_par_string * tensionMPP, // Vmpp à 25°C
       vocStringFroid: N_panneaux_par_string * tension_panneau_max, // Voc à Tmin (CRITIQUE sécurité)
+      courantCourtCircuitPV: N_string_en_parallele * courantCourtCircuit,
+      courantPVMin: N_string_en_parallele * courant_panneau_min,
+      courantPVMax: N_string_en_parallele * courant_panneau_max,
       puissancePVInstallee: {
         stc:
           N_panneaux_par_string * N_string_en_parallele * puissanceCreteModule, // Puissance nominale à STC (pour ratio DC/AC)
@@ -344,32 +344,6 @@ export class PuissanceCretePVService {
         tCellMax: t_cell.Tmax,
       },
     };
-    // return {
-    //   appareil: "panneaux photovoltaiques",
-    //   tensionParcPV:
-    //     configuration === "basse_tension"
-    //       ? tensionSystemeBatterie ?? undefined
-    //       : undefined,
-    //   panneauxParString: Ns,
-    //   stringsEnParallele: Np,
-    //   totalPanneaux: totalPanneaux,
-    //   tensionStringSTC: Ns * tensionMPP,
-
-    //   puissancePVInstallee: {
-    //     min: Math.round(puissancePVInstalleeMin),
-    //     max: Math.round(puissancePVInstalleeMax),
-    //     stc: Math.round(puissancePVInstalleeSTC), // AJOUT: puissance nominale
-    //   },
-    //   _temperaturesCellule: {
-    //     tCellMin: Math.round(tCellMin * 10) / 10,
-    //     tCellMax: Math.round(tCellMax * 10) / 10,
-    //   },
-    //   _tensionModuleCorrigee: {
-    //     mppMin: Math.round(tension_mpp_min * 100) / 100,
-    //     mppMax: Math.round(tension_mpp_max * 100) / 100,
-    //     vocFroid: Math.round(voc_module_froid * 100) / 100,
-    //   },
-    // };
   }
 
   /**

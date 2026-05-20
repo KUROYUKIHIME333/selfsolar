@@ -148,6 +148,10 @@ export interface ResultatModulesPV {
   tensionStringMin: number; // Vmpp à Tmax (condition chaude)
   tensionStringMax: number; // Vmpp à Tmin (condition froide)
   vocStringFroid: number; // Voc à Tmin (CRITIQUE sécurité)
+  //Courants champ
+  courantPVMin: number;
+  courantPVMax: number;
+  courantCourtCircuitPV: number;
 
   // Puissances
   puissancePVInstallee: {
@@ -155,6 +159,7 @@ export interface ResultatModulesPV {
     max: number; // Condition froide
     stc: number; // Puissance nominale à STC (pour ratio DC/AC)
   };
+
 
   // Métadonnées internes
   _temperaturesCellule: {
