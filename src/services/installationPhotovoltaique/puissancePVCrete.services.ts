@@ -5,7 +5,6 @@ import type {
   TemperaturesMinMax,
   TypeSystemePV,
   ParametresOnduleur,
-  ContraintesOnduleurModules,
   ResultatModulesPV,
   ResultatOnduleur,
   ConfigurationTension,
