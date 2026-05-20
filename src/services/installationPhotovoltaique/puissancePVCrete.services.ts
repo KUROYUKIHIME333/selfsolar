@@ -11,6 +11,7 @@ import type {
   ResultatModulesPV,
   ResultatOnduleur,
   ConfigurationTension,
+  EvaluationRatioOnduleur,
 } from "../../types/installationPhotovoltaique.types.js";
 import {
   IRRADIANCE_NOCT,
@@ -137,25 +138,17 @@ export class PuissanceCretePVService {
   } {
     // Pertes système selon qualité installation (p.4 guide)
     // Standard: 18-22% pertes → PR = 0.78-0.82
-    let pertes_system: number = 18; // Standard
-
-    switch (typeInstallation) {
-      case "HAUTE_QUALITE":
-        pertes_system = 10;
-        break; // PR ~0.90
-      case "POUSSIEREUX":
-        pertes_system = 22;
-        break; // PR ~0.78
-      case "FAIBLE_MAINTENANCE":
-        pertes_system = 25;
-        break; // PR ~0.75
-      case "ANCIEN":
-        pertes_system = 28;
-        break; // PR ~0.72
-      case "CABLE_LONG":
-        pertes_system = 25;
-        break; // PR ~0.75
-    }
+    let pertes_system: number =
+      typeInstallation === "HAUTE_QUALITE"
+        ? 10
+        : typeInstallation === "POUSSIEREUX"
+        ? 22
+        : typeInstallation === "FAIBLE_MAINTENANCE" ||
+          typeInstallation === "CABLE_LONG"
+        ? 25
+        : typeInstallation === "ANCIEN"
+        ? 28
+        : 18; // Standard = 18
 
     const performance_ratio = (100 - pertes_system) / 100;
 
@@ -343,6 +336,11 @@ export class PuissanceCretePVService {
         tCellMin: t_cell.Tmin,
         tCellMax: t_cell.Tmax,
       },
+      _modules: {
+        vmppModuleChaud: tension_panneau_min,
+        vmppModuleFroid: vmpp_max,
+        vocModuleFroid: tension_panneau_max,
+      },
     };
   }
 
@@ -369,7 +367,6 @@ export class PuissanceCretePVService {
   onduleur(
     resultatsModules: ResultatModulesPV,
     panneauParametres: ParametresSTCPanneau,
-    temperaturesAttendue: TemperaturesMinMax,
     irradianceMax: number,
     typeSysteme: TypeSystemePV,
     puissanceChargeContinue: number,
@@ -377,62 +374,34 @@ export class PuissanceCretePVService {
     puissanceDemarrage?: number | null
   ): ResultatOnduleur {
     const {
-      panneauxParString: Ns,
-      stringsEnParallele: Np,
+      tensionStringMin,
+      tensionStringMax,
+      tensionStringSTC,
       vocStringFroid,
+      courantCourtCircuitPV,
       _temperaturesCellule,
-      _tensionModuleCorrigee,
+      _modules,
       puissancePVInstallee,
     } = resultatsModules;
 
-    const {
-      tensionVoc,
-      tensionMPP,
-      courantCourtCircuit: Isc,
-      coeffTempTension,
-      noct,
-    } = panneauParametres;
-
-    const noct_module = noct ?? 45;
-    const { temperatureMin, temperatureMax } = temperaturesAttendue;
-
     // Recalcul ou réutilisation températures
-    const tCellMin =
-      _temperaturesCellule?.tCellMin ??
-      temperatureCellule(temperatureMin, 200, noct_module);
-    const tCellMax =
-      _temperaturesCellule?.tCellMax ??
-      temperatureCellule(temperatureMax, irradianceMax, noct_module);
+    const { tCellMin, tCellMax } = _temperaturesCellule;
 
     // --- Grandeurs électriques du champ ---
-
-    // CORRECTION: Coefficient température négatif pour tension
-    const beta = -Math.abs(coeffTempTension);
-
-    // Voc champ à froid (sécurité absolue)
-    const vocModuleFroid =
-      _tensionModuleCorrigee?.vocFroid ??
-      tensionVoc * (1 + beta * (tCellMin - 25));
-    const vocChampFroidCalc = Ns * vocModuleFroid;
+    const vocChampFroidCalc = vocStringFroid;
 
     // Vmpp champ à chaud (risque décrochage MPPT)
-    const vmppModuleChaud =
-      _tensionModuleCorrigee?.mppMin ??
-      tensionMPP * (1 + beta * (tCellMax - 25));
-    const vmppChampChaud = Ns * vmppModuleChaud;
+    const vmppChampChaud = tensionStringMin;
 
-    // CORRECTION: Vmpp champ à froid (risque dépassement MPPT max)
-    const vmppModuleFroid =
-      _tensionModuleCorrigee?.mppMax ??
-      tensionMPP * (1 + beta * (tCellMin - 25));
-    const vmppChampFroid = Ns * vmppModuleFroid;
+    // Vmpp champ à froid (risque dépassement MPPT max)
+    const vmppChampFroid = tensionStringMax;
 
     // Vmpp nominal (STC)
-    const vmppNominal = Ns * tensionMPP;
+    const vmppNominal = tensionStringSTC;
 
     // Isc champ à irradiance max avec facteur de sécurité IEC 62109
     const facteurIrradiance = irradianceMax / IRRADIANCE_STC;
-    const iscChampBrut = Np * Isc * facteurIrradiance;
+    const iscChampBrut = courantCourtCircuitPV * facteurIrradiance;
     const iscChamp = iscChampBrut * FACTEUR_SECURITE_COURANT; // Marge sécurité
 
     // CORRECTION: Puissance champ pour ratio DC/AC = puissance STC nominale
@@ -452,22 +421,23 @@ export class PuissanceCretePVService {
     const ratioMin = 1.0;
     const ratioMax = 1.4;
 
-    const puissanceACMin = Math.round(puissanceChampsWcSTC / ratioMax);
-    const puissanceACRecommandee = Math.round(
-      puissanceChampsWcSTC / ratioCible
-    );
-    const puissanceACMax = Math.round(puissanceChampsWcSTC / ratioMin);
+    const puissanceACMin = puissanceChampsWcSTC / ratioMax;
+    const puissanceACRecommandee = puissanceChampsWcSTC / ratioCible;
+    const puissanceACMax = puissanceChampsWcSTC / ratioMin;
 
     const ratioDCAC = onduleurCandidat
       ? puissanceChampsWcSTC / onduleurCandidat.puissanceACNominale
       : puissanceChampsWcSTC / puissanceACRecommandee;
 
     // Évaluation ratio
-    let evaluationRatio: ResultatOnduleur["dimensionnement"]["evaluationRatio"];
-    if (ratioDCAC < ratioMin) evaluationRatio = "sous-dimensionne";
-    else if (ratioDCAC <= 1.25) evaluationRatio = "optimal";
-    else if (ratioDCAC <= ratioMax) evaluationRatio = "acceptable";
-    else evaluationRatio = "eleve";
+    let evaluationRatio: EvaluationRatioOnduleur =
+      ratioDCAC < ratioMin
+        ? "sous-dimensionne"
+        : ratioDCAC <= 1.25
+        ? "optimal"
+        : ratioDCAC <= ratioMax
+        ? "acceptable"
+        : "eleve";
 
     // --- Vérifications compatibilité ---
     const avertissements: string[] = [];
@@ -530,7 +500,7 @@ export class PuissanceCretePVService {
           `CRITIQUE: Voc champ à froid (${vocChampFroidCalc.toFixed(1)} V) ≥ ` +
             `tensionDCMax onduleur (${onduleurCandidat.tensionDCMax} V) - RISQUE DESTRUCTION. ` +
             `Ns doit être ≤ ${Math.floor(
-              onduleurCandidat.tensionDCMax / vocModuleFroid
+              onduleurCandidat.tensionDCMax / _modules.vocModuleFroid
             )}.`
         );
       }
@@ -539,7 +509,7 @@ export class PuissanceCretePVService {
           `Vmpp champ à chaud (${vmppChampChaud.toFixed(1)} V) < ` +
             `tensionMPPTMin (${onduleurCandidat.tensionMPPTMin} V) - Risque décrochage MPPT hiver. ` +
             `Ns doit être ≥ ${Math.ceil(
-              onduleurCandidat.tensionMPPTMin / vmppModuleChaud
+              onduleurCandidat.tensionMPPTMin / _modules.vmppModuleChaud
             )}.`
         );
       }
@@ -548,7 +518,7 @@ export class PuissanceCretePVService {
           `Vmpp champ à froid (${vmppChampFroid.toFixed(1)} V) > ` +
             `tensionMPPTMax (${onduleurCandidat.tensionMPPTMax} V) - MPPT hors plage hiver. ` +
             `Ns doit être ≤ ${Math.floor(
-              onduleurCandidat.tensionMPPTMax / vmppModuleFroid
+              onduleurCandidat.tensionMPPTMax / _modules.vmppModuleFroid
             )}.`
         );
       }
@@ -560,7 +530,9 @@ export class PuissanceCretePVService {
             `(${onduleurCandidat.courantDCMax} A) - Surcharge entrée DC. ` +
             `Np max = ${Math.floor(
               onduleurCandidat.courantDCMax /
-                (Isc * facteurIrradiance * FACTEUR_SECURITE_COURANT)
+                (panneauParametres.courantCourtCircuit *
+                  facteurIrradiance *
+                  FACTEUR_SECURITE_COURANT)
             )}.`
         );
       }
