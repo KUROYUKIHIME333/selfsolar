@@ -7,10 +7,14 @@ export class BilanConsommationService {
   /**
    * Calcule l'énergie journalière totale consommée
    * Formule: E_charge [Wh/j] = Σ (P_i × h_i)
-   * @param equipements Liste des équipements avec puissance, durée, facteur simultanéité
-   * @returns Énergie totale en Wh/jour
+   *
+   * Note: Le facteur de simultanéité s'applique généralement à la puissance maximale
+   * appelée pour l'onduleur, tandis que le facteur d'utilisation affecte l'énergie.
    */
   energieTotal(equipements: Equipement[]): number {
+    if (!Array.isArray(equipements) || equipements.length === 0) {
+      return 0;
+    }
     const energiesEquipement = equipements.map(({ nom, P, h }) => ({
       equipement: nom || "Non nommé",
       energie: P * h,
@@ -21,7 +25,8 @@ export class BilanConsommationService {
       0
     );
 
-    return total; // en Wh/j
+    // Arrondi propre à 2 décimales pour éviter les bizarreries de JavaScript (ex: 0.1 + 0.2, ceux qui savent vont comprendre)
+    return Number(total.toFixed(2)); // en Wh/j
   }
 
   /**
