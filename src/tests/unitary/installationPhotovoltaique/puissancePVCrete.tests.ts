@@ -636,7 +636,9 @@ describe("PuissanceCretePVService", () => {
         mockPanneauStandard,
         5000,
         mockTemperatures,
-        1000
+        1000,
+        600,
+    "haute_tension"
       );
       resultModules = modulesResult.data;
     });
@@ -758,7 +760,9 @@ describe("PuissanceCretePVService", () => {
         mockPanneauStandard,
         5000,
         mockTemperatures,
-        1000
+        1000,
+        600,              // AJOUTER
+    "haute_tension"
       );
       resultModules = modulesResult.data;
     });
@@ -911,7 +915,9 @@ describe("PuissanceCretePVService", () => {
         mockPanneauStandard,
         5000,
         mockTemperatures,
-        1000
+        1000,
+        600,              // AJOUTER
+    "haute_tension"
       );
       resultModules = modulesResult.data;
     });
@@ -964,7 +970,9 @@ describe("PuissanceCretePVService", () => {
         mockPanneauStandard,
         5000,
         mockTemperatures,
-        1000
+        1000,
+        600,              // AJOUTER
+    "haute_tension"
       );
       resultModules = modulesResult.data;
     });
