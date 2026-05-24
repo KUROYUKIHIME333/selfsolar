@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { PuissanceCretePVService } from "../../../services/installationPhotovoltaique/puissancePVCrete.services.js";
 import type {
   TypeInstallationPourPertes,
@@ -638,7 +638,7 @@ describe("PuissanceCretePVService", () => {
         mockTemperatures,
         1000,
         600,
-    "haute_tension"
+        "haute_tension"
       );
       resultModules = modulesResult.data;
     });
@@ -761,8 +761,8 @@ describe("PuissanceCretePVService", () => {
         5000,
         mockTemperatures,
         1000,
-        600,              // AJOUTER
-    "haute_tension"
+        600, // AJOUTER
+        "haute_tension"
       );
       resultModules = modulesResult.data;
     });
@@ -916,8 +916,8 @@ describe("PuissanceCretePVService", () => {
         5000,
         mockTemperatures,
         1000,
-        600,              // AJOUTER
-    "haute_tension"
+        600, // AJOUTER
+        "haute_tension"
       );
       resultModules = modulesResult.data;
     });
@@ -971,8 +971,8 @@ describe("PuissanceCretePVService", () => {
         5000,
         mockTemperatures,
         1000,
-        600,              // AJOUTER
-    "haute_tension"
+        600, // AJOUTER
+        "haute_tension"
       );
       resultModules = modulesResult.data;
     });
