@@ -134,7 +134,7 @@ export interface ResultatStockage {
 
 // RESULTATS MODULES PV
 
-export type ConfigurationTension = "haute_tension" | "basse_tension";
+export type ConfigurationTension = "haute_tension" | "basse_tension" | "indefini";
 
 export interface ResultatModulesPV {
   appareil: string;
