@@ -14,7 +14,6 @@ export type Localisation = {
 export type HemisphereValue = "N" | "S" | "Equateur";
 export type OrientationValue = "N" | "S" | "Quelconque";
 
-
 export type TypeInstallationPourPertes =
   | "HAUTE_QUALITE"
   | "STANDARD"
@@ -258,6 +257,34 @@ export interface DimensionnementAC {
   };
   methodePose: MethodePose;
   facteursCorrection: Record<string, number>;
+}
+
+export interface ResultatCableDCDetails {
+  courantEmploi_Ib: number;
+  facteurCorrectionK: number;
+  sectionConseillee_mm2: number;
+  chuteTension_Pourcent: number;
+}
+
+export interface ResultatDimensionnementDC {
+  cableString: ResultatCableDCDetails;
+  cablePrincipal: ResultatCableDCDetails;
+  protections: {
+    fusiblesStringsRequis: boolean;
+    calibreFusibleString_A: number;
+  };
+}
+
+export interface ResultatSelectivite {
+  selectif: boolean;
+  typeSelectivite: "ampèremétrique" | "chronométrique" | "aucune";
+  ratio: number;
+  commentaire: string;
+}
+
+export interface CalculSectionDCIntern {
+  section: number;
+  chutePourcent: number;
 }
 
 export interface ResultatDimensionnementCablage {
