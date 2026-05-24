@@ -752,11 +752,7 @@ export class PuissanceCretePVService {
 
     // --- 3. Analyse de l'onduleur candidat ---
     let ratioDCAC = ratioCible;
-    let evaluationRatio:
-      | "sous-dimensionne"
-      | "optimal"
-      | "acceptable"
-      | "eleve" = "optimal";
+    let evaluationRatio: EvaluationRatioOnduleur = "optimal";
 
     const avertissements: string[] = [];
     const erreurs: string[] = [];
@@ -767,7 +763,7 @@ export class PuissanceCretePVService {
       ratioDCAC = puissanceChampsWcSTC / onduleurCandidat.puissanceACNominale;
 
       if (ratioDCAC < ratioMin) evaluationRatio = "sous-dimensionne";
-      else if (ratioDCAC <= 1.25) evaluationRatio = "optimal";
+      else if (ratioDCAC >= 1 && ratioDCAC <= 1.25) evaluationRatio = "optimal";
       else if (ratioDCAC <= ratioMax) evaluationRatio = "acceptable";
       else evaluationRatio = "eleve";
 
