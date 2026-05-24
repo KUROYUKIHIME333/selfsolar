@@ -305,33 +305,33 @@ const nombreParClimat = (
  */
 export class PuissanceCretePVService {
   /**
-   * Détermination du ratio de performance
-   * Il sera déterminer par rapport à la nature du systeme
-   * C'est bien sur améliorable par la suite
+   * Détermination du Performance Ratio (PR) et des pertes globales du système.
+   * Le PR exprime la part d'énergie réellement disponible à la sortie du système
+   * par rapport à l'énergie théorique produite par les panneaux.
    */
-  performanceRatio(typeInstallation: TypeInstallationPourPertes | string): {
-    pertesTotales: number;
-    PR: number;
+  performanceRatio(typeInstallation: TypeInstallationPourPertes): {
+    pertesTotales: number; // En pourcentage (%)
+    PR: number; // Facteur compris entre 0 et 1
   } {
-    // Pertes système selon qualité installation (p.4 guide)
-    // Standard: 18-22% pertes → PR = 0.78-0.82
-    let pertes_system: number =
-      typeInstallation === "HAUTE_QUALITE"
-        ? 10
-        : typeInstallation === "POUSSIEREUX"
-        ? 22
-        : typeInstallation === "FAIBLE_MAINTENANCE" ||
-          typeInstallation === "CABLE_LONG"
-        ? 25
-        : typeInstallation === "ANCIEN"
-        ? 28
-        : 18; // Standard = 18
+    // Dictionnaire des pertes par défaut selon la configuration terrain
+    const tablePertes: Record<TypeInstallationPourPertes, number> = {
+      HAUTE_QUALITE: 10, // Conditions labo, nettoyage fréquent, câblage optimisé
+      STANDARD: 18, // Configuration résidentielle classique bien exécutée
+      POUSSIEREUX: 22, // Zones à forte sédimentation/poussière sans nettoyage régulier
+      FAIBLE_MAINTENANCE: 25, // Pas de suivi, dégradation non surveillée
+      CABLE_LONG: 25, // Grosses pertes en ligne DC ou AC dues à la distance
+      ANCIEN: 28, // Vieillissement prématuré des composants / dégradation induite
+    };
 
+    // fallback si le type passé est invalide au runtime
+    const pertes_system = tablePertes[typeInstallation] ?? tablePertes.STANDARD;
+
+    // Performance Ratio (PR)
     const performance_ratio = (100 - pertes_system) / 100;
 
     return {
       pertesTotales: pertes_system,
-      PR: performance_ratio,
+      PR: Number(performance_ratio.toFixed(2)), // Sécurité sur les arrondis de division JS
     };
   }
 
