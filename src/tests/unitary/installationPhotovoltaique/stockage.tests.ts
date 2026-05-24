@@ -362,21 +362,21 @@ describe("StockageService", () => {
       );
     });
 
-    it("doit rejeter un rendement onduleur nul", () => {
+    it("doit lancer une erreur si le rendement de l'onduleur est nul", () => {
       expect(() => service.regulateurBMS(3000, 48, 2000, 0)).toThrow(
-        "rendementOnduleur"
+        "Le rendement de l'onduleur doit être compris entre 0 (exclus) et 1 (inclus)."
       );
     });
 
-    it("doit rejeter un rendement onduleur supérieur à 1", () => {
+    it("doit lancer une erreur si le rendement de l'onduleur est supérieur à 1", () => {
       expect(() => service.regulateurBMS(3000, 48, 2000, 1.1)).toThrow(
-        "rendementOnduleur"
+        "Le rendement de l'onduleur doit être compris entre 0 (exclus) et 1 (inclus)."
       );
     });
 
-    it("doit rejeter un rendement onduleur négatif", () => {
+    it("doit lancer une erreur si le rendement de l'onduleur est négatif", () => {
       expect(() => service.regulateurBMS(3000, 48, 2000, -0.5)).toThrow(
-        "rendementOnduleur"
+        "Le rendement de l'onduleur doit être compris entre 0 (exclus) et 1 (inclus)."
       );
     });
 
