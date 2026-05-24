@@ -43,21 +43,29 @@ const temperatureCelluleMinMax = (
   const { temperatureMin: tAmbientMin, temperatureMax: tAmbientMax } = tAmbient;
 
   if (typeof tAmbientMin !== "number" || typeof tAmbientMax !== "number") {
-    throw new Error("Les températures ambiantes min et max doivent être des nombres.");
+    throw new Error(
+      "Les températures ambiantes min et max doivent être des nombres."
+    );
   }
   if (tAmbientMin > tAmbientMax) {
-    throw new Error(`Cohérence température : la température minimale (${tAmbientMin}°C) ne peut pas être supérieure à la maximale (${tAmbientMax}°C).`);
+    throw new Error(
+      `Cohérence température : la température minimale (${tAmbientMin}°C) ne peut pas être supérieure à la maximale (${tAmbientMax}°C).`
+    );
   }
 
   if (typeof irradianceMax !== "number" || isNaN(irradianceMax)) {
     throw new Error("L'irradiance maximale doit être un nombre valide.");
   }
   if (irradianceMax < 0) {
-    throw new Error(`L'irradiance ne peut pas être négative (reçu: ${irradianceMax} W/m²).`);
+    throw new Error(
+      `L'irradiance ne peut pas être négative (reçu: ${irradianceMax} W/m²).`
+    );
   }
   if (irradianceMax > 1500) {
     // Alerte ou blocage si la valeur dépasse le rayonnement physique maximal sur Terre (~1360 W/m² hors atmosphère)
-    throw new Error(`L'irradiance maximale semble irréaliste (reçu: ${irradianceMax} W/m²). Elle doit être inférieure à 1500 W/m².`);
+    throw new Error(
+      `L'irradiance maximale semble irréaliste (reçu: ${irradianceMax} W/m²). Elle doit être inférieure à 1500 W/m².`
+    );
   }
 
   if (typeof noct !== "number" || isNaN(noct)) {
@@ -65,7 +73,9 @@ const temperatureCelluleMinMax = (
   }
   // Un NOCT normal de panneau silicium tourne généralement entre 40°C et 50°C
   if (noct < 30 || noct > 65) {
-    throw new Error(`La valeur NOCT (${noct}°C) est en dehors des plages constructeurs réalistes (généralement entre 30°C et 65°C).`);
+    throw new Error(
+      `La valeur NOCT (${noct}°C) est en dehors des plages constructeurs réalistes (généralement entre 30°C et 65°C).`
+    );
   }
 
   return {
@@ -81,42 +91,82 @@ const temperatureCelluleMinMax = (
  * TODO: Je dois changer et pauffiner ceci après
  */
 const tensionSystemePV = (
-  puissanceCretePV: number
-): { success: boolean; config: ConfigurationTension; tension: number } => {
-  let tensionSystem: number = 24;
-  let configuration: ConfigurationTension = "basse_tension";
-
-  if (puissanceCretePV <= 0 || typeof puissanceCretePV !== "number") {
+  puissanceCretePV: number,
+  typeSysteme: TypeSystemePV = "off-grid" // "off-grid" par défaut pour sécuriser le calcul
+): {
+  success: boolean;
+  config: ConfigurationTension;
+  tension: number;
+  error?: string;
+} => {
+  if (typeof puissanceCretePV !== "number" || isNaN(puissanceCretePV)) {
     return {
       success: false,
       config: "indefini",
       tension: 0,
+      error: "La puissance crête doit être un nombre valide.",
     };
   }
 
-  if (puissanceCretePV > 2000 && puissanceCretePV < 5000) {
-    tensionSystem = 48;
-    configuration = "basse_tension";
+  if (puissanceCretePV <= 0) {
+    return {
+      success: false,
+      config: "indefini",
+      tension: 0,
+      error: "La puissance crête ne peut être nulle (0W) ou inférieure à 0 W.",
+    };
   }
-  if (puissanceCretePV > 5000 && puissanceCretePV < 15000) {
-    tensionSystem = 120;
-    configuration = "basse_tension";
+
+  if (puissanceCretePV > 50000000) {
+    // 50 MWc
+    return {
+      success: false,
+      config: "indefini",
+      tension: 0,
+      error: "La puissance crête dépasse les limites de cet outil (50MWc).",
+    };
   }
-  if (puissanceCretePV > 15000 && puissanceCretePV < 50000) {
-    tensionSystem = 240;
-    configuration = "basse_tension";
-  }
-  if (puissanceCretePV > 50000 && puissanceCretePV < 500000) {
-    tensionSystem = 600;
-    configuration = "haute_tension";
-  }
-  if (puissanceCretePV > 500000 && puissanceCretePV < 1000000) {
-    tensionSystem = 1000;
-    configuration = "haute_tension";
-  }
-  if (puissanceCretePV > 1000000) {
-    tensionSystem = 1500;
-    configuration = "haute_tension";
+
+  let tensionSystem: number = 24;
+  let configuration: ConfigurationTension = "basse_tension";
+
+  if (typeSysteme === "off-grid" || typeSysteme === "hybride") {
+    // Monde du stockage / Très Basse Tension (TBT) pour la sécurité, éviter les risque d'électrisation dangeureux et les standards batteries
+    if (puissanceCretePV <= 800) {
+      tensionSystem = 12; // Petits kits (éclairage, site isolé minimaliste)
+      configuration = "basse_tension";
+    } else if (puissanceCretePV > 800 && puissanceCretePV <= 2500) {
+      tensionSystem = 24; // Standard petites habitations / pompage
+      configuration = "basse_tension";
+    } else {
+      // Au-delà de 2500W en site isolé ou hybride résidentiel, le 48V est le standard.
+      // Même pour 10 kWc ou 15 kWc, d'après ce que j'ai compris,
+      // on multiplie souvent les onduleurs ou les régulateurs MPPT en parallèle
+      // branchés sur un gros banc de batteries en 48V (ex: batteries Lithium LiFePO4).
+      tensionSystem = 48;
+      configuration = "basse_tension";
+    }
+  } else if (typeSysteme === "on-grid") {
+    // Injection réseau directe (Onduleurs de chaîne sans contrainte de batterie basse tension)
+    if (puissanceCretePV <= 3000) {
+      // Petit résidentiel monophasé : les onduleurs string acceptent généralement jusqu'à 500V ou 600V max,
+      // mais avec peu de panneaux, la tension optimale de fonctionnement (MPPT) tourne autour de 300V ou 360V.
+      tensionSystem = 360;
+      configuration = "basse_tension";
+    } else if (puissanceCretePV > 3000 && puissanceCretePV <= 30000) {
+      // Résidentiel supérieur / Petit tertiaire (Onduleurs triphasés standards)
+      // La tension nominale de la chaîne de panneaux se situe idéalement autour de 600V DC.
+      tensionSystem = 600;
+      configuration = "haute_tension";
+    } else if (puissanceCretePV > 30000 && puissanceCretePV <= 250000) {
+      // Tertiaire et Industriel (C&I) : Standard des onduleurs de chaînes industriels (Max 1000V à vide).
+      tensionSystem = 1000;
+      configuration = "haute_tension";
+    } else {
+      // Grandes centrales d'injection (> 250 kWc) : Standard moderne à 1500V DC pour réduire le cuivre au maximum.
+      tensionSystem = 1500;
+      configuration = "haute_tension";
+    }
   }
 
   return {
