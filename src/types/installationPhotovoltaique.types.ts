@@ -11,6 +11,10 @@ export type Localisation = {
   altitude?: number; // m (pour déclassement)
 };
 
+export type HemisphereValue = "N" | "S" | "Equateur";
+export type OrientationValue = "N" | "S" | "Quelconque";
+
+
 export type TypeInstallationPourPertes =
   | "HAUTE_QUALITE"
   | "STANDARD"
@@ -134,7 +138,10 @@ export interface ResultatStockage {
 
 // RESULTATS MODULES PV
 
-export type ConfigurationTension = "haute_tension" | "basse_tension" | "indefini";
+export type ConfigurationTension =
+  | "haute_tension"
+  | "basse_tension"
+  | "indefini";
 
 export interface ResultatModulesPV {
   appareil: string;
