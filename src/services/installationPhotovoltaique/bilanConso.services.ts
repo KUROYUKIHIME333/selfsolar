@@ -3,15 +3,21 @@ import type { Equipement } from "../../types/installationPhotovoltaique.types.js
 // Service de calcul du bilan de consommation électrique
 // Basé sur NFC 15-100 - Méthode des coefficients de simultanéité et d'appel
 
+const validationEquipements = (equipements: Equipement[]) => {
+  if (!Array.isArray(equipements)) {
+    throw new Error("Liste des equipements invalide");
+  }
+  if (equipements.length === 0) {
+    throw new Error("Liste des equipements vide");
+  }
+};
 export class BilanConsommationService {
   /**
    * Calcule l'énergie journalière totale consommée
    * Formule: E_charge [Wh/j] = Σ (P_i × h_i)
    */
   energieTotal(equipements: Equipement[]): number {
-    if (!Array.isArray(equipements) || equipements.length === 0) {
-      return 0;
-    }
+    validationEquipements(equipements);
 
     const total = equipements.reduce((acc, eq) => {
       const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
@@ -35,9 +41,7 @@ export class BilanConsommationService {
     equipements: Equipement[],
     kf: number | null | undefined
   ): number {
-    if (!Array.isArray(equipements) || equipements.length === 0) {
-      return 0;
-    }
+    validationEquipements(equipements);
 
     const P_crete_charge = equipements.reduce((acc, eq) => {
       const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
@@ -60,9 +64,7 @@ export class BilanConsommationService {
    * @returns Puissance totale installée en W
    */
   puissanceInstaleeAC(equipements: Equipement[]): number {
-    if (!Array.isArray(equipements) || equipements.length === 0) {
-      return 0;
-    }
+    validationEquipements(equipements);
 
     const P_installee = equipements.reduce((acc, eq) => {
       const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
@@ -79,9 +81,7 @@ export class BilanConsommationService {
    * @returns Puissance de pointe maximale en W (dimensionnement transitoire de l'onduleur)
    */
   puissancePic(equipements: Equipement[]): number {
-    if (!Array.isArray(equipements) || equipements.length === 0) {
-      return 0;
-    }
+    validationEquipements(equipements);
 
     const P_pic = equipements.reduce((acc, eq) => {
       const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
