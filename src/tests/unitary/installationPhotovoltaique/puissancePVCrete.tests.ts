@@ -60,9 +60,9 @@ describe("PuissanceCretePVService", () => {
 
   const mockOnduleurValide: ParametresOnduleur = {
     puissanceACNominale: 5000,
-    tensionDCMax: 600,
+    tensionDCMax: 700,
     tensionMPPTMin: 125,
-    tensionMPPTMax: 550,
+    tensionMPPTMax: 600,
     courantDCMax: 30,
     puissanceDCMax: 7500,
     puissanceSurcharge: 7500,
