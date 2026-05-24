@@ -24,7 +24,9 @@ import {
 /**
  * Calcule la température de cellule selon modèle NOCT (p.4-5 guide)
  * Formule: T_cell = T_amb + (NOCT - 20) × G / 800
- * Pour la temperature min, on suppose le matin, avec le froid de la nuit
+ * Pour la temperature min, on suppose le matin, avec le froid de la nuit et sans rayonnement
+ * Donc le panneau est presque à la temperature de l'air
+ * Peut etre il y a aussi le vent mais on verra ensuite
  */
 const temperatureCelluleMinMax = (
   tAmbient: TemperaturesMinMax,
@@ -34,7 +36,37 @@ const temperatureCelluleMinMax = (
   Tmin: number;
   Tmax: number;
 } => {
+  if (!tAmbient) {
+    throw new Error("Le paramètre tAmbient est obligatoire.");
+  }
+
   const { temperatureMin: tAmbientMin, temperatureMax: tAmbientMax } = tAmbient;
+
+  if (typeof tAmbientMin !== "number" || typeof tAmbientMax !== "number") {
+    throw new Error("Les températures ambiantes min et max doivent être des nombres.");
+  }
+  if (tAmbientMin > tAmbientMax) {
+    throw new Error(`Cohérence température : la température minimale (${tAmbientMin}°C) ne peut pas être supérieure à la maximale (${tAmbientMax}°C).`);
+  }
+
+  if (typeof irradianceMax !== "number" || isNaN(irradianceMax)) {
+    throw new Error("L'irradiance maximale doit être un nombre valide.");
+  }
+  if (irradianceMax < 0) {
+    throw new Error(`L'irradiance ne peut pas être négative (reçu: ${irradianceMax} W/m²).`);
+  }
+  if (irradianceMax > 1500) {
+    // Alerte ou blocage si la valeur dépasse le rayonnement physique maximal sur Terre (~1360 W/m² hors atmosphère)
+    throw new Error(`L'irradiance maximale semble irréaliste (reçu: ${irradianceMax} W/m²). Elle doit être inférieure à 1500 W/m².`);
+  }
+
+  if (typeof noct !== "number" || isNaN(noct)) {
+    throw new Error("La valeur NOCT doit être un nombre valide.");
+  }
+  // Un NOCT normal de panneau silicium tourne généralement entre 40°C et 50°C
+  if (noct < 30 || noct > 65) {
+    throw new Error(`La valeur NOCT (${noct}°C) est en dehors des plages constructeurs réalistes (généralement entre 30°C et 65°C).`);
+  }
 
   return {
     Tmin: tAmbientMin - 2,
@@ -50,9 +82,17 @@ const temperatureCelluleMinMax = (
  */
 const tensionSystemePV = (
   puissanceCretePV: number
-): { config: ConfigurationTension; tension: number } => {
+): { success: boolean; config: ConfigurationTension; tension: number } => {
   let tensionSystem: number = 24;
   let configuration: ConfigurationTension = "basse_tension";
+
+  if (puissanceCretePV <= 0 || typeof puissanceCretePV !== "number") {
+    return {
+      success: false,
+      config: "indefini",
+      tension: 0,
+    };
+  }
 
   if (puissanceCretePV > 2000 && puissanceCretePV < 5000) {
     tensionSystem = 48;
@@ -80,6 +120,7 @@ const tensionSystemePV = (
   }
 
   return {
+    success: true,
     config: configuration,
     tension: tensionSystem,
   };
