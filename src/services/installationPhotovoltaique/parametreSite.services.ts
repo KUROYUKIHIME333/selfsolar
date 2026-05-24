@@ -121,7 +121,7 @@ export class ParametresSiteService {
   /**
    * Détermine l'angle d'inclinaison optimal et l'orientation des panneaux
    * selon la latitude
-   * 
+   *
    * Règles:
    * - Latitude < 15°: quasi-horizontal (0-10°)
    * - 15-25°: angle = latitude
@@ -135,29 +135,29 @@ export class ParametresSiteService {
     const absLat = Math.abs(latitude);
 
     let angle: number = 10;
-    let hemisphere: HemisphereValue = "S";
-    let orientation: OrientationValue = "N";
+    let hemisphere: HemisphereValue;
+    let orientation: OrientationValue;
 
-    // Détermination hémisphère et orientation vers l'équateur (avec repli par défaut)
-    if (latitude >= 0) {
+    if (latitude > 0) {
       hemisphere = "N";
-      orientation = "S"; // Face au Sud
-    }
-
-    if (latitude === 0) {
+      orientation = "S"; // Plein Sud pour l'hémisphère Nord
+    } else if (latitude < 0) {
+      hemisphere = "S";
+      orientation = "N"; // Plein Nord pour l'hémisphère Sud
+    } else {
       hemisphere = "Equateur";
-      orientation = "Quelconque"; // Orientation indifférente à l'équateur
+      orientation = "Quelconque"; // À plat ou orientation indifférente
     }
 
-    // Calcul de l'angle selon les plages de ton guide
+    // Calcul de l'angle d'inclinaison optimal selon les plages du guide du concepteur
     if (absLat >= 15 && absLat <= 25) {
       angle = Math.round(absLat);
     } else if (absLat > 25) {
       angle = Math.round(absLat * 0.76 + 3.1);
     } else {
-      angle = 10; // Règle par défaut pour les latitudes inférieures à 15°
+      // Pour les zones à faible latitude (< 15°), on maintient 10° minimum pour l'auto-nettoyage (pluie)
+      angle = 10;
     }
-
     return {
       hemisphère: hemisphere,
       orientation: orientation,
