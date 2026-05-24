@@ -1,5 +1,7 @@
 import type {
   Localisation,
+  HemisphereValue,
+  OrientationValue,
   MRcalcMonthly,
   MRcalcResponse,
   TMYResponse,
@@ -30,7 +32,9 @@ const fetchMRcalc = async (
   monthly: MRcalcMonthly[];
   angleOptimal: number | undefined;
 }> => {
-  const { lat, long } = localisation;
+  const lat = localisation?.lat;
+  const long = localisation?.long;
+
   const url =
     `${PVGIS_BASE}/MRcalc` +
     `?lat=${lat}&lon=${long}` +
@@ -38,8 +42,8 @@ const fetchMRcalc = async (
     `&outputformat=json` +
     `&browser=0`;
 
-  const data = fetchJson(url) as Promise<MRcalcResponse>;
-  const json = await data;
+  // Correction : Cast simple et standard de la promesse pour éviter les bugs
+  const json = (await fetchJson(url)) as MRcalcResponse;
 
   const monthly = json.outputs?.monthly;
   if (!Array.isArray(monthly) || monthly.length === 0) {
@@ -54,10 +58,6 @@ const fetchMRcalc = async (
 // Appel 2 : TMY (température et vent horaires)
 /**
  * Récupère le TMY et extrait Tmin, Tmax, WS_mean, WS_max.
- * Le TMY est une année "typique" synthétique — Tmin/Tmax sont représentatifs
- * du climat moyen, pas des extrêmes absolus historiques.
- * Pour les extrêmes absolus, il faudrait seriescalc sur toutes les années,
- * ce qui représente ~150 000 lignes de données (coût réseau significatif).
  */
 const fetchTMY = async (
   localisation: Localisation
@@ -67,7 +67,9 @@ const fetchTMY = async (
   windSpeed_mean: number;
   windSpeed_max: number;
 }> => {
-  const { lat, long } = localisation;
+  const lat = localisation?.lat;
+  const long = localisation?.long;
+
   const url =
     `${PVGIS_BASE}/tmy` +
     `?lat=${lat}&lon=${long}` +
@@ -108,10 +110,10 @@ const fetchTMY = async (
   }
 
   return {
-    T_min: +T_min.toFixed(1),
-    T_max: +T_max.toFixed(1),
-    windSpeed_mean: count > 0 ? +(wsSum / count).toFixed(2) : 0,
-    windSpeed_max: isFinite(wsMax) ? +wsMax.toFixed(1) : 0,
+    T_min: Number(T_min.toFixed(1)),
+    T_max: Number(T_max.toFixed(1)),
+    windSpeed_mean: count > 0 ? Number((wsSum / count).toFixed(2)) : 0,
+    windSpeed_max: isFinite(wsMax) ? Number(wsMax.toFixed(1)) : 0,
   };
 };
 
@@ -119,44 +121,36 @@ export class ParametresSiteService {
   /**
    * Détermine l'angle d'inclinaison optimal et l'orientation des panneaux
    * selon la latitude (méthode simplifiée p.4 du guide)
-   *
-   * Règles:
-   * - Latitude < 15°: quasi-horizontal (0-10°)
-   * - 15-25°: angle = latitude
-   * - > 25°: angle = 0.76 × latitude + 3.1
-   *
-   * @param latitude Latitude en degrés (-90 à 90)
-   * @returns Paramètres d'orientation optimaux
    */
   angleOptimal(latitude: number): {
-    hemisphère: string;
-    orientation: string;
+    hemisphère: HemisphereValue;
+    orientation: "N" | "S" | "Quelconque";
     angle: number;
   } {
     const absLat = Math.abs(latitude);
 
     let angle: number = 10;
-    let hemisphere: string = "";
-    let orientation: string = "";
+    let hemisphere: HemisphereValue = "S";
+    let orientation: OrientationValue = "N";
 
-    // Détermination hémisphère et orientation (vers équateur)
-    if (latitude > 0) {
+    // Détermination hémisphère et orientation vers l'équateur (avec repli par défaut)
+    if (latitude >= 0) {
       hemisphere = "N";
-      orientation = "S"; // Sud pour hémisphère nord
-    }
-    if (latitude < 0) {
-      hemisphere = "S";
-      orientation = "N"; // Nord pour hémisphère sud
+      orientation = "S"; // Face au Sud
     }
 
-    // Calcul angle optimal selon latitude (p.4 guide fait avant)
-    if (absLat >= 15 && absLat <= 25) {
-      // Zones tropicales/subtropicales: angle = latitude
-      angle = Math.round(absLat);
+    if (latitude === 0) {
+      hemisphere = "Equateur";
+      orientation = "Quelconque"; // Orientation indifférente à l'équateur
     }
-    if (absLat > 25) {
-      // Zones tempérées/froides: angle optimisé hiver
+
+    // Calcul de l'angle selon les plages de ton guide
+    if (absLat >= 15 && absLat <= 25) {
+      angle = Math.round(absLat);
+    } else if (absLat > 25) {
       angle = Math.round(absLat * 0.76 + 3.1);
+    } else {
+      angle = 10; // Règle par défaut pour les latitudes inférieures à 15°
     }
 
     return {
@@ -167,18 +161,18 @@ export class ParametresSiteService {
   }
 
   /**
-   * Récupère les données PVGIS 5.3 pour le dimensionnement PV.
-   *
-   * @param localisation  - Coordonnées { lat, long }
-   * @param targetYear    - Horizon climatique pour correction GIEC (défaut: 2040)
-   *
-   * @returns PVGISDatasResult avec PSH min/max, T min/max, vent, correction GIEC
+   * Récupère les données PVGIS pour le dimensionnement PV.
    */
   async PVGISDatas(
     localisation: Localisation,
     targetYear: number = DEFAULT_TARGET_YEAR
   ): Promise<PVGISDatasResult> {
     try {
+      // Sécurité : Vérification immédiate de la présence de l'objet de localisation
+      if (!localisation) {
+        throw new Error("L'objet de localisation est manquant");
+      }
+
       // Deux appels en parallèle
       const [mrcalcResult, tmyResult] = await Promise.all([
         fetchMRcalc(localisation),
@@ -188,12 +182,16 @@ export class ParametresSiteService {
       const { monthly, angleOptimal } = mrcalcResult;
 
       // PSH mensuelle depuis H(i_opt)_m
-      // H(i_opt)_m est en Wh/m²/mois (moyenne annuelle sur toutes les années)
-      // PSH (kWh/m²/j) = H(i_opt)_m / 1000 / nb_jours_mois
-      const monthlyPSH = monthly.map((m) => ({
-        month: m.month,
-        psh: m["H(i_opt)_m"] / 1000 / daysInMonth(m.month),
-      }));
+      const monthlyPSH = monthly.map((m) => {
+        const nbJours = daysInMonth(m.month);
+        // Sécurité anti-division par 0 au cas où daysInMonth renverrait une valeur invalide
+        const diviseurJours = nbJours > 0 ? nbJours : 30;
+
+        return {
+          month: m.month,
+          psh: m["H(i_opt)_m"] / 1000 / diviseurJours,
+        };
+      });
 
       // Mois défavorable (PSH min) et favorable (PSH max)
       const moisDefavorable = monthlyPSH.reduce((worst, curr) =>
@@ -204,68 +202,63 @@ export class ParametresSiteService {
       );
 
       // Correction climatique GIEC SSP2-4.5
-      // LIMITE : modèle linéaire global, non régionalisé.
-      // Pour Kinshasa : AR6 Table SPM.1 indique +1.4–2.1°C à 2050 (SSP2-4.5).
-      // On utilise la valeur centrale mondiale de 1.5°C.
       const fraction = climateFraction(targetYear);
       const dT = IPCC_DELTA.dT * fraction;
       const dG = IPCC_DELTA.dG * fraction;
 
-      const PSH_min_corrected = +(moisDefavorable.psh * (1 + dG)).toFixed(3);
-      const PSH_max_corrected = +(moisSurfavorable.psh * (1 + dG)).toFixed(3);
-      const T_min_corrected = +(tmyResult.T_min + dT).toFixed(1);
-      const T_max_corrected = +(tmyResult.T_max + dT).toFixed(1);
+      const PSH_min_corrected = Number(
+        (moisDefavorable.psh * (1 + dG)).toFixed(3)
+      );
+      const PSH_max_corrected = Number(
+        (moisSurfavorable.psh * (1 + dG)).toFixed(3)
+      );
+      const T_min_corrected = Number((tmyResult.T_min + dT).toFixed(1));
+      const T_max_corrected = Number((tmyResult.T_max + dT).toFixed(1));
 
       return {
-        // Irradiation / PSH
         PSH: PSH_min_corrected,
         PSH_max: PSH_max_corrected,
-        G_moy: PSH_min_corrected, // alias compatibilité
-        G_max: PSH_max_corrected, // alias compatibilité
+        G_moy: PSH_min_corrected,
+        G_max: PSH_max_corrected,
 
-        // Températures
         T_min: T_min_corrected,
         T_max: T_max_corrected,
 
-        // Vent (TMY brut, pas de correction climatique sur le vent — incertitude trop élevée)
         windSpeed_mean: tmyResult.windSpeed_mean,
         windSpeed_max: tmyResult.windSpeed_max,
 
-        // Métadonnées
         angleOptimalPVGIS: angleOptimal,
         moisDefavorable: String(moisDefavorable.month),
         moisSurfavorable: String(moisSurfavorable.month),
         isFallback: false,
 
         climateCorrection: {
-          dT: +dT.toFixed(2),
-          dGPercent: +(dG * 100).toFixed(2),
+          dT: Number(dT.toFixed(2)),
+          dGPercent: Number((dG * 100).toFixed(2)),
           targetYear,
-          fraction: +fraction.toFixed(3),
+          fraction: Number(fraction.toFixed(3)),
         },
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error("[PVGISDatas] Échec PVGIS:", message);
+      console.error(
+        "[PVGISDatas] Échec PVGIS, bascule sur les valeurs de repli:",
+        message
+      );
 
-      // Fallback conservateur basé sur la latitude
-      // Valeurs issues de la littérature (Agence Internationale de l'Énergie,
-      // Atlas Solaire de l'Afrique). Intentionnellement pessimistes.
-      const latAbs = Math.abs(localisation?.lat);
+      // Correction : Protection stricte contre un crash si localisation est undefined
+      const safeLat = localisation?.lat ?? 0;
+      const latAbs = Math.abs(safeLat);
       let pshFallback: number;
 
       if (latAbs < 10) pshFallback = 4.5;
-      // équatorial (ex: Kinshasa)
       else if (latAbs < 20) pshFallback = 4.8;
-      // tropical
       else if (latAbs < 35) pshFallback = 4.0;
-      // subtropical
       else if (latAbs < 50) pshFallback = 2.5;
-      // tempéré
-      else pshFallback = 1.8; // boréal/austral
+      else pshFallback = 1.8;
 
       console.warn(
-        `[PVGISDatas] Fallback : PSH=${pshFallback} kWh/m²/j, lat=${localisation?.lat}`
+        `[PVGISDatas] Fallback appliqué : PSH=${pshFallback} kWh/m²/j pour lat=${safeLat}`
       );
 
       return {
@@ -273,8 +266,8 @@ export class ParametresSiteService {
         PSH_max: pshFallback,
         G_moy: pshFallback,
         G_max: pshFallback,
-        T_min: 15, // conservateur, à surcharger manuellement si possible
-        T_max: 40, // conservateur
+        T_min: 15,
+        T_max: 40,
         windSpeed_mean: 1.5,
         windSpeed_max: 5,
         isFallback: true,
