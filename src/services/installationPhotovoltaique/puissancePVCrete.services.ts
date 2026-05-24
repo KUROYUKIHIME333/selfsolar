@@ -179,35 +179,124 @@ const tensionSystemePV = (
 
 /**
  * IDEA: En fonction du climat (chaud, froid, tempéré, ...) on a differentes priorités
- * En climat chaud, on va chercher à se rapprocher de N_panneaux_par_string_min
- * En climat froid, on va chercher à se rapprocher de N_panneaux_par_string_max
+ * En climat chaud, on va chercher à se rapprocher de N_panneaux_par_string_min pour éviter la sous-tension en plein soleil
+ * donc Fclim -> 0
+ * En climat froid, on va chercher à se rapprocher de N_panneaux_par_string_max pour maximiser la tension sans griller l'onduleur
+ * donc Fclim -> 1
  *
  * Ce facteur nous permet de représenter le climat et de choisir N_panneaux_par_string EN FONCTION
  *
  * WARNING: C'est une petites lubie personnelle, et non un outils normalisé
  * WARNING: Mais c'est mon api, donc je fait ce que je veux
  */
-
 const nombreParClimat = (
   temperaturesAttendue: TemperaturesMinMax,
   Nmin: number,
   Nmax: number
-) => {
+): {
+  success: boolean;
+  nombrePanneaux: number;
+  facteurClimatique: number;
+  error?: string;
+} => {
+  if (
+    typeof Nmin !== "number" ||
+    typeof Nmax !== "number" ||
+    isNaN(Nmin) ||
+    isNaN(Nmax)
+  ) {
+    return {
+      success: false,
+      nombrePanneaux: 0,
+      facteurClimatique: 0,
+      error: "Nmin et Nmax doivent être des nombres valides.",
+    };
+  }
+  if (Nmin < 0 || Nmax < 0) {
+    return {
+      success: false,
+      nombrePanneaux: 0,
+      facteurClimatique: 0,
+      error: "Le nombre de panneaux ne peut pas être négatif.",
+    };
+  }
+  if (Nmin > Nmax) {
+    return {
+      success: false,
+      nombrePanneaux: 0,
+      facteurClimatique: 0,
+      error: "Nmin ne peut pas être supérieur à Nmax.",
+    };
+  }
+
+  if (!temperaturesAttendue) {
+    return {
+      success: false,
+      nombrePanneaux: 0,
+      facteurClimatique: 0,
+      error: "L'objet des températures attendues est requis.",
+    };
+  }
+
   const { temperatureMin: Tmin, temperatureMax: Tmax } = temperaturesAttendue;
 
-  const temperature_moyenne: number = (Tmax + Tmin) / 2; // Tmoy
-  const amplitude_thermique: number = Tmax - Tmin; // A
-  const variable_climatique: number =
-    (T_REF_Noct - temperature_moyenne) / (amplitude_thermique - T_REF_Noct); // X
-  const sensibilite_climatique: number =
+  if (
+    typeof Tmin !== "number" ||
+    typeof Tmax !== "number" ||
+    isNaN(Tmin) ||
+    isNaN(Tmax)
+  ) {
+    return {
+      success: false,
+      nombrePanneaux: 0,
+      facteurClimatique: 0,
+      error: "Les températures min et max doivent être des nombres valides.",
+    };
+  }
+  if (Tmin >= Tmax) {
+    return {
+      success: false,
+      nombrePanneaux: 0,
+      facteurClimatique: 0,
+      error:
+        "La température minimale doit être strictement inférieure à la température maximale (évite la division par zéro).",
+    };
+  }
+
+  const amplitude_thermique = Tmax - Tmin; // A
+  if (amplitude_thermique === T_REF_Noct) {
+    return {
+      success: false,
+      nombrePanneaux: 0,
+      facteurClimatique: 0,
+      error: `Asymptote mathématique : l'amplitude thermique (${amplitude_thermique}°C) est exactement égale à T_REF_NOCT (${T_REF_Noct}°C), ce qui génère une division par zéro.`,
+    };
+  }
+
+  const temperature_moyenne = (Tmax + Tmin) / 2; // Tmoy
+
+  // variable climatique X
+  const variable_climatique =
+    (T_REF_Noct - temperature_moyenne) / (amplitude_thermique - T_REF_Noct);
+
+  // sensibilité k
+  const sensibilite_climatique =
     1 +
     amplitude_thermique / A_REF +
-    (Math.abs(Tmax - T_REF_Noct) + Math.abs(Tmin - T_REF_Noct)) / (2 * T_REF); // k
+    (Math.abs(Tmax - T_REF_Noct) + Math.abs(Tmin - T_REF_Noct)) / (2 * T_REF);
 
-  const facteur_climatique: number =
-    1 / (1 + Math.exp(-sensibilite_climatique * variable_climatique)); // Fclim = 1 / (1 + exp(-kX))
+  // Fclim strictement entre 0 et 1
+  const facteur_climatique =
+    1 / (1 + Math.exp(-sensibilite_climatique * variable_climatique));
 
-  return Nmin + facteur_climatique * (Nmax - Nmin);
+  // Nombre de panneaux théorique continu
+  const resultatTheorique = Nmin + facteur_climatique * (Nmax - Nmin);
+
+  return {
+    success: true,
+    nombrePanneaux: Math.round(resultatTheorique), // Arrondit à l'entier le plus proche (vrai nombre de panneaux physiques)
+    facteurClimatique: Number(facteur_climatique.toFixed(4)),
+  };
 };
 
 /**
@@ -392,12 +481,12 @@ export class PuissanceCretePVService {
       temperaturesAttendue,
       N_panneaux_par_string_min,
       N_panneaux_par_string_max
-    );
+    ).nombrePanneaux;
     const N_string_en_parallele: number = nombreParClimat(
       temperaturesAttendue,
       N_strings_en_parallele_min,
       N_strings_en_parallele_max
-    );
+    ).nombrePanneaux;
 
     return {
       appareil: "panneaux photovoltaiques",
