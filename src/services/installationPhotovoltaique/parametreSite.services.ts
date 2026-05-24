@@ -120,7 +120,12 @@ const fetchTMY = async (
 export class ParametresSiteService {
   /**
    * Détermine l'angle d'inclinaison optimal et l'orientation des panneaux
-   * selon la latitude (méthode simplifiée p.4 du guide)
+   * selon la latitude
+   * 
+   * Règles:
+   * - Latitude < 15°: quasi-horizontal (0-10°)
+   * - 15-25°: angle = latitude
+   * - > 25°: angle = 0.76 × latitude + 3.1
    */
   angleOptimal(latitude: number): {
     hemisphère: HemisphereValue;
