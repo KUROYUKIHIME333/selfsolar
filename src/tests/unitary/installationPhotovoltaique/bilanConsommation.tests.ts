@@ -5,12 +5,45 @@ import type { Equipement } from "../../../types/installationPhotovoltaique.types
 describe("BilanConsommationService", () => {
   const service = new BilanConsommationService();
 
+  // Messages d'erreur attendus définis dans ton service
+  const errorInvalide = "Liste des equipements invalide";
+  const errorVide = "Liste des equipements vide";
+
   // Jeu de données nominal (Exemple typique Kinshasa)
   const mockEquipements: Equipement[] = [
     { nom: "Ampoules", P: 100, h: 6, k: 1 }, // 600 Wh
     { nom: "TV", P: 150, h: 4, k: 1 }, // 600 Wh
     { nom: "Frigo", P: 200, h: 24, k: 5 }, // 4800 Wh, Pic moteur x5
   ];
+
+  // --- NOUVELLE SUITE : Validation stricte globale ---
+  describe("Validation globale des entrées (validationEquipements)", () => {
+    it("doit lever une exception si la liste d'équipements est vide", () => {
+      expect(() => service.energieTotal([])).toThrowError(errorVide);
+      expect(() => service.puissanceAppelee([], 0.8)).toThrowError(errorVide);
+      expect(() => service.puissanceInstaleeAC([])).toThrowError(errorVide);
+      expect(() => service.puissancePic([])).toThrowError(errorVide);
+    });
+
+    it("doit lever une exception si la liste est null ou undefined au runtime", () => {
+      const inputsInvalides = [null, undefined];
+
+      inputsInvalides.forEach((input) => {
+        expect(() =>
+          service.energieTotal(input as unknown as Equipement[])
+        ).toThrowError(errorInvalide);
+        expect(() =>
+          service.puissanceAppelee(input as unknown as Equipement[], 0.8)
+        ).toThrowError(errorInvalide);
+        expect(() =>
+          service.puissanceInstaleeAC(input as unknown as Equipement[])
+        ).toThrowError(errorInvalide);
+        expect(() =>
+          service.puissancePic(input as unknown as Equipement[])
+        ).toThrowError(errorInvalide);
+      });
+    });
+  });
 
   // --- Tests pour energieTotal ---
   describe("energieTotal", () => {
@@ -19,28 +52,20 @@ describe("BilanConsommationService", () => {
       expect(total).toBe(600 + 600 + 4800); // 6000 Wh/j
     });
 
-    it("doit retourner 0 si la liste d'équipements est vide ou invalide", () => {
-      expect(service.energieTotal([])).toBe(0);
-      expect(service.energieTotal(null as unknown as Equipement[])).toBe(0);
-      expect(service.energieTotal(undefined as unknown as Equipement[])).toBe(
-        0
-      );
-    });
-
     it("doit ignorer les équipements avec une puissance ou une durée négative ou nulle", () => {
       const badEquipements: Equipement[] = [
         { nom: "Lampe OK", P: 10, h: 5, k: 1 }, // 50 Wh
-        { nom: "P Négative", P: -100, h: 4, k: 1 }, // ignoré (0)
-        { nom: "h Négative", P: 100, h: -2, k: 1 }, // ignoré (0)
-        { nom: "Zéro", P: 0, h: 0, k: 1 }, // ignoré (0)
+        { nom: "P Négative", P: -100, h: 4, k: 1 }, // traité comme P=0 -> 0 Wh
+        { nom: "h Négative", P: 100, h: -2, k: 1 }, // traité comme h=0 -> 0 Wh
+        { nom: "Zéro", P: 0, h: 0, k: 1 }, // 0 Wh
       ];
       expect(service.energieTotal(badEquipements)).toBe(50);
     });
 
     it("doit ignorer proprement les types incorrects reçus au runtime", () => {
       const badTypes = [
-        { nom: "Fake 1", P: "100" as unknown as number, h: 2, k: 1 },
-        { nom: "Fake 2", P: 100, h: "2" as unknown as number, k: 1 },
+        { nom: "Fake 1", P: "100" as unknown as number, h: 2, k: 1 }, // P n'est pas un number -> P=0
+        { nom: "Fake 2", P: 100, h: "2" as unknown as number, k: 1 }, // h n'est pas un number -> h=0
       ];
       expect(service.energieTotal(badTypes)).toBe(0);
     });
@@ -67,13 +92,6 @@ describe("BilanConsommationService", () => {
       const result = service.puissanceAppelee(mockEquipements, 1.0);
       expect(result).toBe(450);
     });
-
-    it("doit retourner 0 pour une liste vide ou non-conforme", () => {
-      expect(service.puissanceAppelee([], 0.8)).toBe(0);
-      expect(
-        service.puissanceAppelee(null as unknown as Equipement[], 0.8)
-      ).toBe(0);
-    });
   });
 
   // --- Tests pour puissanceInstaleeAC ---
@@ -83,17 +101,10 @@ describe("BilanConsommationService", () => {
       expect(result).toBe(450); // 100 + 150 + 200
     });
 
-    it("doit retourner 0 pour une liste vide ou invalide", () => {
-      expect(service.puissanceInstaleeAC([])).toBe(0);
-      expect(
-        service.puissanceInstaleeAC(undefined as unknown as Equipement[])
-      ).toBe(0);
-    });
-
     it("doit exclure les puissances négatives du calcul global", () => {
       const mixed = [
         { nom: "A", P: 500, h: 2 },
-        { nom: "B", P: -500, h: 2 },
+        { nom: "B", P: -500, h: 2 }, // traité comme P=0
       ];
       expect(service.puissanceInstaleeAC(mixed)).toBe(500);
     });
@@ -115,17 +126,11 @@ describe("BilanConsommationService", () => {
       ];
       expect(service.puissancePic(eqChargesChocs)).toBe(1000 + 90 + 1500); // 2590W
     });
-
-    it("doit retourner 0 pour une liste vide ou invalide", () => {
-      expect(service.puissancePic([])).toBe(0);
-      expect(service.puissancePic(null as unknown as Equipement[])).toBe(0);
-    });
   });
 
   // --- Tests de précision numérique & Robustesse technique ---
   describe("Précision numérique & Robustesse technique", () => {
     it("doit éviter les résidus de virgule flottante binaire de JavaScript (Arrondis propres)", () => {
-      // Évite les pièges comme 0.1 + 0.2 = 0.30000000000000004
       const eqFlottants: Equipement[] = [
         { nom: "Lampe LED 1", P: 9.33, h: 1.5, k: 1.2 }, // P*h = 13.995, P*k = 11.196
         { nom: "Lampe LED 2", P: 4.11, h: 0.7, k: 1.1 }, // P*h = 2.877,  P*k = 4.521
