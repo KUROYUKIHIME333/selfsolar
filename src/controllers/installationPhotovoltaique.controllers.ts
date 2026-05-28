@@ -25,6 +25,7 @@ import { LISTE_PANNEAUX } from "../utils/modulesPVListe.utils.js";
 import { LISTE_BATTERIES } from "../utils/batteriesListe.utils.js";
 import { controllerErrorHandler } from "../utils/gestionErreur.utils.js";
 import { CONFIG_TECHNOLOGIES } from "../utils/constantesPhysiques.utils.js";
+import { success } from "zod/v4";
 
 const TARGET_YEAR_IN_FUTURE: number = 40;
 
@@ -310,6 +311,33 @@ export class InstallationPhotovoltaiqueController {
           data: null,
         };
       }
+
+      const {
+        success: modulesPVsuccess,
+        data: modulesPVdata,
+        error: modulesPVerror,
+      } = puissanceCretePVService.modulesPV(
+        panneauParametres,
+        puissanceCretePV,
+        temperaturesAttendue,
+        irradianceMax,
+        tensionSystem,
+        configurationSystem
+      );
+
+      if (!modulesPVsuccess && modulesPVerror) {
+        return {
+          success: false,
+          error: modulesPVerror,
+          data: null,
+        };
+      }
+
+      return {
+        success: true,
+        error: null,
+        data: modulesPVdata,
+      };
     } catch (error: unknown) {
       return controllerErrorHandler(error, "[nombres de panneaux]");
     }
