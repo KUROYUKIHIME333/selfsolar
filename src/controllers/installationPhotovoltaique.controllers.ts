@@ -8,15 +8,157 @@ import type {
   DimensionnementPVRequest,
   DimensionnementPVResponse,
   ResultatStockage,
+  Equipement,
+  Localisation,
+  ParametresSTCPanneau,
+  TypeInstallationPourPertes,
+  TypeSystemePV,
+  TechnologieBatterie,
+  MateriauConducteur,
+  MethodePose,
 } from "../types/installationPhotovoltaique.types.js";
 import { LISTE_PANNEAUX } from "../utils/modulesPVListe.utils.js";
 import { LISTE_BATTERIES } from "../utils/batteriesListe.utils.js";
-import { PALIERS_PC_BAS_TENSION8SYSTEME_PV } from "../utils/constantesPhysiques.utils.js";
+
+const TARGET_YEAR_IN_FUTURE: number = 40;
 
 // Contrôleur d'installation photovoltaïque
 // Orchestre les services de dimensionnement selon normes NFC 15-100, IEC 61215, etc.
 
 export class InstallationPhotovoltaiqueController {
+  /**
+   * Analyse la consommation électrique des équipements
+  */
+  analyserConsommation(equipements: Equipement[], kfGlobal?: number) {
+    try {
+      if (
+        !equipements ||
+        !Array.isArray(equipements) ||
+        equipements.length === 0
+      ) {
+        return {
+          success: false,
+          error: "La liste des équipements est vide ou invalide.",
+          data: null,
+        };
+      }
+
+      if (kfGlobal !== undefined && (kfGlobal <= 0 || kfGlobal > 1)) {
+        return {
+          success: false,
+          error:
+            "Le coefficient de simultanéité global (kfGlobal) doit être compris entre 0 et 1.",
+          data: null,
+        };
+      }
+
+      const energieJournaliereTotal =
+        bilanConsommationService.energieTotal(equipements);
+
+      const puissanceAppeleeMax = bilanConsommationService.puissanceAppelee(
+        equipements,
+        kfGlobal ?? 0.8
+      );
+
+      const puissanceInstalleeTotal =
+        bilanConsommationService.puissanceInstaleeAC(equipements);
+
+      const puissancePicDemarrage =
+        bilanConsommationService.puissancePic(equipements);
+
+      return {
+        success: true,
+        error: null,
+        datas: {
+          energieJournaliereWh: energieJournaliereTotal,
+          puissanceAppeleeW: puissanceAppeleeMax,
+          puissanceInstalleeW: puissanceInstalleeTotal,
+          puissancePicW: puissancePicDemarrage,
+        },
+      };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Erreur inconnue lors de l'analyse de consommation.";
+      return {
+        success: false,
+        error: `[Analyse Consommation] : ${message}`,
+        data: null,
+      };
+    }
+  }
+  /**
+   * Analyse des données météorologiques
+   * Elles sont récupérées de PVGIS (voir parametreSite.services.ts)
+  */
+  async analyserGeographie(localisation: Localisation) {
+    try {
+      if (!localisation || !localisation.lat || !localisation.long) {
+        return {
+          success: false,
+          error:
+            "La localisation du site doit etre au format {lat: number; long: number; altitude: number | undefined}",
+          data: null,
+        };
+      }
+
+      if (localisation.lat < -90 || localisation.lat > 90) {
+        return {
+          success: false,
+          error: "La latitude est comprise entre -90 et 90",
+          data: null,
+        };
+      }
+
+      if (localisation.long < -180 || localisation.long > 180) {
+        return {
+          success: false,
+          error: "La longitude est comprise entre -180 et 180",
+          data: null,
+        };
+      }
+
+      const targetYear = new Date().getFullYear() + TARGET_YEAR_IN_FUTURE;
+      // Calcul de l'inclinaison optimale basée sur la latitude
+      const orientationEtAngle = parametresSiteService.angleOptimal(
+        localisation.lat
+      );
+
+      const meteoData = await parametresSiteService.PVGISDatas(
+        localisation,
+        targetYear
+      );
+
+      const { angleOptimalPVGIS, ...leReste } = meteoData;
+
+      return {
+        success: true,
+        error: null,
+        data: {
+          localisation: localisation,
+          orientation: orientationEtAngle.orientation,
+          angle: orientationEtAngle.angle,
+          angleOptimal: angleOptimalPVGIS,
+          ...leReste,
+        },
+      };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Erreur inconnue lors de l'analyse de consommation.";
+      return {
+        success: false,
+        error: `[Analyse Geographique] : ${message}`,
+        data: null,
+      };
+    }
+  }
+
+  analyserPuissanceCrete(){}
+  
+
   /**
    * Endpoint principal de dimensionnement PV complet
    * Enchaîne tous les calculs: consommation, site, modules, onduleur, stockage, câblage
@@ -66,7 +208,7 @@ export class InstallationPhotovoltaiqueController {
         });
       }
 
-      console.log("L'Ec", energieJournaliere) //WARNING: To remove after tests
+      console.log("L'Ec", energieJournaliere); //WARNING: To remove after tests
 
       // ========== 2. PARAMÈTRES SITE ET RESSOURCE SOLAIRE ==========
       const parametresSite = await parametresSiteService.PVGISDatas(
@@ -74,8 +216,8 @@ export class InstallationPhotovoltaiqueController {
       );
       const angleOptimal = parametresSiteService.angleOptimal(localisation.lat);
 
-      console.log("L'angle optimal et tout' :", JSON.stringify(angleOptimal)) //WARNING: To remove after tests
-      console.log("L'angle optimal et tout' :", angleOptimal) //WARNING: To remove after tests
+      console.log("L'angle optimal et tout' :", JSON.stringify(angleOptimal)); //WARNING: To remove after tests
+      console.log("L'angle optimal et tout' :", angleOptimal); //WARNING: To remove after tests
 
       // ========== 3. PERFORMANCE RATIO ET PERTES ==========
       const { PR, pertesTotales } =
@@ -84,7 +226,12 @@ export class InstallationPhotovoltaiqueController {
           localisation
         );
 
-      console.log("Le ratio de performance calculée :",PR, " mais avec des pertes ", pertesTotales) //WARNING: To remove after tests
+      console.log(
+        "Le ratio de performance calculée :",
+        PR,
+        " mais avec des pertes ",
+        pertesTotales
+      ); //WARNING: To remove after tests
 
       // ========== 4. PUISSANCE CRÊTE PV REQUISE ==========
       const puissanceCretePV = puissanceCretePVService.puissanceCretePV(
@@ -96,8 +243,8 @@ export class InstallationPhotovoltaiqueController {
         contraintesOnduleur?.rendementMPPT
       );
 
-      console.log(pompageCaracteristiques)
-      console.log("La puisance crète calculée :", puissanceCreteCharge) //WARNING: To remove after tests
+      console.log(pompageCaracteristiques);
+      console.log("La puisance crète calculée :", puissanceCreteCharge); //WARNING: To remove after tests
 
       // ========== 5. DIMENSIONNEMENT MODULES PV ==========
       // Détermination contraintes selon type système
@@ -140,7 +287,7 @@ export class InstallationPhotovoltaiqueController {
         contraintesOnduleurModules
       );
 
-      console.log("Verification des modules : ", resultatModules) 
+      console.log("Verification des modules : ", resultatModules);
 
       // ========== 6. VÉRIFICATION ONDULEUR ==========
       let resultatOnduleur = null;
@@ -156,8 +303,7 @@ export class InstallationPhotovoltaiqueController {
           puissanceCreteCharge * 1.5 // Estimation puissance démarrage
         );
 
-
-        console.log("L'onduleur testé:", resultatOnduleur) //WARNING: To remove after tests
+        console.log("L'onduleur testé:", resultatOnduleur); //WARNING: To remove after tests
       }
 
       // ========== 7. DIMENSIONNEMENT STOCKAGE ==========
@@ -204,7 +350,7 @@ export class InstallationPhotovoltaiqueController {
           (resultatStockage as any).bms = bms;
         }
 
-        console.log("Les batteries:", resultatStockage) //WARNING: To remove after tests
+        console.log("Les batteries:", resultatStockage); //WARNING: To remove after tests
       }
 
       // ========== 8. DIMENSIONNEMENT CÂBLAGE ET PROTECTIONS ==========
@@ -244,7 +390,7 @@ export class InstallationPhotovoltaiqueController {
 
         dimensionnementCablage.cablageAC = dimensionnementAC;
 
-        console.log("Les cables :", dimensionnementCablage) //WARNING: To remove after tests
+        console.log("Les cables :", dimensionnementCablage); //WARNING: To remove after tests
       }
 
       // ========== 9. ASSEMBLAGE RÉPONSE ==========
