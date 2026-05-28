@@ -66,11 +66,11 @@ export class PuissanceCretePVService {
 
   puissanceCretePV(
     pompageSolaire: boolean,
-    energieCrete: number, // Wh/j (Ignoré si pompageSolaire = true)
+    energieCrete: number | undefined, // Wh/j (Ignoré si pompageSolaire = true)
     PSH: number, // h/j (Heures d'ensoleillement équivalentes à 1000W/m²)
     PR: number, // Facteur 0 à 1 (Performance Ratio)
-    pompageCaracteristiques?: PompageSolaireCaracteristiques | null,
-    rendementOnduleurMTTP?: number | null
+    pompageCaracteristiques?: PompageSolaireCaracteristiques | undefined,
+    rendementOnduleurMTTP?: number | undefined
   ): { success: boolean; puissanceCrete: number; error?: string } {
     // Validations des variables communes fondamentales pour eviter les divisions par zéro
     if (typeof PSH !== "number" || isNaN(PSH) || PSH <= 0) {
@@ -93,7 +93,7 @@ export class PuissanceCretePVService {
     let Pc: number;
 
     // Pompage Solaire Direct
-    if (pompageSolaire) {
+    if (pompageSolaire && !energieCrete) {
       if (!pompageCaracteristiques) {
         return {
           success: false,
@@ -216,9 +216,11 @@ export class PuissanceCretePVService {
       puissanceCreteModule,
       tensionMPP,
       tensionVoc,
+      //courantMPP,
       courantCourtCircuit,
       coeffTempTension,
       coeffTempPuissance,
+      //coeffTempCourant,
       noct,
     } = panneauParametres;
 
