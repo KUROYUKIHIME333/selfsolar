@@ -81,7 +81,7 @@ export class InstallationPhotovoltaiqueController {
         },
       };
     } catch (error: unknown) {
-      return controllerErrorHandler(error);
+      return controllerErrorHandler(error, "[Analyse Conso]");
     }
   }
   /**
@@ -136,7 +136,7 @@ export class InstallationPhotovoltaiqueController {
         },
       };
     } catch (error: unknown) {
-      return controllerErrorHandler(error);
+      return controllerErrorHandler(error, "[Analyse Geographique]");
     }
   }
   /**
@@ -182,7 +182,7 @@ export class InstallationPhotovoltaiqueController {
         data: stockageCalcule,
       };
     } catch (error: unknown) {
-      return controllerErrorHandler(error);
+      return controllerErrorHandler(error, "[Determiner batteries]");
     }
   }
   /**
@@ -268,11 +268,11 @@ export class InstallationPhotovoltaiqueController {
         },
       };
     } catch (error: unknown) {
-      return controllerErrorHandler(error);
+      return controllerErrorHandler(error, "[Puissance crete calculs]");
     }
   }
 
-  dimensionnerModulesPV(){}
+  dimensionnerModulesPV() {}
 
   // denombrerPanneaux(
   //   panneauParametres: ParametresSTCPanneau,
