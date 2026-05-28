@@ -20,6 +20,7 @@ import type {
   TemperaturesMinMax,
   ConfigurationTension,
 } from "../types/installationPhotovoltaique.types.js";
+import { TypeInstallationPourPertesArray } from "../types/installationPhotovoltaique.types.js";
 import { LISTE_PANNEAUX } from "../utils/modulesPVListe.utils.js";
 import { LISTE_BATTERIES } from "../utils/batteriesListe.utils.js";
 import { controllerErrorHandler } from "../utils/gestionErreur.utils.js";
@@ -199,6 +200,10 @@ export class InstallationPhotovoltaiqueController {
     technologieBatteries?: TechnologieBatterie | undefined
   ) {
     try {
+      // Verifier si typeInstallation est bien une des valeurs possible du type TypeInstallationPourPertes (dans le tableaux TypeInstallationPourPertesArray)
+      const typeTypeInstallation: boolean =
+        TypeInstallationPourPertesArray.includes(typeInstallation);
+      // Autres validations
       if (!PSH) {
         return {
           success: false,
@@ -207,7 +212,7 @@ export class InstallationPhotovoltaiqueController {
           data: null,
         };
       }
-      if (!typeInstallation) {
+      if (!typeInstallation || !typeTypeInstallation) {
         return {
           success: false,
           error:
