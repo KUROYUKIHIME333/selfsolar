@@ -16,19 +16,23 @@ import type {
   TechnologieBatterie,
   MateriauConducteur,
   MethodePose,
+  PompageSolaireCaracteristiques,
+  TemperaturesMinMax,
+  ConfigurationTension,
 } from "../types/installationPhotovoltaique.types.js";
 import { LISTE_PANNEAUX } from "../utils/modulesPVListe.utils.js";
 import { LISTE_BATTERIES } from "../utils/batteriesListe.utils.js";
+import { controllerErrorHandler } from "../utils/gestionErreur.utils.js";
+import { CONFIG_TECHNOLOGIES } from "../utils/constantesPhysiques.utils.js";
 
 const TARGET_YEAR_IN_FUTURE: number = 40;
 
 // Contrôleur d'installation photovoltaïque
 // Orchestre les services de dimensionnement selon normes NFC 15-100, IEC 61215, etc.
-
 export class InstallationPhotovoltaiqueController {
   /**
    * Analyse la consommation électrique des équipements
-  */
+   */
   analyserConsommation(equipements: Equipement[], kfGlobal?: number) {
     try {
       if (
@@ -77,21 +81,13 @@ export class InstallationPhotovoltaiqueController {
         },
       };
     } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Erreur inconnue lors de l'analyse de consommation.";
-      return {
-        success: false,
-        error: `[Analyse Consommation] : ${message}`,
-        data: null,
-      };
+      return controllerErrorHandler(error);
     }
   }
   /**
    * Analyse des données météorologiques
    * Elles sont récupérées de PVGIS (voir parametreSite.services.ts)
-  */
+   */
   async analyserGeographie(localisation: Localisation) {
     try {
       if (!localisation || !localisation.lat || !localisation.long) {
@@ -125,12 +121,8 @@ export class InstallationPhotovoltaiqueController {
         localisation.lat
       );
 
-      const meteoData = await parametresSiteService.PVGISDatas(
-        localisation,
-        targetYear
-      );
-
-      const { angleOptimalPVGIS, ...leReste } = meteoData;
+      const { angleOptimalPVGIS, ...leReste } =
+        await parametresSiteService.PVGISDatas(localisation, targetYear);
 
       return {
         success: true,
@@ -144,20 +136,152 @@ export class InstallationPhotovoltaiqueController {
         },
       };
     } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Erreur inconnue lors de l'analyse de consommation.";
+      return controllerErrorHandler(error);
+    }
+  }
+  /**
+   * Obtention de la capacité du bloc batteries
+   * Si besoin
+   */
+  etablirStockage(
+    technologie: TechnologieBatterie,
+    consommationJournaliere: number,
+    autonomie: number,
+    tensionSysteme: number,
+    temperatureAmbiante?: number | undefined
+  ) {
+    try {
+      if (!technologie) {
+        return {
+          success: false,
+          error:
+            "Renseigner le type de batterie (Plomb-acide, AGM/Gel, LiFePO4, Lithium NMC/NCA ou NiCd)",
+          data: null,
+        };
+      }
+      if (!consommationJournaliere || !autonomie || !tensionSysteme) {
+        return {
+          success: false,
+          error:
+            "Pour calculer la capacité du stockage, il faut la consommation journalière (Ec), le nombre de jours d'autonomie (N) et la tension du système (Us)",
+          data: null,
+        };
+      }
+
+      const stockageCalcule = stockageService.capaciteStockage(
+        technologie,
+        consommationJournaliere,
+        autonomie,
+        tensionSysteme,
+        temperatureAmbiante
+      );
+
       return {
-        success: false,
-        error: `[Analyse Geographique] : ${message}`,
-        data: null,
+        success: true,
+        error: null,
+        data: stockageCalcule,
       };
+    } catch (error: unknown) {
+      return controllerErrorHandler(error);
+    }
+  }
+  /**
+   * Obtention de la puissance crète et des pertes
+   */
+  etablirPuissanceCrete(
+    typeInstallation: TypeInstallationPourPertes,
+    pompageSolaire: boolean,
+    energieCrete: number | undefined, // Wh/j (Ignoré si pompageSolaire = true)
+    PSH: number, // h/j (Heures d'ensoleillement équivalentes à 1000W/m²)
+    stockage: boolean,
+    pompageCaracteristiques?: PompageSolaireCaracteristiques,
+    rendementOnduleurMTTP?: number | undefined,
+    technologieBatteries?: TechnologieBatterie | undefined
+  ) {
+    try {
+      if (!PSH) {
+        return {
+          success: false,
+          error:
+            "PSH (Heures d'ensoleillement équivalentes à 1000W/m²) doit être renseigné",
+          data: null,
+        };
+      }
+      if (!typeInstallation) {
+        return {
+          success: false,
+          error:
+            "Le type d'installation doit être choisi. Choix possibles: HAUTE_QUALITE, STANDARD, POUSSIEREUX, FAIBLE_MAINTENANCE, ANCIEN ou CABLE_LONG",
+          data: null,
+        };
+      }
+      if (
+        (!pompageSolaire && !energieCrete) ||
+        (pompageSolaire && energieCrete)
+      ) {
+        return {
+          success: false,
+          error:
+            "S'il s'agit d'une installation de pompage solaire, renseigner ses caractéristiques. S'il n'en est rien, renseigner les equipements. Ne pas mélanger les 2",
+          data: null,
+        };
+      }
+
+      const { pertesTotales, PR } =
+        puissanceCretePVService.performanceRatio(typeInstallation);
+
+      let Ec = energieCrete;
+
+      if (stockage && technologieBatteries && energieCrete) {
+        const K =
+          CONFIG_TECHNOLOGIES[technologieBatteries]["facteurMajorationCharge"];
+        Ec = energieCrete * K;
+      }
+
+      const {
+        success: PcSuccess,
+        puissanceCrete: PcValue,
+        error: PcError,
+      } = puissanceCretePVService.puissanceCretePV(
+        pompageSolaire,
+        Ec,
+        PSH,
+        PR,
+        pompageCaracteristiques,
+        rendementOnduleurMTTP
+      );
+
+      if (!PcSuccess || PcError) {
+        return {
+          success: true,
+          error: PcError,
+          data: null,
+        };
+      }
+
+      return {
+        success: true,
+        error: null,
+        data: {
+          Pc: PcValue,
+          pertesTotales: pertesTotales,
+        },
+      };
+    } catch (error: unknown) {
+      return controllerErrorHandler(error);
     }
   }
 
-  analyserPuissanceCrete(){}
-  
+  dimensionnerModulesPV(){}
+
+  // denombrerPanneaux(
+  //   panneauParametres: ParametresSTCPanneau,
+  //       puissanceCretePV: number,
+  //       temperaturesAttendue: TemperaturesMinMax,
+  //       irradianceMax: number,
+  //       tensionSystem?: number,
+  //       configurationSystem?: ConfigurationTension
+  // ){}
 
   /**
    * Endpoint principal de dimensionnement PV complet
