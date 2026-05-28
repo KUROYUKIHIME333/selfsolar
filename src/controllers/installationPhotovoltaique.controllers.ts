@@ -24,7 +24,6 @@ import { LISTE_PANNEAUX } from "../utils/modulesPVListe.utils.js";
 import { LISTE_BATTERIES } from "../utils/batteriesListe.utils.js";
 import { controllerErrorHandler } from "../utils/gestionErreur.utils.js";
 import { CONFIG_TECHNOLOGIES } from "../utils/constantesPhysiques.utils.js";
-import { success } from "zod/v4";
 
 const TARGET_YEAR_IN_FUTURE: number = 40;
 
