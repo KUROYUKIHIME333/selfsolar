@@ -24,6 +24,7 @@ import { LISTE_PANNEAUX } from "../utils/modulesPVListe.utils.js";
 import { LISTE_BATTERIES } from "../utils/batteriesListe.utils.js";
 import { controllerErrorHandler } from "../utils/gestionErreur.utils.js";
 import { CONFIG_TECHNOLOGIES } from "../utils/constantesPhysiques.utils.js";
+import { success } from "zod/v4";
 
 const TARGET_YEAR_IN_FUTURE: number = 40;
 
@@ -272,7 +273,43 @@ export class InstallationPhotovoltaiqueController {
     }
   }
 
-  dimensionnerModulesPV() {}
+  dimensionnerModulesPV(
+    panneauParametres: ParametresSTCPanneau,
+    puissanceCretePV: number,
+    temperaturesAttendue: TemperaturesMinMax,
+    irradianceMax: number,
+    tensionSystem?: number,
+    configurationSystem?: ConfigurationTension
+  ) {
+    try {
+      if (!panneauParametres || !puissanceCretePV) {
+        return {
+          success: false,
+          error:
+            "Les paramètres du module (puissanceCreteModule, tensionMPP, tensionVoc, courantMPP, courantCourtCircuit, coeffTempTension, coeffTempPuissance et noct, aussi coeffTempCourant si donné, mais pas obligé) ainsi que la puissnace crète calculée du champs doivent être renseignées",
+          data: null,
+        };
+      }
+      if (!temperaturesAttendue || !irradianceMax) {
+        return {
+          success: false,
+          error:
+            "Les temperatures (temperatureMin et temperatureMax) ainsi que l'irradiance maximum doivent être renseignées",
+          data: null,
+        };
+      }
+      if (!tensionSystem) {
+        return {
+          success: false,
+          error:
+            "La tension du système (en Courant continue) doit être renseignées",
+          data: null,
+        };
+      }
+    } catch (error: unknown) {
+      return controllerErrorHandler(error, "[nombres de panneaux]");
+    }
+  }
 
   // denombrerPanneaux(
   //   panneauParametres: ParametresSTCPanneau,
