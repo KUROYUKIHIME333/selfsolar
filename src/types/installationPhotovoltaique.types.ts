@@ -22,6 +22,15 @@ export type TypeInstallationPourPertes =
   | "ANCIEN"
   | "CABLE_LONG";
 
+export const TypeInstallationPourPertesArray = [
+  "HAUTE_QUALITE",
+  "STANDARD",
+  "POUSSIEREUX",
+  "FAIBLE_MAINTENANCE",
+  "ANCIEN",
+  "CABLE_LONG",
+];
+
 export type TypeSystemePV = "on-grid" | "off-grid" | "hybride";
 
 export type TypeClimat = "chaud" | "froid";
