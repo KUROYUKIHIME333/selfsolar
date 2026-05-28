@@ -2,54 +2,10 @@ import type {
   TechnologieBatterie,
   ResultatStockage,
 } from "../../types/installationPhotovoltaique.types.js";
+import { CONFIG_TECHNOLOGIES } from "../../utils/constantesPhysiques.utils.js";
 
 // Spécifications de la technologie conformes IEC 62619 (Li-ion), IEC 60896 (plomb) et p.6 du guide
-interface CommunesTechnologie {
-  readonly profondeurDecharge: number;
-  readonly cyclesMin: number;
-  readonly cyclesMax: number;
-  readonly tempMin: number;
-  readonly tempMax: number;
-}
 
-// Dictionnaire de configuration des technologies figé et validé via satisfies
-const CONFIG_TECHNOLOGIES: Record<TechnologieBatterie, CommunesTechnologie> = {
-  "Plomb-acide": {
-    profondeurDecharge: 0.5,
-    cyclesMin: 300,
-    cyclesMax: 700,
-    tempMin: -15,
-    tempMax: 40,
-  },
-  "AGM/Gel": {
-    profondeurDecharge: 0.5,
-    cyclesMin: 300,
-    cyclesMax: 700,
-    tempMin: -15,
-    tempMax: 40,
-  },
-  LiFePO4: {
-    profondeurDecharge: 0.8,
-    cyclesMin: 3000,
-    cyclesMax: 6000,
-    tempMin: 0,
-    tempMax: 55,
-  },
-  "Lithium NMC/NCA": {
-    profondeurDecharge: 0.8,
-    cyclesMin: 500,
-    cyclesMax: 2000,
-    tempMin: 0,
-    tempMax: 45,
-  },
-  NiCd: {
-    profondeurDecharge: 0.8,
-    cyclesMin: 1500,
-    cyclesMax: 3500,
-    tempMin: -20,
-    tempMax: 50,
-  },
-};
 export class StockageService {
   /**
    * Valide la cohérence physique des paramètres d'entrée
@@ -125,7 +81,7 @@ export class StockageService {
     consommationJournaliere: number,
     autonomie: number,
     tensionSysteme: number,
-    temperatureAmbiante?: number
+    temperatureAmbiante?: number | undefined
   ): ResultatStockage {
     this.validationParametres("capaciteStockage", {
       consommationJournaliere,
@@ -153,7 +109,7 @@ export class StockageService {
     // Utilisation d'une vérification stricte contre undefined pour autoriser la valeur 0°C
     if (
       (technologie === "Plomb-acide" || technologie === "AGM/Gel") &&
-      temperatureAmbiante !== undefined &&
+      temperatureAmbiante &&
       temperatureAmbiante > 25
     ) {
       const tClamped = Math.min(temperatureAmbiante, 50);
