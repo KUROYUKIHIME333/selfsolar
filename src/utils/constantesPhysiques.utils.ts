@@ -1,7 +1,17 @@
 import type {
   MethodePose,
   MateriauConducteur,
+  TechnologieBatterie,
 } from "../types/installationPhotovoltaique.types.js";
+
+interface CommunesTechnologie {
+  readonly profondeurDecharge: number;
+  readonly cyclesMin: number;
+  readonly cyclesMax: number;
+  readonly tempMin: number;
+  readonly tempMax: number;
+  readonly facteurMajorationCharge: number;
+}
 
 // CARACTÉRISTIQUES PHYSIQUES DES MATÉRIAUX CONDUCTEURS
 
@@ -149,3 +159,50 @@ export const T_STC = 25; // °C - Température des cellules en STC
 export const A_REF = 20;
 export const T_REF = 20;
 export const T_REF_Noct = 20;
+
+// Dictionnaire de configuration des technologies figé et validé via satisfies
+export const CONFIG_TECHNOLOGIES: Record<
+  TechnologieBatterie,
+  CommunesTechnologie
+> = {
+  "Plomb-acide": {
+    profondeurDecharge: 0.5,
+    cyclesMin: 300,
+    cyclesMax: 700,
+    tempMin: -15,
+    tempMax: 40,
+    facteurMajorationCharge: 1.35,
+  },
+  "AGM/Gel": {
+    profondeurDecharge: 0.5,
+    cyclesMin: 300,
+    cyclesMax: 700,
+    tempMin: -15,
+    tempMax: 40,
+    facteurMajorationCharge: 1.23,
+  },
+  LiFePO4: {
+    profondeurDecharge: 0.8,
+    cyclesMin: 3000,
+    cyclesMax: 6000,
+    tempMin: 0,
+    tempMax: 55,
+    facteurMajorationCharge: 1.1,
+  },
+  "Lithium NMC/NCA": {
+    profondeurDecharge: 0.8,
+    cyclesMin: 500,
+    cyclesMax: 2000,
+    tempMin: 0,
+    tempMax: 45,
+    facteurMajorationCharge: 1.15,
+  },
+  NiCd: {
+    profondeurDecharge: 0.8,
+    cyclesMin: 1500,
+    cyclesMax: 3500,
+    tempMin: -20,
+    tempMax: 50,
+    facteurMajorationCharge: 1.2,
+  },
+};
