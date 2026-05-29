@@ -35,18 +35,14 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Analyse la consommation électrique des équipements
    */
-  analyserConsommation(request: FastifyRequest, reply: FastifyReply) {
-    const { equipements, kfGlobal } = request.body;
-    let response;
-
+  analyserConsommation(equipements: Equipement[], kfGlobal?: number) {
     try {
-      
       if (
         !equipements ||
         !Array.isArray(equipements) ||
         equipements.length === 0
       ) {
-        response = {
+        return {
           success: false,
           error: "La liste des équipements est vide ou invalide.",
           data: null,
@@ -54,7 +50,7 @@ export class InstallationPhotovoltaiqueController {
       }
 
       if (kfGlobal !== undefined && (kfGlobal <= 0 || kfGlobal > 1)) {
-        response = {
+        return {
           success: false,
           error:
             "Le coefficient de simultanéité global (kfGlobal) doit être compris entre 0 et 1.",
@@ -76,7 +72,7 @@ export class InstallationPhotovoltaiqueController {
       const puissancePicDemarrage =
         bilanConsommationService.puissancePic(equipements);
 
-      response = {
+      return {
         success: true,
         error: null,
         datas: {
@@ -87,8 +83,7 @@ export class InstallationPhotovoltaiqueController {
         },
       };
     } catch (error: unknown) {
-      response = controllerErrorHandler(error, "[Analyse Conso]");
-
+      return controllerErrorHandler(error, "[Analyse Conso]");
     }
   }
   /**
