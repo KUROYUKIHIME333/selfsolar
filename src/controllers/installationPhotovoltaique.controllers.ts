@@ -455,12 +455,16 @@ export class InstallationPhotovoltaiqueController {
         );
       }
 
-      const dispositionBatt = stockageService.modulesBatteries(
+      const {success: dispositionBattSuccess, data: dispositionBatt, error: dispositionBattError} = stockageService.modulesBatteries(
         tensionSysteme_V,
         tensionUnitaireBatterie_V,
         capaciteUnitaireBatterie_Ah,
         capaciteTotaleRequise_Ah
       );
+
+      if (!dispositionBattSuccess && dispositionBattError) {
+        return sendError(reply, dispositionBattError, 400);
+      }
 
       return sendSuccess(reply, dispositionBatt, 200);
     } catch (error: unknown) {
