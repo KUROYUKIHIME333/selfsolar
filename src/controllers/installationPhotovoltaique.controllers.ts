@@ -125,7 +125,7 @@ export class InstallationPhotovoltaiqueController {
       if (localisation.lat < -90 || localisation.lat > 90) {
         return reply.code(400).send({
           success: false,
-          error: "La latitude est comprise entre -90 et 90",
+          error: "La latitude doit être comprise entre -90 et 90",
           data: null,
         });
       }
@@ -133,7 +133,7 @@ export class InstallationPhotovoltaiqueController {
       if (localisation.long < -180 || localisation.long > 180) {
         return reply.code(400).send({
           success: false,
-          error: "La longitude est comprise entre -180 et 180",
+          error: "La longitude doit être comprise entre -180 et 180",
           data: null,
         });
       }
@@ -159,7 +159,9 @@ export class InstallationPhotovoltaiqueController {
       });
     } catch (error: unknown) {
       request.log.error(error);
-      return reply.code(500).send(controllerErrorHandler(error, "[Analyse Geographique]"));
+      return reply
+        .code(500)
+        .send(controllerErrorHandler(error, "[Analyse Geographique]"));
     }
   }
   /**
