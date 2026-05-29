@@ -168,46 +168,66 @@ export class InstallationPhotovoltaiqueController {
    * Obtention de la capacité du bloc batteries
    * Si besoin
    */
-  etablirStockage(
-    technologie: TechnologieBatterie,
-    consommationJournaliere: number,
-    autonomie: number,
-    tensionSysteme: number,
-    temperatureAmbiante?: number | undefined
+  async etablirStockage(
+    request: FastifyRequest<{
+      Body: {
+        technologieBattery: TechnologieBatterie;
+        energieJournaliere_Wh: number;
+        autonomieBatterie_jours: number;
+        tensionSystemeBatterie_V: number;
+        temperatureAmbiante_C?: number;
+      };
+    }>,
+    reply: FastifyReply
   ) {
     try {
-      if (!technologie) {
-        return {
+      const {
+        technologieBattery,
+        energieJournaliere_Wh,
+        autonomieBatterie_jours,
+        tensionSystemeBatterie_V,
+        temperatureAmbiante_C,
+      } = request.body;
+
+      if (!technologieBattery) {
+        return reply.code(400).send({
           success: false,
           error:
             "Renseigner le type de batterie (Plomb-acide, AGM/Gel, LiFePO4, Lithium NMC/NCA ou NiCd)",
           data: null,
-        };
+        });
       }
-      if (!consommationJournaliere || !autonomie || !tensionSysteme) {
-        return {
+      if (
+        !energieJournaliere_Wh ||
+        !autonomieBatterie_jours ||
+        !tensionSystemeBatterie_V
+      ) {
+        return reply.code(400).send({
           success: false,
           error:
             "Pour calculer la capacité du stockage, il faut la consommation journalière (Ec), le nombre de jours d'autonomie (N) et la tension du système (Us)",
           data: null,
-        };
+        });
       }
 
       const stockageCalcule = stockageService.capaciteStockage(
-        technologie,
-        consommationJournaliere,
-        autonomie,
-        tensionSysteme,
-        temperatureAmbiante
+        technologieBattery,
+        energieJournaliere_Wh,
+        autonomieBatterie_jours,
+        tensionSystemeBatterie_V,
+        temperatureAmbiante_C
       );
 
-      return {
+      return reply.code(200).send({
         success: true,
         error: null,
         data: stockageCalcule,
-      };
+      });
     } catch (error: unknown) {
-      return controllerErrorHandler(error, "[Determiner batteries]");
+      request.log.error(error);
+      return reply
+        .code(500)
+        .send(controllerErrorHandler(error, "[Determiner batteries]"));
     }
   }
   /**
