@@ -512,7 +512,11 @@ export class InstallationPhotovoltaiqueController {
         );
       }
 
-      const dispositionOnduleur = puissanceCretePVService.onduleur(
+      const {
+        success: OnduleurSuccess,
+        data: OnduleurData,
+        error: OnduleurError,
+      } = puissanceCretePVService.onduleur(
         resultats_modules,
         parametres_panneaux,
         irradiance_max,
@@ -522,7 +526,11 @@ export class InstallationPhotovoltaiqueController {
         puissance_demarrage
       );
 
-      return sendSuccess(reply, dispositionOnduleur, 200);
+      if (!OnduleurSuccess && OnduleurError) {
+        return sendError(reply, OnduleurError, 400);
+      }
+      
+      return sendSuccess(reply, OnduleurData, 200);
     } catch (error) {
       request.log.error(error);
       return sendError(
