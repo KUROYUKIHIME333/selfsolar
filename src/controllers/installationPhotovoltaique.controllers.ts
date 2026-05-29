@@ -15,8 +15,8 @@ import type {
   TypeInstallationPourPertes,
   TypeSystemePV,
   TechnologieBatterie,
-  // MateriauConducteur,
-  // MethodePose,
+  MateriauConducteur,
+  MethodePose,
   ParametresOnduleur,
   PompageSolaireCaracteristiques,
   TemperaturesMinMax,
@@ -558,7 +558,23 @@ export class InstallationPhotovoltaiqueController {
   }
 
   async dimensionnerCablesEtProtections(
-    request: FastifyRequest,
+    request: FastifyRequest<{
+      Body: {
+        resultatModules: ResultatModulesPV;
+        Parametres_panneau: ParametresSTCPanneau;
+        longueur_cable_String_m: number;
+        longueur_cable_principal_m: number;
+        temperatureAmbiante: number;
+        materiau_conducteur_AC: MateriauConducteur;
+        materiau_conducteur_DC: MateriauConducteur;
+        puissance_nominale_onduleur_Wh: number;
+        tension_Reseau_V: number;
+        is_Triphase: boolean;
+        longueur_Meters: number;
+        cosPhi: number;
+        methodePose: MethodePose;
+      };
+    }>,
     reply: FastifyReply
   ) {}
 
