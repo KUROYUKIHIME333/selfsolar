@@ -106,35 +106,39 @@ export class InstallationPhotovoltaiqueController {
    * Analyse des données météorologiques
    * Elles sont récupérées de PVGIS (voir parametreSite.services.ts)
    */
-  async analyserGeographie(localisation: Localisation) {
+  async analyserGeographie(
+    request: FastifyRequest<{ Body: { localisation: Localisation } }>,
+    reply: FastifyReply
+  ) {
     try {
+      const { localisation } = request.body;
+
       if (!localisation || !localisation.lat || !localisation.long) {
-        return {
+        return reply.code(400).send({
           success: false,
           error:
             "La localisation du site doit etre au format {lat: number; long: number; altitude: number | undefined}",
           data: null,
-        };
+        });
       }
 
       if (localisation.lat < -90 || localisation.lat > 90) {
-        return {
+        return reply.code(400).send({
           success: false,
           error: "La latitude est comprise entre -90 et 90",
           data: null,
-        };
+        });
       }
 
       if (localisation.long < -180 || localisation.long > 180) {
-        return {
+        return reply.code(400).send({
           success: false,
           error: "La longitude est comprise entre -180 et 180",
           data: null,
-        };
+        });
       }
 
       const targetYear = new Date().getFullYear() + TARGET_YEAR_IN_FUTURE;
-      // Calcul de l'inclinaison optimale basée sur la latitude
       const orientationEtAngle = parametresSiteService.angleOptimal(
         localisation.lat
       );
@@ -142,7 +146,7 @@ export class InstallationPhotovoltaiqueController {
       const { angleOptimalPVGIS, ...leReste } =
         await parametresSiteService.PVGISDatas(localisation, targetYear);
 
-      return {
+      return reply.code(200).send({
         success: true,
         error: null,
         data: {
@@ -152,9 +156,10 @@ export class InstallationPhotovoltaiqueController {
           angleOptimal: angleOptimalPVGIS,
           ...leReste,
         },
-      };
+      });
     } catch (error: unknown) {
-      return controllerErrorHandler(error, "[Analyse Geographique]");
+      request.log.error(error);
+      return reply.code(500).send(controllerErrorHandler(error, "[Analyse Geographique]"));
     }
   }
   /**
