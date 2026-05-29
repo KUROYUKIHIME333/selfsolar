@@ -338,39 +338,55 @@ export class InstallationPhotovoltaiqueController {
         .send(controllerErrorHandler(error, "[Puissance crete calculs]"));
     }
   }
-
-  dimensionnerModulesPV(
-    panneauParametres: ParametresSTCPanneau,
-    puissanceCretePV: number,
-    temperaturesAttendue: TemperaturesMinMax,
-    irradianceMax: number,
-    tensionSystem: number,
-    configurationSystem: ConfigurationTension
+  /**
+   * Obtention de le nombres des panneaux photovoltaiques et leurs caractéristiques
+   */
+  async dimensionnerModulesPV(
+    request: FastifyRequest<{
+      Body: {
+        parametresPanneau: ParametresSTCPanneau;
+        puissanceCretePV_Wc: number;
+        temperaturesAttendue: TemperaturesMinMax;
+        irradianceMax_W_m2: number;
+        tensionSysteme_V: number;
+        configurationTensionSysteme: ConfigurationTension;
+      };
+    }>,
+    reply: FastifyReply
   ) {
     try {
-      if (!panneauParametres || !puissanceCretePV) {
-        return {
+      const {
+        parametresPanneau,
+        puissanceCretePV_Wc,
+        temperaturesAttendue,
+        irradianceMax_W_m2,
+        tensionSysteme_V,
+        configurationTensionSysteme,
+      } = request.body;
+
+      if (!parametresPanneau || !puissanceCretePV_Wc) {
+        return reply.code(400).send({
           success: false,
           error:
-            "Les paramètres du module (puissanceCreteModule, tensionMPP, tensionVoc, courantMPP, courantCourtCircuit, coeffTempTension, coeffTempPuissance et noct, aussi coeffTempCourant si donné, mais pas obligé) ainsi que la puissnace crète calculée du champs doivent être renseignées",
+            "Les paramètres du module ainsi que la puissance crête calculée du champ doivent être renseignées",
           data: null,
-        };
+        });
       }
-      if (!temperaturesAttendue || !irradianceMax) {
-        return {
+      if (!temperaturesAttendue || !irradianceMax_W_m2) {
+        return reply.code(400).send({
           success: false,
           error:
-            "Les temperatures (temperatureMin et temperatureMax) ainsi que l'irradiance maximum doivent être renseignées",
+            "Les temperatures ainsi que l'irradiance maximum doivent être renseignées",
           data: null,
-        };
+        });
       }
-      if (!tensionSystem || !configurationSystem) {
-        return {
+      if (!tensionSysteme_V || !configurationTensionSysteme) {
+        return reply.code(400).send({
           success: false,
           error:
-            "La tension du système (en Courant continue) doit être renseignées",
+            "La tension du système (en Courant continu) doit être renseignée",
           data: null,
-        };
+        });
       }
 
       const {
@@ -378,32 +394,37 @@ export class InstallationPhotovoltaiqueController {
         data: modulesPVdata,
         error: modulesPVerror,
       } = puissanceCretePVService.modulesPV(
-        panneauParametres,
-        puissanceCretePV,
+        parametresPanneau,
+        puissanceCretePV_Wc,
         temperaturesAttendue,
-        irradianceMax,
-        tensionSystem,
-        configurationSystem
+        irradianceMax_W_m2,
+        tensionSysteme_V,
+        configurationTensionSysteme
       );
 
       if (!modulesPVsuccess || modulesPVerror) {
-        return {
+        return reply.code(400).send({
           success: false,
           error: modulesPVerror,
           data: null,
-        };
+        });
       }
 
-      return {
+      return reply.code(200).send({
         success: true,
         error: null,
         data: modulesPVdata,
-      };
+      });
     } catch (error: unknown) {
-      return controllerErrorHandler(error, "[nombres de panneaux]");
+      request.log.error(error);
+      return reply
+        .code(500)
+        .send(controllerErrorHandler(error, "[nombres de panneaux]"));
     }
   }
-
+  /**
+   * Obtention de le nombres de batteries et leurs caractéristiques
+   */
   dimensionnerModulesBatteries(
     tensionSystem: number,
     tensionBatterie: number,
