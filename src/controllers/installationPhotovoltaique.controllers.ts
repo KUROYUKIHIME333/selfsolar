@@ -23,9 +23,12 @@ import type {
 import { TypeInstallationPourPertesArray } from "../types/installationPhotovoltaique.types.js";
 import { LISTE_PANNEAUX } from "../utils/modulesPVListe.utils.js";
 import { LISTE_BATTERIES } from "../utils/batteriesListe.utils.js";
-import { controllerErrorHandler } from "../utils/gestionErreur.utils.js";
+import {
+  controllerErrorHandler,
+  sendError,
+  sendSuccess,
+} from "../utils/handlers.utils.js";
 import { CONFIG_TECHNOLOGIES } from "../utils/constantesPhysiques.utils.js";
-import { success } from "zod/v4";
 
 const TARGET_YEAR_IN_FUTURE: number = 40;
 
@@ -52,23 +55,22 @@ export class InstallationPhotovoltaiqueController {
         !Array.isArray(equipements) ||
         equipements.length === 0
       ) {
-        return reply.code(400).send({
-          success: false,
-          error: "La liste des équipements est vide ou invalide.",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "La liste des équipements est vide ou invalide.",
+          400
+        );
       }
 
       if (
         facteurFoisonnementGlobal !== undefined &&
         (facteurFoisonnementGlobal <= 0 || facteurFoisonnementGlobal > 1)
       ) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "Le coefficient de simultanéité global (facteurFoisonnementGlobal) doit être compris entre 0 et 1.",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "Le coefficient de simultanéité global (facteurFoisonnementGlobal) doit être compris entre 0 et 1.",
+          400
+        );
       }
 
       const energieJournaliereTotal =
@@ -85,23 +87,26 @@ export class InstallationPhotovoltaiqueController {
       const puissancePicDemarrage =
         bilanConsommationService.puissancePic(equipements);
 
-      return reply.code(200).send({
-        success: true,
-        error: null,
-        datas: {
+      return sendSuccess(
+        reply,
+        {
           energieJournaliereWh: energieJournaliereTotal,
           puissanceAppeleeW: puissanceAppeleeMax,
           puissanceInstalleeW: puissanceInstalleeTotal,
           puissancePicW: puissancePicDemarrage,
         },
-      });
+        200
+      );
     } catch (error: unknown) {
       request.log.error(error);
-      return reply
-        .code(500)
-        .send(controllerErrorHandler(error, "[Analyse Conso]"));
+      return sendError(
+        reply,
+        controllerErrorHandler(error, "[Analyse Conso]"),
+        500
+      );
     }
   }
+
   /**
    * Analyse des données météorologiques
    * Elles sont récupérées de PVGIS (voir parametreSite.services.ts)
@@ -114,28 +119,27 @@ export class InstallationPhotovoltaiqueController {
       const { localisation } = request.body;
 
       if (!localisation || !localisation.lat || !localisation.long) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "La localisation du site doit etre au format {lat: number; long: number; altitude: number | undefined}",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "La localisation du site doit etre au format {lat: number; long: number; altitude: number | undefined}",
+          400
+        );
       }
 
       if (localisation.lat < -90 || localisation.lat > 90) {
-        return reply.code(400).send({
-          success: false,
-          error: "La latitude doit être comprise entre -90 et 90",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "La latitude doit être comprise entre -90 et 90",
+          400
+        );
       }
 
       if (localisation.long < -180 || localisation.long > 180) {
-        return reply.code(400).send({
-          success: false,
-          error: "La longitude doit être comprise entre -180 et 180",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "La longitude doit être comprise entre -180 et 180",
+          400
+        );
       }
 
       const targetYear = new Date().getFullYear() + TARGET_YEAR_IN_FUTURE;
@@ -146,24 +150,27 @@ export class InstallationPhotovoltaiqueController {
       const { angleOptimalPVGIS, ...leReste } =
         await parametresSiteService.PVGISDatas(localisation, targetYear);
 
-      return reply.code(200).send({
-        success: true,
-        error: null,
-        data: {
+      return sendSuccess(
+        reply,
+        {
           localisation: localisation,
           orientation: orientationEtAngle.orientation,
           angle: orientationEtAngle.angle,
           angleOptimal: angleOptimalPVGIS,
           ...leReste,
         },
-      });
+        200
+      );
     } catch (error: unknown) {
       request.log.error(error);
-      return reply
-        .code(500)
-        .send(controllerErrorHandler(error, "[Analyse Geographique]"));
+      return sendError(
+        reply,
+        controllerErrorHandler(error, "[Analyse Geographique]"),
+        500
+      );
     }
   }
+
   /**
    * Obtention de la capacité du bloc batteries
    * Si besoin
@@ -190,24 +197,22 @@ export class InstallationPhotovoltaiqueController {
       } = request.body;
 
       if (!technologieBattery) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "Renseigner le type de batterie (Plomb-acide, AGM/Gel, LiFePO4, Lithium NMC/NCA ou NiCd)",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "Renseigner le type de batterie (Plomb-acide, AGM/Gel, LiFePO4, Lithium NMC/NCA ou NiCd)",
+          400
+        );
       }
       if (
         !energieJournaliere_Wh ||
         !autonomieBatterie_jours ||
         !tensionSystemeBatterie_V
       ) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "Pour calculer la capacité du stockage, il faut la consommation journalière (Ec), le nombre de jours d'autonomie (N) et la tension du système (Us)",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "Pour calculer la capacité du stockage, il faut la consommation journalière (Ec), le nombre de jours d'autonomie (N) et la tension du système (Us)",
+          400
+        );
       }
 
       const stockageCalcule = stockageService.capaciteStockage(
@@ -218,18 +223,17 @@ export class InstallationPhotovoltaiqueController {
         temperatureAmbiante_C
       );
 
-      return reply.code(200).send({
-        success: true,
-        error: null,
-        data: stockageCalcule,
-      });
+      return sendSuccess(reply, stockageCalcule, 200);
     } catch (error: unknown) {
       request.log.error(error);
-      return reply
-        .code(500)
-        .send(controllerErrorHandler(error, "[Determiner batteries]"));
+      return sendError(
+        reply,
+        controllerErrorHandler(error, "[Determiner batteries]"),
+        500
+      );
     }
   }
+
   /**
    * Obtention de la puissance crète et des pertes
    */
@@ -264,31 +268,28 @@ export class InstallationPhotovoltaiqueController {
         TypeInstallationPourPertesArray.includes(typeInstallation);
 
       if (!PSH_heuresParJour) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "PSH (Heures d'ensoleillement équivalentes à 1000W/m²) doit être renseigné",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "PSH (Heures d'ensoleillement équivalentes à 1000W/m²) doit être renseigné",
+          400
+        );
       }
       if (!typeInstallation || !typeTypeInstallation) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "Le type d'installation doit être choisi. Choix possibles: HAUTE_QUALITE, STANDARD, POUSSIEREUX, FAIBLE_MAINTENANCE, ANCIEN ou CABLE_LONG",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "Le type d'installation doit être choisi. Choix possibles: HAUTE_QUALITE, STANDARD, POUSSIEREUX, FAIBLE_MAINTENANCE, ANCIEN ou CABLE_LONG",
+          400
+        );
       }
       if (
         (!pompageSolaire && !energieCrete_Wh) ||
         (pompageSolaire && energieCrete_Wh)
       ) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "S'il s'agit d'une installation de pompage solaire, renseigner ses caractéristiques. S'il n'en est rien, renseigner les equipements. Ne pas mélanger les 2",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "S'il s'agit d'une installation de pompage solaire, renseigner ses caractéristiques. S'il n'en est rien, renseigner les equipements. Ne pas mélanger les 2",
+          400
+        );
       }
 
       const { pertesTotales, PR } =
@@ -316,28 +317,27 @@ export class InstallationPhotovoltaiqueController {
       );
 
       if (!PcSuccess || PcError) {
-        return reply.code(400).send({
-          success: false,
-          error: PcError,
-          data: null,
-        });
+        return sendError(reply, PcError, 400);
       }
 
-      return reply.code(200).send({
-        success: true,
-        error: null,
-        data: {
+      return sendSuccess(
+        reply,
+        {
           Pc: PcValue,
           pertesTotales: pertesTotales,
         },
-      });
+        200
+      );
     } catch (error: unknown) {
       request.log.error(error);
-      return reply
-        .code(500)
-        .send(controllerErrorHandler(error, "[Puissance crete calculs]"));
+      return sendError(
+        reply,
+        controllerErrorHandler(error, "[Puissance crete calculs]"),
+        500
+      );
     }
   }
+
   /**
    * Obtention de le nombres des panneaux photovoltaiques et leurs caractéristiques
    */
@@ -365,28 +365,25 @@ export class InstallationPhotovoltaiqueController {
       } = request.body;
 
       if (!parametresPanneau || !puissanceCretePV_Wc) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "Les paramètres du module ainsi que la puissance crête calculée du champ doivent être renseignées",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "Les paramètres du module ainsi que la puissance crête calculée du champ doivent être renseignées",
+          400
+        );
       }
       if (!temperaturesAttendue || !irradianceMax_W_m2) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "Les temperatures ainsi que l'irradiance maximum doivent être renseignées",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "Les temperatures ainsi que l'irradiance maximum doivent être renseignées",
+          400
+        );
       }
       if (!tensionSysteme_V || !configurationTensionSysteme) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "La tension du système (en Courant continu) doit être renseignée",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "La tension du système (en Courant continu) doit être renseignée",
+          400
+        );
       }
 
       const {
@@ -403,25 +400,20 @@ export class InstallationPhotovoltaiqueController {
       );
 
       if (!modulesPVsuccess || modulesPVerror) {
-        return reply.code(400).send({
-          success: false,
-          error: modulesPVerror,
-          data: null,
-        });
+        return sendError(reply, modulesPVerror, 400);
       }
 
-      return reply.code(200).send({
-        success: true,
-        error: null,
-        data: modulesPVdata,
-      });
+      return sendSuccess(reply, modulesPVdata, 200);
     } catch (error: unknown) {
       request.log.error(error);
-      return reply
-        .code(500)
-        .send(controllerErrorHandler(error, "[nombres de panneaux]"));
+      return sendError(
+        reply,
+        controllerErrorHandler(error, "[nombres de panneaux]"),
+        500
+      );
     }
   }
+
   /**
    * Obtention de le nombres de batteries et leurs caractéristiques
    */
@@ -450,12 +442,11 @@ export class InstallationPhotovoltaiqueController {
         !capaciteUnitaireBatterie_Ah ||
         !capaciteTotaleRequise_Ah
       ) {
-        return reply.code(400).send({
-          success: false,
-          error:
-            "Toutes les caractéristiques électriques unitaires et requises du banc de batteries doivent être renseignées.",
-          data: null,
-        });
+        return sendError(
+          reply,
+          "Toutes les caractéristiques électriques unitaires et requises du banc de batteries doivent être renseignées.",
+          400
+        );
       }
 
       const dispositionBatt = stockageService.modulesBatteries(
@@ -465,350 +456,322 @@ export class InstallationPhotovoltaiqueController {
         capaciteTotaleRequise_Ah
       );
 
-      return reply.code(200).send({
-        success: true,
-        error: null,
-        data: dispositionBatt,
-      });
+      return sendSuccess(reply, dispositionBatt, 200);
     } catch (error: unknown) {
       request.log.error(error);
-      return reply
-        .code(500)
-        .send(controllerErrorHandler(error, "[Configuration bloc batteries]"));
+      return sendError(
+        reply,
+        controllerErrorHandler(error, "[Configuration bloc batteries]"),
+        500
+      );
     }
   }
 
   dimensionnerOnduleur() {}
 
-  // denombrerPanneaux(
-  //   panneauParametres: ParametresSTCPanneau,
-  //       puissanceCretePV: number,
-  //       temperaturesAttendue: TemperaturesMinMax,
-  //       irradianceMax: number,
-  //       tensionSystem?: number,
-  //       configurationSystem?: ConfigurationTension
-  // ){}
-
   /**
    * Endpoint principal de dimensionnement PV complet
    * Enchaîne tous les calculs: consommation, site, modules, onduleur, stockage, câblage
    */
-  async dimensionnerInstallation(
-    request: FastifyRequest<{ Body: DimensionnementPVRequest }>,
-    reply: FastifyReply
-  ): Promise<
-    | DimensionnementPVResponse
-    | { error: string; message: string; details?: string }
-  > {
-    const startTime = Date.now();
+  // async dimensionnerInstallation(
+  //   request: FastifyRequest<{ Body: DimensionnementPVRequest }>,
+  //   reply: FastifyReply
+  // ): Promise<any> {
+  //   const startTime = Date.now();
 
-    try {
-      const {
-        localisation,
-        equipements,
-        typeInstallation,
-        typeSysteme,
-        parametresPanneau,
-        temperaturesAttendue,
-        autonomieBatterie,
-        technologieBatterie,
-        contraintesOnduleur,
-        cablage,
-        pompageSolaire,
-        pompageCaracteristiques,
-        irradianceMax,
-        facteurFoisonnementGlobal,
-        tensionSystemeBatterie,
-        modeleBatterie,
-      } = request.body;
+  //   try {
+  //     const {
+  //       localisation,
+  //       equipements,
+  //       typeInstallation,
+  //       typeSysteme,
+  //       parametresPanneau,
+  //       temperaturesAttendue,
+  //       autonomieBatterie,
+  //       technologieBattery, // Note: attention à la propriété "technologieBatterie" vs "technologieBattery" du body
+  //       technologieBatterie,
+  //       contraintesOnduleur,
+  //       cablage,
+  //       pompageSolaire,
+  //       pompageCaracteristiques,
+  //       irradianceMax,
+  //       facteurFoisonnementGlobal,
+  //       tensionSystemeBatterie,
+  //       modeleBatterie,
+  //     } = request.body;
 
-      // ========== 1. BILAN DE CONSOMMATION ==========
-      const energieJournaliere =
-        bilanConsommationService.energieTotal(equipements);
-      const puissanceCreteCharge = bilanConsommationService.puissanceAppelee(
-        equipements,
-        facteurFoisonnementGlobal
-      );
+  //     // ========== 1. BILAN DE CONSOMMATION ==========
+  //     const energieJournaliere =
+  //       bilanConsommationService.energieTotal(equipements);
+  //     const puissanceCreteCharge = bilanConsommationService.puissanceAppelee(
+  //       equipements,
+  //       facteurFoisonnementGlobal
+  //     );
 
-      if (energieJournaliere <= 0) {
-        return reply.code(400).send({
-          error: "Données invalides",
-          message:
-            "L'énergie journalière calculée est nulle ou négative - vérifiez les équipements ou les données entrées",
-        });
-      }
+  //     if (energieJournaliere <= 0) {
+  //       return sendError(reply, "Données invalides : L'énergie journalière calculée est nulle ou négative - vérifiez les équipements.", 400);
+  //     }
 
-      console.log("L'Ec", energieJournaliere); //WARNING: To remove after tests
+  //     console.log("L'Ec", energieJournaliere);
 
-      // ========== 2. PARAMÈTRES SITE ET RESSOURCE SOLAIRE ==========
-      const parametresSite = await parametresSiteService.PVGISDatas(
-        localisation
-      );
-      const angleOptimal = parametresSiteService.angleOptimal(localisation.lat);
+  //     // ========== 2. PARAMÈTRES SITE ET RESSOURCE SOLAIRE ==========
+  //     const parametresSite = await parametresSiteService.PVGISDatas(
+  //       localisation
+  //     );
+  //     const angleOptimal = parametresSiteService.angleOptimal(localisation.lat);
 
-      console.log("L'angle optimal et tout' :", JSON.stringify(angleOptimal)); //WARNING: To remove after tests
-      console.log("L'angle optimal et tout' :", angleOptimal); //WARNING: To remove after tests
+  //     console.log("L'angle optimal et tout' :", JSON.stringify(angleOptimal));
+  //     console.log("L'angle optimal et tout' :", angleOptimal);
 
-      // ========== 3. PERFORMANCE RATIO ET PERTES ==========
-      const { PR, pertesTotales } =
-        await puissanceCretePVService.performanceRatio(
-          typeInstallation,
-          localisation
-        );
+  //     // ========== 3. PERFORMANCE RATIO ET PERTES ==========
+  //     const { PR, pertesTotales } =
+  //       await puissanceCretePVService.performanceRatio(
+  //         typeInstallation,
+  //         localisation
+  //       );
 
-      console.log(
-        "Le ratio de performance calculée :",
-        PR,
-        " mais avec des pertes ",
-        pertesTotales
-      ); //WARNING: To remove after tests
+  //     console.log(
+  //       "Le ratio de performance calculée :",
+  //       PR,
+  //       " mais avec des pertes ",
+  //       pertesTotales
+  //     );
 
-      // ========== 4. PUISSANCE CRÊTE PV REQUISE ==========
-      const puissanceCretePV = puissanceCretePVService.puissanceCretePV(
-        pompageSolaire || false,
-        energieJournaliere,
-        parametresSite.G_moy,
-        PR,
-        pompageCaracteristiques,
-        contraintesOnduleur?.rendementMPPT
-      );
+  //     // ========== 4. PUISSANCE CRÊTE PV REQUISE ==========
+  //     const puissanceCretePV = puissanceCretePVService.puissanceCretePV(
+  //       pompageSolaire || false,
+  //       energieJournaliere,
+  //       parametresSite.G_moy,
+  //       PR,
+  //       pompageCaracteristiques,
+  //       contraintesOnduleur?.rendementMPPT
+  //     );
 
-      console.log(pompageCaracteristiques);
-      console.log("La puisance crète calculée :", puissanceCreteCharge); //WARNING: To remove after tests
+  //     console.log(pompageCaracteristiques);
+  //     console.log("La puisance crète calculée :", puissanceCreteCharge);
 
-      // ========== 5. DIMENSIONNEMENT MODULES PV ==========
-      // Détermination contraintes selon type système
-      let contraintesOnduleurModules = null;
-      let tensionBatt = 24;
-      let tensionConventionnelleSys = 48;
+  //     // ========== 5. DIMENSIONNEMENT MODULES PV ==========
+  //     let contraintesOnduleurModules = null;
+  //     let tensionBatt = 24;
+  //     let tensionConventionnelleSys = 48;
 
-      if (typeSysteme !== "off-grid" && contraintesOnduleur) {
-        // On-grid / hybride: contraintes onduleur haute tension
-        contraintesOnduleurModules = {
-          tensionMPPTMin: contraintesOnduleur.tensionMPPTMin,
-          tensionMPPTMax: contraintesOnduleur.tensionMPPTMax,
-          tensionDCMax: contraintesOnduleur.tensionDCMax,
-          rendementMPPT: contraintesOnduleur.rendementMPPT,
-        };
-      } else if (typeSysteme === "off-grid") {
-        if (puissanceCretePV < PALIERS_PC_BAS_TENSION8SYSTEME_PV) {
-          tensionConventionnelleSys = 12;
-        } else if (
-          puissanceCretePV > PALIERS_PC_BAS_TENSION8SYSTEME_PV &&
-          puissanceCretePV < PALIERS_PC_BAS_TENSION8SYSTEME_PV * 4
-        ) {
-          tensionConventionnelleSys = 24;
-        } else if (puissanceCretePV > PALIERS_PC_BAS_TENSION8SYSTEME_PV * 20) {
-          tensionConventionnelleSys = 96;
-        }
-        // Off-grid: tension batterie basse tension
-        tensionBatt = tensionSystemeBatterie
-          ? tensionSystemeBatterie
-          : tensionConventionnelleSys;
-      }
+  //     if (typeSysteme !== "off-grid" && contraintesOnduleur) {
+  //       contraintesOnduleurModules = {
+  //         tensionMPPTMin: contraintesOnduleur.tensionMPPTMin,
+  //         tensionMPPTMax: contraintesOnduleur.tensionMPPTMax,
+  //         tensionDCMax: contraintesOnduleur.tensionDCMax,
+  //         rendementMPPT: contraintesOnduleur.rendementMPPT,
+  //       };
+  //     } else if (typeSysteme === "off-grid") {
+  //       if (puissanceCretePV < PALIERS_PC_BAS_TENSION8SYSTEME_PV) {
+  //         tensionConventionnelleSys = 12;
+  //       } else if (
+  //         puissanceCretePV > PALIERS_PC_BAS_TENSION8SYSTEME_PV &&
+  //         puissanceCretePV < PALIERS_PC_BAS_TENSION8SYSTEME_PV * 4
+  //       ) {
+  //         tensionConventionnelleSys = 24;
+  //       } else if (puissanceCretePV > PALIERS_PC_BAS_TENSION8SYSTEME_PV * 20) {
+  //         tensionConventionnelleSys = 96;
+  //       }
+  //       tensionBatt = tensionSystemeBatterie
+  //         ? tensionSystemeBatterie
+  //         : tensionConventionnelleSys;
+  //     }
 
-      const resultatModules = puissanceCretePVService.modulesPV(
-        parametresPanneau,
-        puissanceCretePV,
-        temperaturesAttendue,
-        parametresSite.G_moy,
-        parametresSite.G_max,
-        tensionBatt,
-        contraintesOnduleurModules
-      );
+  //     const resultatModules = puissanceCretePVService.modulesPV(
+  //       parametresPanneau,
+  //       puissanceCretePV,
+  //       temperaturesAttendue,
+  //       parametresSite.G_moy,
+  //       parametresSite.G_max,
+  //       tensionBatt,
+  //       contraintesOnduleurModules
+  //     );
 
-      console.log("Verification des modules : ", resultatModules);
+  //     console.log("Verification des modules : ", resultatModules);
 
-      // ========== 6. VÉRIFICATION ONDULEUR ==========
-      let resultatOnduleur = null;
-      if (contraintesOnduleur) {
-        resultatOnduleur = puissanceCretePVService.onduleur(
-          resultatModules,
-          parametresPanneau,
-          temperaturesAttendue,
-          irradianceMax || 1000,
-          typeSysteme,
-          puissanceCreteCharge,
-          contraintesOnduleur,
-          puissanceCreteCharge * 1.5 // Estimation puissance démarrage
-        );
+  //     // ========== 6. VÉRIFICATION ONDULEUR ==========
+  //     let resultatOnduleur = null;
+  //     if (contraintesOnduleur) {
+  //       resultatOnduleur = puissanceCretePVService.onduleur(
+  //         resultatModules,
+  //         parametresPanneau,
+  //         temperaturesAttendue,
+  //         irradianceMax || 1000,
+  //         typeSysteme,
+  //         puissanceCreteCharge,
+  //         contraintesOnduleur,
+  //         puissanceCreteCharge * 1.5
+  //       );
 
-        console.log("L'onduleur testé:", resultatOnduleur); //WARNING: To remove after tests
-      }
+  //       console.log("L'onduleur testé:", resultatOnduleur);
+  //     }
 
-      // ========== 7. DIMENSIONNEMENT STOCKAGE ==========
-      let resultatStockage: ResultatStockage | null = null;
-      if (modeleBatterie) {
-        if (typeSysteme !== "on-grid" && autonomieBatterie) {
-          const tensionSysteme =
-            typeSysteme === "off-grid"
-              ? tensionSystemeBatterie || tensionConventionnelleSys
-              : 400; // Hybride: tension batterie onduleur
+  //     // ========== 7. DIMENSIONNEMENT STOCKAGE ==========
+  //     let resultatStockage: ResultatStockage | null = null;
+  //     if (modeleBatterie) {
+  //       if (typeSysteme !== "on-grid" && autonomieBatterie) {
+  //         const tensionSysteme =
+  //           typeSysteme === "off-grid"
+  //             ? tensionSystemeBatterie || tensionConventionnelleSys
+  //             : 400;
 
-          resultatStockage = stockageService.capaciteStockage(
-            technologieBatterie || "LiFePO4",
-            energieJournaliere,
-            autonomieBatterie,
-            tensionSysteme,
-            temperaturesAttendue.temperatureMax
-          );
+  //         resultatStockage = stockageService.capaciteStockage(
+  //           technologieBatterie || technologieBattery || "LiFePO4",
+  //           energieJournaliere,
+  //           autonomieBatterie,
+  //           tensionSysteme,
+  //           temperaturesAttendue.temperatureMax
+  //         );
 
-          // Disposition modules batterie
-          const tensionUnitaire = modeleBatterie.v; // V
-          const capaciteUnitaire = modeleBatterie.ah; // Ah - à paramétrer
+  //         const tensionUnitaire = modeleBatterie.v;
+  //         const capaciteUnitaire = modeleBatterie.ah;
 
-          const dispositionBatt = stockageService.modulesBatteries(
-            tensionSysteme,
-            tensionUnitaire,
-            capaciteUnitaire,
-            resultatStockage?.capacite.nominale_Ah
-          );
+  //         const dispositionBatt = stockageService.modulesBatteries(
+  //           tensionSysteme,
+  //           tensionUnitaire,
+  //           capaciteUnitaire,
+  //           resultatStockage?.capacite.nominale_Ah
+  //         );
 
-          // Fusion avec résultat stockage
-          (resultatStockage as any).disposition = dispositionBatt;
+  //         (resultatStockage as any).disposition = dispositionBatt;
 
-          // Dimensionnement BMS
-          const bms = stockageService.regulateurBMS(
-            puissanceCretePV,
-            tensionSysteme,
-            puissanceCreteCharge,
-            resultatOnduleur?.dimensionnement.puissanceACRecommandee
-              ? puissanceCreteCharge /
-                  resultatOnduleur.dimensionnement.puissanceACRecommandee
-              : 0.95
-          );
-          (resultatStockage as any).bms = bms;
-        }
+  //         const bms = stockageService.regulateurBMS(
+  //           puissanceCretePV,
+  //           tensionSysteme,
+  //           puissanceCreteCharge,
+  //           resultatOnduleur?.dimensionnement.puissanceACRecommandee
+  //             ? puissanceCreteCharge /
+  //               resultatOnduleur.dimensionnement.puissanceACRecommandee
+  //             : 0.95
+  //         );
+  //         (resultatStockage as any).bms = bms;
+  //       }
 
-        console.log("Les batteries:", resultatStockage); //WARNING: To remove after tests
-      }
+  //       console.log("Les batteries:", resultatStockage);
+  //     }
 
-      // ========== 8. DIMENSIONNEMENT CÂBLAGE ET PROTECTIONS ==========
-      const materiau = cablage?.materiau || "cuivre";
-      const conditionEnv = cablage?.conditionEnvironnement || "chaud";
+  //     // ========== 8. DIMENSIONNEMENT CÂBLAGE ET PROTECTIONS ==========
+  //     const materiau = cablage?.materiau || "cuivre";
+  //     const conditionEnv = cablage?.conditionEnvironnement || "chaud";
 
-      const dimensionnementCablage =
-        cablageEtProtectionsService.dimensionnerCablesDC(
-          resultatModules,
-          parametresPanneau,
-          cablage?.longueurString || 15,
-          cablage?.longueurPrincipalDC || 10,
-          temperaturesAttendue.temperatureMax,
-          resultatModules.stringsEnParallele,
-          materiau,
-          cablage?.methodePoseDC || "conduit_surface",
-          conditionEnv
-        );
+  //     const dimensionnementCablage =
+  //       cablageEtProtectionsService.dimensionnerCablesDC(
+  //         resultatModules,
+  //         parametresPanneau,
+  //         cablage?.longueurString || 15,
+  //         cablage?.longueurPrincipalDC || 10,
+  //         temperaturesAttendue.temperatureMax,
+  //         resultatModules.stringsEnParallele,
+  //         materiau,
+  //         cablage?.methodePoseDC || "conduit_surface",
+  //         conditionEnv
+  //       );
 
-      // Câblage AC si onduleur présent
-      let dimensionnementAC = null;
-      if (resultatOnduleur) {
-        const puissanceAC =
-          resultatOnduleur.dimensionnement.puissanceACRecommandee;
-        const tensionAC = puissanceAC > 5000 ? 400 : 230; // Triphasé si > 5kW
+  //     let dimensionnementAC = null;
+  //     if (resultatOnduleur) {
+  //       const puissanceAC =
+  //         resultatOnduleur.dimensionnement.puissanceACRecommandee;
+  //       const tensionAC = puissanceAC > 5000 ? 400 : 230;
 
-        dimensionnementAC = cablageEtProtectionsService.dimensionnerCablageAC(
-          puissanceAC,
-          tensionAC,
-          0.95, // cosφ onduleur
-          cablage?.longueurAC || 20,
-          "mixte",
-          30,
-          cablage?.methodePoseAC || "conduit_encastre",
-          materiau
-        );
+  //       dimensionnementAC = cablageEtProtectionsService.dimensionnerCablageAC(
+  //         puissanceAC,
+  //         tensionAC,
+  //         0.95,
+  //         cablage?.longueurAC || 20,
+  //         "mixte",
+  //         30,
+  //         cablage?.methodePoseAC || "conduit_encastre",
+  //         materiau
+  //       );
 
-        dimensionnementCablage.cablageAC = dimensionnementAC;
+  //       dimensionnementCablage.cablageAC = dimensionnementAC;
 
-        console.log("Les cables :", dimensionnementCablage); //WARNING: To remove after tests
-      }
+  //       console.log("Les cables :", dimensionnementCablage);
+  //     }
 
-      // ========== 9. ASSEMBLAGE RÉPONSE ==========
-      const chuteTensionGlobaleDC = dimensionnementCablage.cablesString[0]
-        ? dimensionnementCablage.cablesString[0].chuteTensionPourcent +
-          dimensionnementCablage.cablePrincipalDC.chuteTensionPourcent
-        : 3;
+  //     // ========== 9. ASSEMBLAGE RÉPONSE ==========
+  //     const chuteTensionGlobaleDC = dimensionnementCablage.cablesString[0]
+  //       ? dimensionnementCablage.cablesString[0].chuteTensionPourcent +
+  //         dimensionnementCablage.cablePrincipalDC.chuteTensionPourcent
+  //       : 3;
 
-      const response: DimensionnementPVResponse = {
-        resume: {
-          energieJournaliere_Wh: Math.round(energieJournaliere),
-          puissanceCreteCharge_W: Math.round(puissanceCreteCharge),
-          puissanceCretePV_Wc: Math.round(puissanceCretePV),
-          ratioDCAC: resultatOnduleur?.dimensionnement.ratioDCAC,
-          surfaceEstimee_m2: resultatModules.totalPanneaux * 2.0, // ~2m² par panneau standard
-          nombreStrings: resultatModules.stringsEnParallele,
-        },
-        site: {
-          localisation,
-          angleOptimal,
-          PSH_moisDefavorable: parametresSite.PSH,
-          performanceRatio: Math.round(PR * 1000) / 1000,
-          pertesTotales_pourcent: pertesTotales,
-        },
-        modulesPV: resultatModules,
-        onduleur: resultatOnduleur,
-        stockage: resultatStockage,
-        cablage: dimensionnementCablage,
-        conformite: {
-          normesReference: [
-            "NF C 15-100",
-            "IEC 61215",
-            "IEC 62109",
-            "NF EN 50549",
-            "IEC 62619",
-            "IEC 61643-31",
-          ],
-          verificationVoc:
-            resultatOnduleur?.verification?.details?.vocSousLimite ??
-            resultatModules.vocStringFroid <
-              (contraintesOnduleur?.tensionDCMax || Infinity),
-          verificationMPPT:
-            resultatOnduleur?.verification?.details?.vmppDansPlageMPPT ?? true,
-          verificationIsc:
-            resultatOnduleur?.verification?.details?.iscSousLimite ?? true,
-          verificationChuteTension:
-            chuteTensionGlobaleDC <= 3.0 &&
-            (dimensionnementAC ? dimensionnementAC.chuteTension <= 5.0 : true),
-          avertissements: [
-            ...(resultatOnduleur?.avertissements || []),
-            ...dimensionnementCablage.avertissements,
-          ],
-          erreurs: resultatOnduleur?.erreurs || [],
-        },
-        meta: {
-          timestamp: new Date().toISOString(),
-          versionCalculateur: "2.0.0-normes2024",
-        },
-      };
+  //     const response: DimensionnementPVResponse = {
+  //       resume: {
+  //         energieJournaliere_Wh: Math.round(energieJournaliere),
+  //         puissanceCreteCharge_W: Math.round(puissanceCreteCharge),
+  //         puissanceCretePV_Wc: Math.round(puissanceCretePV),
+  //         ratioDCAC: resultatOnduleur?.dimensionnement.ratioDCAC,
+  //         surfaceEstimee_m2: resultatModules.totalPanneaux * 2.0,
+  //         nombreStrings: resultatModules.stringsEnParallele,
+  //       },
+  //       site: {
+  //         localisation,
+  //         angleOptimal,
+  //         PSH_moisDefavorable: parametresSite.PSH,
+  //         performanceRatio: Math.round(PR * 1000) / 1000,
+  //         pertesTotales_pourcent: pertesTotales,
+  //       },
+  //       modulesPV: resultatModules,
+  //       onduleur: resultatOnduleur,
+  //       stockage: resultatStockage,
+  //       cablage: dimensionnementCablage,
+  //       conformite: {
+  //         normesReference: [
+  //           "NF C 15-100",
+  //           "IEC 61215",
+  //           "IEC 62109",
+  //           "NF EN 50549",
+  //           "IEC 62619",
+  //           "IEC 61643-31",
+  //         ],
+  //         verificationVoc:
+  //           resultatOnduleur?.verification?.details?.vocSousLimite ??
+  //           resultatModules.vocStringFroid <
+  //             (contraintesOnduleur?.tensionDCMax || Infinity),
+  //         verificationMPPT:
+  //           resultatOnduleur?.verification?.details?.vmppDansPlageMPPT ?? true,
+  //         verificationIsc:
+  //           resultatOnduleur?.verification?.details?.iscSousLimite ?? true,
+  //         verificationChuteTension:
+  //           chuteTensionGlobaleDC <= 3.0 &&
+  //           (dimensionnementAC ? dimensionnementAC.chuteTension <= 5.0 : true),
+  //         avertissements: [
+  //           ...(resultatOnduleur?.avertissements || []),
+  //           ...dimensionnementCablage.avertissements,
+  //         ],
+  //         erreurs: resultatOnduleur?.erreurs || [],
+  //       },
+  //       meta: {
+  //         timestamp: new Date().toISOString(),
+  //         versionCalculateur: "2.0.0-normes2024",
+  //       },
+  //     };
 
-      const duration = Date.now() - startTime;
-      request.log.info(`Dimensionnement PV complété en ${duration}ms`);
+  //     const duration = Date.now() - startTime;
+  //     request.log.info(`Dimensionnement PV complété en ${duration}ms`);
 
-      return reply.code(200).send(response);
-    } catch (error: any) {
-      request.log.error(error);
+  //     return sendSuccess(reply, response, 200);
+  //   } catch (error: any) {
+  //     request.log.error(error);
 
-      // Classification erreurs
-      const isValidationError =
-        error.message.includes("Impossible de dimensionner") ||
-        error.message.includes("insuffisante");
+  //     const isValidationError =
+  //       error.message?.includes("Impossible de dimensionner") ||
+  //       error.message?.includes("insuffisante");
 
-      return reply.code(isValidationError ? 400 : 500).send({
-        error: isValidationError
-          ? "Erreur de dimensionnement"
-          : "Erreur interne",
-        message: error.message,
-        details:
-          process.env.NODE_ENV === "development" ? error.stack : undefined,
-      });
-    }
-  }
+  //     return sendError(
+  //       reply,
+  //       isValidationError ? "Erreur de dimensionnement" : "Erreur interne",
+  //       isValidationError ? 400 : 500
+  //     );
+  //   }
+  // }
 
   /**
    * Endpoint de vérification santé des services
    */
-  async sante() {
-    return {
+  async sante(_request: FastifyRequest, reply: FastifyReply) {
+    const data = {
       status: "opérationnel",
       services: {
         bilanConso: "actif",
@@ -828,10 +791,11 @@ export class InstallationPhotovoltaiqueController {
       ],
       version: "2.0.0",
     };
+    return sendSuccess(reply, data, 200);
   }
 
   /**
-   *  Endpoint pour récupérer la liste des panneaux photovoltaiques
+   * Endpoint pour récupérer la liste des panneaux photovoltaiques
    */
   async listePanneaux(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
@@ -842,20 +806,15 @@ export class InstallationPhotovoltaiqueController {
       const duration = Date.now() - startTime;
       reply.log.info(`Liste des panneaux solaires rendue en ${duration}ms`);
 
-      return reply.code(200).send(response);
+      return sendSuccess(reply, response, 200);
     } catch (error: any) {
       request.log.error(error);
-      return reply.code(500).send({
-        error: "Erreur Liste des panneaux",
-        message: error.message,
-        details:
-          process.env.NODE_ENV === "development" ? error.stack : undefined,
-      });
+      return sendError(reply, "Erreur Liste des panneaux", 500);
     }
   }
 
   /**
-   *  Endpoint pour récupérer la liste des batteries
+   * Endpoint pour récupérer la liste des batteries
    */
   async listeBatteries(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
@@ -866,20 +825,15 @@ export class InstallationPhotovoltaiqueController {
       const duration = Date.now() - startTime;
       request.log.info(`Liste des batteries rendue en ${duration}ms`);
 
-      return reply.code(200).send(response);
+      return sendSuccess(reply, response, 200);
     } catch (error: any) {
       request.log.error(error);
-      return reply.code(500).send({
-        error: "Erreur Liste des Batteries",
-        message: error.message,
-        details:
-          process.env.NODE_ENV === "development" ? error.stack : undefined,
-      });
+      return sendError(reply, "Erreur Liste des Batteries", 500);
     }
   }
 
   /**
-   *  Endpoint pour récupérer la liste des panneaux et des batteries en meme temps
+   * Endpoint pour récupérer la liste des panneaux et des batteries en meme temps
    */
   async listes(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
@@ -895,15 +849,10 @@ export class InstallationPhotovoltaiqueController {
         `Liste des panneaux et des batteries rendue en ${duration}ms`
       );
 
-      return reply.code(200).send(response);
+      return sendSuccess(reply, response, 200);
     } catch (error: any) {
       request.log.error(error);
-      return reply.code(500).send({
-        error: "Erreur Liste Panneaux & Batteries",
-        message: error.message,
-        details:
-          process.env.NODE_ENV === "development" ? error.stack : undefined,
-      });
+      return sendError(reply, "Erreur Liste Panneaux & Batteries", 500);
     }
   }
 }
