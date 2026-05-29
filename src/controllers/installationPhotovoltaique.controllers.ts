@@ -549,8 +549,6 @@ export class InstallationPhotovoltaiqueController {
     }
   }
 
-  
-
   /**
    * Endpoint de vérification santé des services
    */
