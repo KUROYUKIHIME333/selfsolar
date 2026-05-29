@@ -669,9 +669,7 @@ describe("PuissanceCretePVService", () => {
       expect(result.data?.grandeursChamp.vocChampFroid).toBeGreaterThan(0);
       expect(result.data?.grandeursChamp.vmppChampChaud).toBeGreaterThan(0);
       expect(result.data?.grandeursChamp.iscChamp).toBeGreaterThan(0);
-      expect(result.data?.grandeursChamp.puissanceChampsWcSTC).toBeGreaterThan(
-        0
-      );
+      expect(result.data?.grandeursChamp.puissanceChampsWcSTC).toBeGreaterThan(0);
     });
 
     it("doit calculer les bornes de dimensionnement", () => {
@@ -684,12 +682,10 @@ describe("PuissanceCretePVService", () => {
         mockOnduleurValide
       );
       expect(result.data?.dimensionnement.puissanceACMin).toBeGreaterThan(0);
-      expect(
-        result.data?.dimensionnement.puissanceACRecommandee
-      ).toBeGreaterThan(0);
+      expect(result.data?.dimensionnement.puissanceACRecommandee).toBeGreaterThan(0);
       expect(result.data?.dimensionnement.puissanceACMax).toBeGreaterThan(0);
       expect(result.data?.dimensionnement.puissanceACMin).toBeLessThan(
-        result.data ? result.data.dimensionnement.puissanceACMax : 0
+        result.data? result.data.dimensionnement.puissanceACMax:0
       );
     });
 
@@ -803,9 +799,7 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurHautMin
       );
-      expect(result.data?.verification?.details.vmppAuDessusMinimum).toBe(
-        false
-      );
+      expect(result.data?.verification?.details.vmppAuDessusMinimum).toBe(false);
       expect(result.data?.avertissements.length).toBeGreaterThan(0);
       expect(result.data?.avertissements[0]).toContain("Vmpp champ à chaud");
     });
@@ -826,9 +820,7 @@ describe("PuissanceCretePVService", () => {
       expect(result.data?.verification?.details.vmppDansPlageMPPT).toBe(false);
       expect(result.data?.erreurs.length).toBeGreaterThan(0);
       expect(
-        result.data?.erreurs.some((e: string) =>
-          e.includes("Vmpp champ à froid")
-        )
+        result.data?.erreurs.some((e: string) => e.includes("Vmpp champ à froid"))
       ).toBe(true);
     });
 
@@ -847,9 +839,7 @@ describe("PuissanceCretePVService", () => {
       );
       expect(result.data?.verification?.details.iscSousLimite).toBe(false);
       expect(
-        result.data?.erreurs.some((e: string) =>
-          e.includes("Courant Isc corrigé")
-        )
+        result.data?.erreurs.some((e: string) => e.includes("Courant Isc corrigé"))
       ).toBe(true);
     });
 
@@ -868,9 +858,7 @@ describe("PuissanceCretePVService", () => {
       );
       expect(result.data?.verification?.details.chargeACOk).toBe(false);
       expect(
-        result.data?.erreurs.some((e: string) =>
-          e.includes("Puissance AC nominale")
-        )
+        result.data?.erreurs.some((e: string) => e.includes("Puissance AC nominale"))
       ).toBe(true);
     });
 
@@ -1002,9 +990,7 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurTresGrand
       );
-      expect(result.data?.dimensionnement.evaluationRatio).toBe(
-        "sous-dimensionne"
-      );
+      expect(result.data?.dimensionnement.evaluationRatio).toBe("sous-dimensionne");
     });
 
     it("doit évaluer comme 'optimal' si ratio entre 1.0 et 1.25", () => {
@@ -1124,7 +1110,7 @@ describe("PuissanceCretePVService", () => {
       );
 
       expect(result1200.data?.grandeursChamp.iscChamp).toBeGreaterThan(
-        result800.data ? result800.data.grandeursChamp.iscChamp : 0
+        result800.data?result800.data.grandeursChamp.iscChamp:0
       );
     });
   });
