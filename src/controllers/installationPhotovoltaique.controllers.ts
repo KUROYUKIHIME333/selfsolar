@@ -343,6 +343,21 @@ export class InstallationPhotovoltaiqueController {
     }
   }
 
+  dimensionnerModulesBatteries(
+    tensionSystem: number,
+    tensionBatterie: number,
+    capaciteBatterie: number,
+    capaciteTotal: number
+  ) {
+    try {
+      
+    } catch (error) {
+      
+    }
+  }
+
+  dimensionnerOnduleur() {}
+
   // denombrerPanneaux(
   //   panneauParametres: ParametresSTCPanneau,
   //       puissanceCretePV: number,
