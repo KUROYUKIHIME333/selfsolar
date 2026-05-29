@@ -10,11 +10,12 @@ export class StockageService {
   /**
    * Valide la cohérence physique des paramètres d'entrée
    * Évite les divisions par zéro, les valeurs infinies ou absurdes au runtime
+   * Retourne le message d'erreur sous forme de chaîne, ou null si tout est valide
    */
   private validationParametres(
     nomFonction: string,
     parametres: Record<string, unknown>
-  ): void {
+  ): string | null {
     for (const [cle, val] of Object.entries(parametres)) {
       // Évite le faux-positif si la température ambiante optionnelle n'est pas fournie
       if (
@@ -25,16 +26,12 @@ export class StockageService {
       }
 
       if (val === undefined || val === null) {
-        throw new Error(
-          `[StockageService.${nomFonction}] Le paramètre '${cle}' est manquant.`
-        );
+        return `[StockageService.${nomFonction}] Le paramètre '${cle}' est manquant.`;
       }
 
       if (typeof val === "number") {
         if (isNaN(val) || !isFinite(val)) {
-          throw new Error(
-            `[StockageService.${nomFonction}] Le paramètre '${cle}' n'est pas un nombre valide.`
-          );
+          return `[StockageService.${nomFonction}] Le paramètre '${cle}' n'est pas un nombre valide.`;
         }
 
         // Règles seulement pour les valeurs qui doivent être strictement positives
@@ -52,19 +49,16 @@ export class StockageService {
           ].includes(cle) &&
           val <= 0
         ) {
-          throw new Error(
-            `[StockageService.${nomFonction}] Le paramètre '${cle}' doit être strictement supérieur à 0.`
-          );
+          return `[StockageService.${nomFonction}] Le paramètre '${cle}' doit être strictement supérieur à 0.`;
         }
 
         // Règle d'or pour le rendement de l'onduleur
         if (cle === "rendementOnduleur" && (val <= 0 || val > 1)) {
-          throw new Error(
-            `[StockageService.${nomFonction}] Le rendement de l'onduleur doit être compris entre 0 (exclus) et 1 (inclus).`
-          );
+          return `[StockageService.${nomFonction}] Le rendement de l'onduleur doit être compris entre 0 (exclus) et 1 (inclus).`;
         }
       }
     }
+    return null;
   }
 
   /**
@@ -82,17 +76,25 @@ export class StockageService {
     autonomie: number,
     tensionSysteme: number,
     temperatureAmbiante?: number | undefined
-  ): ResultatStockage {
-    this.validationParametres("capaciteStockage", {
+  ): { success: boolean; error: string | null; data: ResultatStockage | null } {
+    const errorValidation = this.validationParametres("capaciteStockage", {
       consommationJournaliere,
       autonomie,
       tensionSysteme,
       temperatureAmbiante,
     });
 
+    if (errorValidation) {
+      return { success: false, error: errorValidation, data: null };
+    }
+
     const config = CONFIG_TECHNOLOGIES[technologie];
     if (!config) {
-      throw new Error(`Technologie batterie non supportée: ${technologie}`);
+      return {
+        success: false,
+        error: `Technologie batterie non supportée: ${technologie}`,
+        data: null,
+      };
     }
 
     const { profondeurDecharge, cyclesMin, cyclesMax, tempMin, tempMax } =
@@ -135,24 +137,28 @@ export class StockageService {
     const capaciteNominaleAh = capaciteNominaleWh / tensionSysteme;
 
     return {
-      appareil: "Batteries",
-      typeBatterie: technologie,
-      DoDMax: profondeurDecharge,
-      cyclesDoDMax: {
-        min: cyclesMin,
-        max: cyclesMax,
+      success: true,
+      error: null,
+      data: {
+        appareil: "Batteries",
+        typeBatterie: technologie,
+        DoDMax: profondeurDecharge,
+        cyclesDoDMax: {
+          min: cyclesMin,
+          max: cyclesMax,
+        },
+        plageTemperatureFonctionnement: {
+          min: tempMin,
+          max: tempMax,
+        },
+        capacite: {
+          utile_Wh: Math.round(capaciteUtile),
+          nominale_Wh: Math.round(capaciteNominaleWh),
+          nominale_Ah: Math.round(capaciteNominaleAh * 10) / 10,
+        },
+        autonomieJours: autonomie,
+        temperatureDeratingApplique: deratingApplique,
       },
-      plageTemperatureFonctionnement: {
-        min: tempMin,
-        max: tempMax,
-      },
-      capacite: {
-        utile_Wh: Math.round(capaciteUtile),
-        nominale_Wh: Math.round(capaciteNominaleWh),
-        nominale_Ah: Math.round(capaciteNominaleAh * 10) / 10,
-      },
-      autonomieJours: autonomie,
-      temperatureDeratingApplique: deratingApplique,
     };
   }
 
@@ -165,19 +171,27 @@ export class StockageService {
     capaciteBatterie: number,
     capaciteTotal: number
   ): {
-    appareil: string;
-    nombre: number;
-    disposition: {
-      batteriesParString: number;
-      modulesEnParallele: number;
-    };
+    success: boolean;
+    error: string | null;
+    data: {
+      appareil: string;
+      nombre: number;
+      disposition: {
+        batteriesParString: number;
+        modulesEnParallele: number;
+      };
+    } | null;
   } {
-    this.validationParametres("modulesBatteries", {
+    const errorValidation = this.validationParametres("modulesBatteries", {
       tensionSysteme: tensionSystem,
       tensionBatterie,
       capaciteBatterie,
       capaciteTotal,
     });
+
+    if (errorValidation) {
+      return { success: false, error: errorValidation, data: null };
+    }
 
     const batteriesParString = Math.round(tensionSystem / tensionBatterie);
 
@@ -193,11 +207,15 @@ export class StockageService {
     const stringsEnParallele = Math.ceil(capaciteTotal / capaciteBatterie);
 
     return {
-      appareil: "Batteries",
-      nombre: batteriesParString * stringsEnParallele,
-      disposition: {
-        batteriesParString: batteriesParString,
-        modulesEnParallele: stringsEnParallele,
+      success: true,
+      error: null,
+      data: {
+        appareil: "Batteries",
+        nombre: batteriesParString * stringsEnParallele,
+        disposition: {
+          batteriesParString: batteriesParString,
+          modulesEnParallele: stringsEnParallele,
+        },
       },
     };
   }
@@ -211,17 +229,25 @@ export class StockageService {
     puissanceChargeMax: number,
     rendementOnduleur: number
   ): {
-    appareil: string;
-    IChargeMax: number;
-    IDechargeMax: number;
-    IBMSRecommande: number;
+    success: boolean;
+    error: string | null;
+    data: {
+      appareil: string;
+      IChargeMax: number;
+      IDechargeMax: number;
+      IBMSRecommande: number;
+    } | null;
   } {
-    this.validationParametres("regulateurBMS", {
+    const errorValidation = this.validationParametres("regulateurBMS", {
       puissancePVCrete,
       tensionBatteries,
       puissanceChargeMax,
       rendementOnduleur,
     });
+
+    if (errorValidation) {
+      return { success: false, error: errorValidation, data: null };
+    }
 
     // Courant charge max (entrée PV)
     const courantChargeMax = puissancePVCrete / tensionBatteries;
@@ -235,10 +261,14 @@ export class StockageService {
       Math.max(courantChargeMax, courantDechargeMax) * 1.25;
 
     return {
-      appareil: "Battery Management System",
-      IChargeMax: Math.round(courantChargeMax * 100) / 100,
-      IDechargeMax: Math.round(courantDechargeMax * 100) / 100,
-      IBMSRecommande: Math.ceil(iBMSRecommande / 10) * 10, // Arrondi à la dizaine supérieure
+      success: true,
+      error: null,
+      data: {
+        appareil: "Battery Management System",
+        IChargeMax: Math.round(courantChargeMax * 100) / 100,
+        IDechargeMax: Math.round(courantDechargeMax * 100) / 100,
+        IBMSRecommande: Math.ceil(iBMSRecommande / 10) * 10, // Arrondi à la dizaine supérieure
+      },
     };
   }
 }
