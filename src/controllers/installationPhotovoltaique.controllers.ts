@@ -233,58 +233,73 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Obtention de la puissance crète et des pertes
    */
-  etablirPuissanceCrete(
-    typeInstallation: TypeInstallationPourPertes,
-    pompageSolaire: boolean,
-    energieCrete: number | undefined, // Wh/j (Ignoré si pompageSolaire = true)
-    PSH: number, // h/j (Heures d'ensoleillement équivalentes à 1000W/m²)
-    stockage: boolean,
-    pompageCaracteristiques?: PompageSolaireCaracteristiques,
-    rendementOnduleurMTTP?: number | undefined,
-    technologieBatteries?: TechnologieBatterie | undefined
+  async etablirPuissanceCrete(
+    request: FastifyRequest<{
+      Body: {
+        typeInstallation: TypeInstallationPourPertes;
+        pompageSolaire: boolean;
+        energieCrete_Wh?: number;
+        PSH_heuresParJour: number;
+        avecStockage: boolean;
+        pompageCaracteristiques?: PompageSolaireCaracteristiques;
+        rendementOnduleurMPPT?: number;
+        technologieBatteries?: TechnologieBatterie;
+      };
+    }>,
+    reply: FastifyReply
   ) {
     try {
-      // Verifier si typeInstallation est bien une des valeurs possible du type TypeInstallationPourPertes (dans le tableaux TypeInstallationPourPertesArray)
+      const {
+        typeInstallation,
+        pompageSolaire,
+        energieCrete_Wh,
+        PSH_heuresParJour,
+        avecStockage,
+        pompageCaracteristiques,
+        rendementOnduleurMPPT,
+        technologieBatteries,
+      } = request.body;
+
       const typeTypeInstallation: boolean =
         TypeInstallationPourPertesArray.includes(typeInstallation);
-      // Autres validations
-      if (!PSH) {
-        return {
+
+      if (!PSH_heuresParJour) {
+        return reply.code(400).send({
           success: false,
           error:
             "PSH (Heures d'ensoleillement équivalentes à 1000W/m²) doit être renseigné",
           data: null,
-        };
+        });
       }
       if (!typeInstallation || !typeTypeInstallation) {
-        return {
+        return reply.code(400).send({
           success: false,
           error:
             "Le type d'installation doit être choisi. Choix possibles: HAUTE_QUALITE, STANDARD, POUSSIEREUX, FAIBLE_MAINTENANCE, ANCIEN ou CABLE_LONG",
           data: null,
-        };
+        });
       }
       if (
-        (!pompageSolaire && !energieCrete) ||
-        (pompageSolaire && energieCrete)
+        (!pompageSolaire && !energieCrete_Wh) ||
+        (pompageSolaire && energieCrete_Wh)
       ) {
-        return {
+        return reply.code(400).send({
           success: false,
           error:
             "S'il s'agit d'une installation de pompage solaire, renseigner ses caractéristiques. S'il n'en est rien, renseigner les equipements. Ne pas mélanger les 2",
           data: null,
-        };
+        });
       }
 
       const { pertesTotales, PR } =
         puissanceCretePVService.performanceRatio(typeInstallation);
 
-      let Ec = energieCrete;
+      let Ec = energieCrete_Wh;
 
-      if (stockage && technologieBatteries && energieCrete) {
+      if (avecStockage && technologieBatteries && energieCrete_Wh) {
         const K =
           CONFIG_TECHNOLOGIES[technologieBatteries]["facteurMajorationCharge"];
-        Ec = energieCrete * K;
+        Ec = energieCrete_Wh * K;
       }
 
       const {
@@ -294,30 +309,33 @@ export class InstallationPhotovoltaiqueController {
       } = puissanceCretePVService.puissanceCretePV(
         pompageSolaire,
         Ec,
-        PSH,
+        PSH_heuresParJour,
         PR,
         pompageCaracteristiques,
-        rendementOnduleurMTTP
+        rendementOnduleurMPPT
       );
 
       if (!PcSuccess || PcError) {
-        return {
-          success: true,
+        return reply.code(400).send({
+          success: false,
           error: PcError,
           data: null,
-        };
+        });
       }
 
-      return {
+      return reply.code(200).send({
         success: true,
         error: null,
         data: {
           Pc: PcValue,
           pertesTotales: pertesTotales,
         },
-      };
+      });
     } catch (error: unknown) {
-      return controllerErrorHandler(error, "[Puissance crete calculs]");
+      request.log.error(error);
+      return reply
+        .code(500)
+        .send(controllerErrorHandler(error, "[Puissance crete calculs]"));
     }
   }
 
