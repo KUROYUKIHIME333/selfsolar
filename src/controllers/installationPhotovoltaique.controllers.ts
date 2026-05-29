@@ -283,8 +283,8 @@ export class InstallationPhotovoltaiqueController {
     puissanceCretePV: number,
     temperaturesAttendue: TemperaturesMinMax,
     irradianceMax: number,
-    tensionSystem?: number,
-    configurationSystem?: ConfigurationTension
+    tensionSystem: number,
+    configurationSystem: ConfigurationTension
   ) {
     try {
       if (!panneauParametres || !puissanceCretePV) {
@@ -303,7 +303,7 @@ export class InstallationPhotovoltaiqueController {
           data: null,
         };
       }
-      if (!tensionSystem) {
+      if (!tensionSystem || !configurationSystem) {
         return {
           success: false,
           error:
@@ -325,7 +325,7 @@ export class InstallationPhotovoltaiqueController {
         configurationSystem
       );
 
-      if (!modulesPVsuccess && modulesPVerror) {
+      if (!modulesPVsuccess || modulesPVerror) {
         return {
           success: false,
           error: modulesPVerror,
