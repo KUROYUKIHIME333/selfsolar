@@ -3,19 +3,21 @@ import { bilanConsommationService } from "../services/installationPhotovoltaique
 import { parametresSiteService } from "../services/installationPhotovoltaique/parametreSite.services.js";
 import { puissanceCretePVService } from "../services/installationPhotovoltaique/puissancePVCrete.services.js";
 import { stockageService } from "../services/installationPhotovoltaique/stockage.services.js";
-import { cablageEtProtectionsService } from "../services/installationPhotovoltaique/cablageProtection.services.js";
+//import { cablageEtProtectionsService } from "../services/installationPhotovoltaique/cablageProtection.services.js";
 import type {
-  DimensionnementPVRequest,
-  DimensionnementPVResponse,
-  ResultatStockage,
+  //DimensionnementPVRequest,
+  //DimensionnementPVResponse,
+  //ResultatStockage,
+  ResultatModulesPV,
   Equipement,
   Localisation,
   ParametresSTCPanneau,
   TypeInstallationPourPertes,
   TypeSystemePV,
   TechnologieBatterie,
-  MateriauConducteur,
-  MethodePose,
+  // MateriauConducteur,
+  // MethodePose,
+  ParametresOnduleur,
   PompageSolaireCaracteristiques,
   TemperaturesMinMax,
   ConfigurationTension,
@@ -467,7 +469,46 @@ export class InstallationPhotovoltaiqueController {
     }
   }
 
-  dimensionnerOnduleur() {}
+  async dimensionnerOnduleur(
+    request: FastifyRequest<{
+      Body: {
+        resultats_modules: ResultatModulesPV;
+        parametres_panneaux: ParametresSTCPanneau;
+        irradiance_max: number;
+        typeSysteme: TypeSystemePV;
+        puissance_chargeContinue: number;
+        onduleur_propose: ParametresOnduleur | null;
+        puissance_demarrage: number | null;
+      };
+    }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const {
+        resultats_modules,
+        parametres_panneaux,
+        irradiance_max,
+        typeSysteme,
+        puissance_chargeContinue,
+        onduleur_propose,
+        puissance_demarrage,
+      } = request.body;
+
+      if (
+        !resultats_modules ||
+        !parametres_panneaux ||
+        !irradiance_max ||
+        !typeSysteme ||
+        !puissance_chargeContinue
+      ) {
+        return sendError(
+          reply,
+          "Toutes les caractéristiques du système devant conditionner le choix de l'onduleur doivent être renseignées (panneaux, système, puissance, ...).",
+          400
+        );
+      }
+    } catch (error) {}
+  }
 
   /**
    * Endpoint principal de dimensionnement PV complet
