@@ -422,7 +422,6 @@ export class PuissanceCretePVService {
    * 4. Puissance DC max comparée à puissance STC
    *
    */
-
   onduleur(
     resultatsModules: ResultatModulesPV,
     panneauParametres: ParametresSTCPanneau,
@@ -431,7 +430,15 @@ export class PuissanceCretePVService {
     puissanceChargeContinue: number,
     onduleurCandidat?: ParametresOnduleur | null,
     puissanceDemarrage?: number | null
-  ): ResultatOnduleur {
+  ): { success: boolean; data?: ResultatOnduleur; error?: string } {
+    if (!resultatsModules || !panneauParametres) {
+      return {
+        success: false,
+        error:
+          "Les résultats des modules et les paramètres des panneaux sont requis.",
+      };
+    }
+
     const {
       tensionStringMin,
       tensionStringMax,
@@ -443,9 +450,17 @@ export class PuissanceCretePVService {
       puissancePVInstallee,
     } = resultatsModules;
 
+    if (!_temperaturesCellule || !_modules || !puissancePVInstallee) {
+      return {
+        success: false,
+        error:
+          "Données de structure internes du champ PV manquantes ou invalides.",
+      };
+    }
+
     const { tCellMin, tCellMax } = _temperaturesCellule;
 
-    // --- 1. Grandeurs électriques du champ PV ---
+    // Grandeurs électriques du champ PV
     const vocChampFroidCalc = vocStringFroid;
     const vmppChampChaud = tensionStringMin;
     const vmppChampFroid = tensionStringMax;
@@ -465,7 +480,16 @@ export class PuissanceCretePVService {
       puissancePVInstallee.stc ?? puissancePVInstallee.max;
     const puissanceChampsWcMax = puissancePVInstallee.max;
 
-    // --- 2. Bornes de dimensionnement théorique ---
+    // Validation des puissances calculées pour éviter les divisions par zéro
+    if (puissanceChampsWcSTC <= 0) {
+      return {
+        success: false,
+        error:
+          "La puissance crête installée calculée (STC) doit être strictement supérieure à 0.",
+      };
+    }
+
+    // Bornes de dimensionnement théorique
     const ratioCible = 1.15;
     const ratioMin = 1.0;
     const ratioMax = 1.4;
@@ -474,7 +498,7 @@ export class PuissanceCretePVService {
     const puissanceACRecommandee = puissanceChampsWcSTC / ratioCible;
     const puissanceACMax = puissanceChampsWcSTC / ratioMin;
 
-    // --- 3. Analyse de l'onduleur candidat ---
+    // Verification onduleur candidat
     let ratioDCAC = ratioCible;
     let evaluationRatio: EvaluationRatioOnduleur = "optimal";
 
@@ -491,39 +515,39 @@ export class PuissanceCretePVService {
       else if (ratioDCAC <= ratioMax) evaluationRatio = "acceptable";
       else evaluationRatio = "eleve";
 
-      // 1. Protection absolue contre les surtensions (Voc à froid)
+      // Protection absolue contre les surtensions (Voc à froid)
       const vocOk =
         onduleurCandidat.tensionDCMax > 0 &&
         vocChampFroidCalc < onduleurCandidat.tensionDCMax;
 
-      // 2. Plage MPPT basse (à chaud)
+      // Plage MPPT basse (à chaud)
       const vmppMinOk =
         onduleurCandidat.tensionMPPTMin > 0 &&
         vmppChampChaud > onduleurCandidat.tensionMPPTMin;
 
-      // 3. Plage MPPT haute (à froid)
+      // Plage MPPT haute (à froid)
       const vmppMaxOk =
         onduleurCandidat.tensionMPPTMax > 0 &&
         vmppChampFroid < onduleurCandidat.tensionMPPTMax;
       const vmppPlageOk = vmppMinOk && vmppMaxOk;
 
-      // 4. Intensité maximale admissible (IEC 62109)
+      // Imax admissible (IEC 62109)
       const iscOk =
         onduleurCandidat.courantDCMax > 0 &&
         iscChamp <= onduleurCandidat.courantDCMax;
 
-      // 5. Écrêtage ou surcharge DC
+      // Écrêtage ou surcharge DC
       const puissanceDCMaxOnduleur =
         onduleurCandidat.puissanceDCMax && onduleurCandidat.puissanceDCMax > 0
           ? onduleurCandidat.puissanceDCMax
           : onduleurCandidat.puissanceACNominale * 1.1;
       const pdcOk = puissanceChampsWcSTC <= puissanceDCMaxOnduleur;
 
-      // 6. Capacité à couvrir le talon de charge AC AC
+      // Capacité à couvrir le talon de charge AC AC
       const chargeOk =
         onduleurCandidat.puissanceACNominale >= puissanceChargeContinue;
 
-      // 7. Courant d'appel moteurs (Surcharge transitoire)
+      // Courant d'appel moteurs (Surcharge transitoire)
       const puissanceSurcharge =
         onduleurCandidat.puissanceSurcharge &&
         onduleurCandidat.puissanceSurcharge > 0
@@ -545,7 +569,7 @@ export class PuissanceCretePVService {
         surchargeOk,
       };
 
-      // --- 4. Génération de rapports d'erreurs explicites pour l'ingénieur ---
+      // Rapports d'erreurs pour ingénieur
       if (!vocOk) {
         const maxModulesVoc =
           _modules.vocModuleFroid > 0
@@ -627,44 +651,46 @@ export class PuissanceCretePVService {
 
       if (surchargeOk === false) {
         avertissements.push(
-          `Attention: La capacité de surcharge transitoire (${puissanceSurcharge} W) est inférieure à la puissance de pointe demandée au démarrage (${puissanceDemarrage} W). ` +
+          `Attention: La capacité de surcharge transitoire (${puissanceSurcharge} W) is inférieure à la puissance de pointe demandée au démarrage (${puissanceDemarrage} W). ` +
             `Risque de mise en sécurité de l'onduleur au démarrage des moteurs.`
         );
       }
     }
 
-    // --- 5. Sortie standardisée ---
     return {
-      appareil: "onduleur",
-      typeSysteme,
-      rappelVocStringFroid: vocStringFroid || null,
-      grandeursChamp: {
-        tCellMin: Math.round(tCellMin * 10) / 10,
-        tCellMax: Math.round(tCellMax * 10) / 10,
-        vocChampFroid: Math.round(vocChampFroidCalc * 100) / 100,
-        vmppChampChaud: Math.round(vmppChampChaud * 100) / 100,
-        vmppChampFroid: Math.round(vmppChampFroid * 100) / 100,
-        vmppNominal: Math.round(vmppNominal * 100) / 100,
-        iscChamp: Math.round(iscChamp * 1000) / 1000,
-        puissanceChampsWcSTC: Math.round(puissanceChampsWcSTC),
-        puissanceChampsWcMax: Math.round(puissanceChampsWcMax),
+      success: true,
+      data: {
+        appareil: "onduleur",
+        typeSysteme,
+        rappelVocStringFroid: vocStringFroid || null,
+        grandeursChamp: {
+          tCellMin: Math.round(tCellMin * 10) / 10,
+          tCellMax: Math.round(tCellMax * 10) / 10,
+          vocChampFroid: Math.round(vocChampFroidCalc * 100) / 100,
+          vmppChampChaud: Math.round(vmppChampChaud * 100) / 100,
+          vmppChampFroid: Math.round(vmppChampFroid * 100) / 100,
+          vmppNominal: Math.round(vmppNominal * 100) / 100,
+          iscChamp: Math.round(iscChamp * 1000) / 1000,
+          puissanceChampsWcSTC: Math.round(puissanceChampsWcSTC),
+          puissanceChampsWcMax: Math.round(puissanceChampsWcMax),
+        },
+        dimensionnement: {
+          puissanceACMin: Math.round(puissanceACMin),
+          puissanceACRecommandee: Math.round(puissanceACRecommandee),
+          puissanceACMax: Math.round(puissanceACMax),
+          ratioDCAC: Math.round(ratioDCAC * 1000) / 1000,
+          evaluationRatio,
+        },
+        verification:
+          onduleurCandidat && onduleurCandidat.puissanceACNominale > 0
+            ? {
+                compatible: erreurs.length === 0,
+                details: verificationsCompatibilite!,
+              }
+            : null,
+        avertissements,
+        erreurs,
       },
-      dimensionnement: {
-        puissanceACMin: Math.round(puissanceACMin),
-        puissanceACRecommandee: Math.round(puissanceACRecommandee),
-        puissanceACMax: Math.round(puissanceACMax),
-        ratioDCAC: Math.round(ratioDCAC * 1000) / 1000,
-        evaluationRatio,
-      },
-      verification:
-        onduleurCandidat && onduleurCandidat.puissanceACNominale > 0
-          ? {
-              compatible: erreurs.length === 0,
-              details: verificationsCompatibilite!,
-            }
-          : null,
-      avertissements,
-      erreurs,
     };
   }
 }
