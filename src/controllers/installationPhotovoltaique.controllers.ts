@@ -425,14 +425,57 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Obtention de le nombres de batteries et leurs caractéristiques
    */
-  dimensionnerModulesBatteries(
-    tensionSystem: number,
-    tensionBatterie: number,
-    capaciteBatterie: number,
-    capaciteTotal: number
+  async dimensionnerModulesBatteries(
+    request: FastifyRequest<{
+      Body: {
+        tensionSysteme_V: number;
+        tensionUnitaireBatterie_V: number;
+        capaciteUnitaireBatterie_Ah: number;
+        capaciteTotaleRequise_Ah: number;
+      };
+    }>,
+    reply: FastifyReply
   ) {
     try {
-    } catch (error) {}
+      const {
+        tensionSysteme_V,
+        tensionUnitaireBatterie_V,
+        capaciteUnitaireBatterie_Ah,
+        capaciteTotaleRequise_Ah,
+      } = request.body;
+
+      if (
+        !tensionSysteme_V ||
+        !tensionUnitaireBatterie_V ||
+        !capaciteUnitaireBatterie_Ah ||
+        !capaciteTotaleRequise_Ah
+      ) {
+        return reply.code(400).send({
+          success: false,
+          error:
+            "Toutes les caractéristiques électriques unitaires et requises du banc de batteries doivent être renseignées.",
+          data: null,
+        });
+      }
+
+      const dispositionBatt = stockageService.modulesBatteries(
+        tensionSysteme_V,
+        tensionUnitaireBatterie_V,
+        capaciteUnitaireBatterie_Ah,
+        capaciteTotaleRequise_Ah
+      );
+
+      return reply.code(200).send({
+        success: true,
+        error: null,
+        data: dispositionBatt,
+      });
+    } catch (error: unknown) {
+      request.log.error(error);
+      return reply
+        .code(500)
+        .send(controllerErrorHandler(error, "[Configuration bloc batteries]"));
+    }
   }
 
   dimensionnerOnduleur() {}
