@@ -507,7 +507,26 @@ export class InstallationPhotovoltaiqueController {
           400
         );
       }
-    } catch (error) {}
+
+      const dispositionOnduleur = puissanceCretePVService.onduleur(
+        resultats_modules,
+        parametres_panneaux,
+        irradiance_max,
+        typeSysteme,
+        puissance_chargeContinue,
+        onduleur_propose,
+        puissance_demarrage
+      );
+
+      return sendSuccess(reply, dispositionOnduleur, 200);
+    } catch (error) {
+      request.log.error(error);
+      return sendError(
+        reply,
+        controllerErrorHandler(error, "[Choix Onduleur]"),
+        500
+      );
+    }
   }
 
   /**
