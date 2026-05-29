@@ -217,7 +217,11 @@ export class InstallationPhotovoltaiqueController {
         );
       }
 
-      const {success: stockageSuccess, error: stockageError, data: stockageCalcule} = stockageService.capaciteStockage(
+      const {
+        success: stockageSuccess,
+        error: stockageError,
+        data: stockageCalcule,
+      } = stockageService.capaciteStockage(
         technologieBattery,
         energieJournaliere_Wh,
         autonomieBatterie_jours,
@@ -455,7 +459,11 @@ export class InstallationPhotovoltaiqueController {
         );
       }
 
-      const {success: dispositionBattSuccess, data: dispositionBatt, error: dispositionBattError} = stockageService.modulesBatteries(
+      const {
+        success: dispositionBattSuccess,
+        data: dispositionBatt,
+        error: dispositionBattError,
+      } = stockageService.modulesBatteries(
         tensionSysteme_V,
         tensionUnitaireBatterie_V,
         capaciteUnitaireBatterie_Ah,
@@ -548,6 +556,11 @@ export class InstallationPhotovoltaiqueController {
       );
     }
   }
+
+  async dimensionnerCablesEtProtections(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {}
 
   /**
    * Endpoint de vérification santé des services
