@@ -576,7 +576,17 @@ export class InstallationPhotovoltaiqueController {
       };
     }>,
     reply: FastifyReply
-  ) {}
+  ) {
+    try {
+    } catch (error) {
+      request.log.error(error);
+      return sendError(
+        reply,
+        controllerErrorHandler(error, "[Cables & Protections ]"),
+        500
+      );
+    }
+  }
 
   /**
    * Endpoint de vérification santé des services
