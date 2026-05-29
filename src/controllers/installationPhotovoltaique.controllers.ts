@@ -217,13 +217,17 @@ export class InstallationPhotovoltaiqueController {
         );
       }
 
-      const stockageCalcule = stockageService.capaciteStockage(
+      const {success: stockageSuccess, error: stockageError, data: stockageCalcule} = stockageService.capaciteStockage(
         technologieBattery,
         energieJournaliere_Wh,
         autonomieBatterie_jours,
         tensionSystemeBatterie_V,
         temperatureAmbiante_C
       );
+
+      if (!stockageSuccess && stockageError) {
+        return sendError(reply, stockageError, 400);
+      }
 
       return sendSuccess(reply, stockageCalcule, 200);
     } catch (error: unknown) {
@@ -529,7 +533,7 @@ export class InstallationPhotovoltaiqueController {
       if (!OnduleurSuccess && OnduleurError) {
         return sendError(reply, OnduleurError, 400);
       }
-      
+
       return sendSuccess(reply, OnduleurData, 200);
     } catch (error) {
       request.log.error(error);
