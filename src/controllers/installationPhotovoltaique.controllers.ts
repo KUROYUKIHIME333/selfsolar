@@ -469,6 +469,10 @@ export class InstallationPhotovoltaiqueController {
     }
   }
 
+  /**
+   * Vérification de l'onduleur proposé
+   *Ou bien choix d'un onduleur adapté
+   */
   async dimensionnerOnduleur(
     request: FastifyRequest<{
       Body: {
