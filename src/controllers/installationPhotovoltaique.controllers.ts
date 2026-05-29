@@ -35,27 +35,40 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Analyse la consommation électrique des équipements
    */
-  analyserConsommation(equipements: Equipement[], kfGlobal?: number) {
+  async analyserConsommation(
+    request: FastifyRequest<{
+      Body: {
+        equipements: Equipement[];
+        facteurFoisonnementGlobal?: number;
+      };
+    }>,
+    reply: FastifyReply
+  ) {
     try {
+      const { equipements, facteurFoisonnementGlobal } = request.body;
+
       if (
         !equipements ||
         !Array.isArray(equipements) ||
         equipements.length === 0
       ) {
-        return {
+        return reply.code(400).send({
           success: false,
           error: "La liste des équipements est vide ou invalide.",
           data: null,
-        };
+        });
       }
 
-      if (kfGlobal !== undefined && (kfGlobal <= 0 || kfGlobal > 1)) {
-        return {
+      if (
+        facteurFoisonnementGlobal !== undefined &&
+        (facteurFoisonnementGlobal <= 0 || facteurFoisonnementGlobal > 1)
+      ) {
+        return reply.code(400).send({
           success: false,
           error:
-            "Le coefficient de simultanéité global (kfGlobal) doit être compris entre 0 et 1.",
+            "Le coefficient de simultanéité global (facteurFoisonnementGlobal) doit être compris entre 0 et 1.",
           data: null,
-        };
+        });
       }
 
       const energieJournaliereTotal =
@@ -63,7 +76,7 @@ export class InstallationPhotovoltaiqueController {
 
       const puissanceAppeleeMax = bilanConsommationService.puissanceAppelee(
         equipements,
-        kfGlobal ?? 0.8
+        facteurFoisonnementGlobal ?? 0.8
       );
 
       const puissanceInstalleeTotal =
@@ -72,7 +85,7 @@ export class InstallationPhotovoltaiqueController {
       const puissancePicDemarrage =
         bilanConsommationService.puissancePic(equipements);
 
-      return {
+      return reply.code(200).send({
         success: true,
         error: null,
         datas: {
@@ -81,9 +94,12 @@ export class InstallationPhotovoltaiqueController {
           puissanceInstalleeW: puissanceInstalleeTotal,
           puissancePicW: puissancePicDemarrage,
         },
-      };
+      });
     } catch (error: unknown) {
-      return controllerErrorHandler(error, "[Analyse Conso]");
+      request.log.error(error);
+      return reply
+        .code(500)
+        .send(controllerErrorHandler(error, "[Analyse Conso]"));
     }
   }
   /**
@@ -350,10 +366,7 @@ export class InstallationPhotovoltaiqueController {
     capaciteTotal: number
   ) {
     try {
-      
-    } catch (error) {
-      
-    }
+    } catch (error) {}
   }
 
   dimensionnerOnduleur() {}
