@@ -652,9 +652,9 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result.appareil).toBe("onduleur");
-      expect(result.dimensionnement).toBeDefined();
-      expect(result.dimensionnement.ratioDCAC).toBeGreaterThan(0);
+      expect(result.data?.appareil).toBe("onduleur");
+      expect(result.data?.dimensionnement).toBeDefined();
+      expect(result.data?.dimensionnement.ratioDCAC).toBeGreaterThan(0);
     });
 
     it("doit calculer les grandeurs du champ PV", () => {
@@ -666,10 +666,12 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result.grandeursChamp.vocChampFroid).toBeGreaterThan(0);
-      expect(result.grandeursChamp.vmppChampChaud).toBeGreaterThan(0);
-      expect(result.grandeursChamp.iscChamp).toBeGreaterThan(0);
-      expect(result.grandeursChamp.puissanceChampsWcSTC).toBeGreaterThan(0);
+      expect(result.data?.grandeursChamp.vocChampFroid).toBeGreaterThan(0);
+      expect(result.data?.grandeursChamp.vmppChampChaud).toBeGreaterThan(0);
+      expect(result.data?.grandeursChamp.iscChamp).toBeGreaterThan(0);
+      expect(result.data?.grandeursChamp.puissanceChampsWcSTC).toBeGreaterThan(
+        0
+      );
     });
 
     it("doit calculer les bornes de dimensionnement", () => {
@@ -681,11 +683,13 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result.dimensionnement.puissanceACMin).toBeGreaterThan(0);
-      expect(result.dimensionnement.puissanceACRecommandee).toBeGreaterThan(0);
-      expect(result.dimensionnement.puissanceACMax).toBeGreaterThan(0);
-      expect(result.dimensionnement.puissanceACMin).toBeLessThan(
-        result.dimensionnement.puissanceACMax
+      expect(result.data?.dimensionnement.puissanceACMin).toBeGreaterThan(0);
+      expect(
+        result.data?.dimensionnement.puissanceACRecommandee
+      ).toBeGreaterThan(0);
+      expect(result.data?.dimensionnement.puissanceACMax).toBeGreaterThan(0);
+      expect(result.data?.dimensionnement.puissanceACMin).toBeLessThan(
+        result.data ? result.data.dimensionnement.puissanceACMax : 0
       );
     });
 
@@ -698,11 +702,11 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result.verification).toBeDefined();
-      expect(result.verification?.compatible).toBe(true);
-      expect(result.verification?.details.vocSousLimite).toBe(true);
-      expect(result.verification?.details.vmppDansPlageMPPT).toBe(true);
-      expect(result.verification?.details.iscSousLimite).toBe(true);
+      expect(result.data?.verification).toBeDefined();
+      expect(result.data?.verification?.compatible).toBe(true);
+      expect(result.data?.verification?.details.vocSousLimite).toBe(true);
+      expect(result.data?.verification?.details.vmppDansPlageMPPT).toBe(true);
+      expect(result.data?.verification?.details.iscSousLimite).toBe(true);
     });
 
     it("doit retourner une évaluation du ratio DC/AC", () => {
@@ -715,7 +719,7 @@ describe("PuissanceCretePVService", () => {
         mockOnduleurValide
       );
       expect(["sous-dimensionne", "optimal", "acceptable", "eleve"]).toContain(
-        result.dimensionnement.evaluationRatio
+        result.data?.dimensionnement.evaluationRatio
       );
     });
 
@@ -728,8 +732,8 @@ describe("PuissanceCretePVService", () => {
         4000,
         null
       );
-      expect(result.verification).toBeNull();
-      expect(result.erreurs).toHaveLength(0);
+      expect(result.data?.verification).toBeNull();
+      expect(result.data?.erreurs).toHaveLength(0);
     });
 
     it("doit fonctionner avec un onduleur sans puissance nominale", () => {
@@ -745,7 +749,7 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurInvalide
       );
-      expect(result.verification).toBeNull();
+      expect(result.data?.verification).toBeNull();
     });
   });
 
@@ -780,10 +784,10 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurFaibleTension
       );
-      expect(result.verification?.details.vocSousLimite).toBe(false);
-      expect(result.erreurs.length).toBeGreaterThan(0);
-      expect(result.erreurs[0]).toContain("CRITIQUE");
-      expect(result.erreurs[0]).toContain("Voc champ à froid");
+      expect(result.data?.verification?.details.vocSousLimite).toBe(false);
+      expect(result.data?.erreurs.length).toBeGreaterThan(0);
+      expect(result.data?.erreurs[0]).toContain("CRITIQUE");
+      expect(result.data?.erreurs[0]).toContain("Voc champ à froid");
     });
 
     it("doit détecter un Vmpp sous le minimum MPPT", () => {
@@ -799,9 +803,11 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurHautMin
       );
-      expect(result.verification?.details.vmppAuDessusMinimum).toBe(false);
-      expect(result.avertissements.length).toBeGreaterThan(0);
-      expect(result.avertissements[0]).toContain("Vmpp champ à chaud");
+      expect(result.data?.verification?.details.vmppAuDessusMinimum).toBe(
+        false
+      );
+      expect(result.data?.avertissements.length).toBeGreaterThan(0);
+      expect(result.data?.avertissements[0]).toContain("Vmpp champ à chaud");
     });
 
     it("doit détecter un Vmpp au-dessus du maximum MPPT", () => {
@@ -817,10 +823,12 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurBasMax
       );
-      expect(result.verification?.details.vmppDansPlageMPPT).toBe(false);
-      expect(result.erreurs.length).toBeGreaterThan(0);
+      expect(result.data?.verification?.details.vmppDansPlageMPPT).toBe(false);
+      expect(result.data?.erreurs.length).toBeGreaterThan(0);
       expect(
-        result.erreurs.some((e: string) => e.includes("Vmpp champ à froid"))
+        result.data?.erreurs.some((e: string) =>
+          e.includes("Vmpp champ à froid")
+        )
       ).toBe(true);
     });
 
@@ -837,9 +845,11 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurFaibleCourant
       );
-      expect(result.verification?.details.iscSousLimite).toBe(false);
+      expect(result.data?.verification?.details.iscSousLimite).toBe(false);
       expect(
-        result.erreurs.some((e: string) => e.includes("Courant Isc corrigé"))
+        result.data?.erreurs.some((e: string) =>
+          e.includes("Courant Isc corrigé")
+        )
       ).toBe(true);
     });
 
@@ -856,9 +866,11 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurPetit
       );
-      expect(result.verification?.details.chargeACOk).toBe(false);
+      expect(result.data?.verification?.details.chargeACOk).toBe(false);
       expect(
-        result.erreurs.some((e: string) => e.includes("Puissance AC nominale"))
+        result.data?.erreurs.some((e: string) =>
+          e.includes("Puissance AC nominale")
+        )
       ).toBe(true);
     });
 
@@ -876,9 +888,9 @@ describe("PuissanceCretePVService", () => {
         onduleurSansSurcharge,
         5000
       );
-      expect(result.verification?.details.surchargeOk).toBe(false);
+      expect(result.data?.verification?.details.surchargeOk).toBe(false);
       expect(
-        result.avertissements.some((a: string) =>
+        result.data?.avertissements.some((a: string) =>
           a.includes("surcharge transitoire")
         )
       ).toBe(true);
@@ -897,9 +909,9 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurPetitDC
       );
-      expect(result.verification?.details.puissanceDCOk).toBe(false);
+      expect(result.data?.verification?.details.puissanceDCOk).toBe(false);
       expect(
-        result.avertissements.some((a: string) => a.includes("écrêtage"))
+        result.data?.avertissements.some((a: string) => a.includes("écrêtage"))
       ).toBe(true);
     });
   });
@@ -931,7 +943,7 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result.typeSysteme).toBe("off-grid");
+      expect(result.data?.typeSysteme).toBe("off-grid");
     });
 
     it("doit fonctionner avec un système hybride", () => {
@@ -943,7 +955,7 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result.typeSysteme).toBe("hybride");
+      expect(result.data?.typeSysteme).toBe("hybride");
     });
 
     it("doit fonctionner avec un système on-grid", () => {
@@ -955,7 +967,7 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result.typeSysteme).toBe("on-grid");
+      expect(result.data?.typeSysteme).toBe("on-grid");
     });
   });
 
@@ -990,7 +1002,9 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurTresGrand
       );
-      expect(result.dimensionnement.evaluationRatio).toBe("sous-dimensionne");
+      expect(result.data?.dimensionnement.evaluationRatio).toBe(
+        "sous-dimensionne"
+      );
     });
 
     it("doit évaluer comme 'optimal' si ratio entre 1.0 et 1.25", () => {
@@ -1006,7 +1020,7 @@ describe("PuissanceCretePVService", () => {
         mockOnduleurValide
       );
       if (ratio <= 1.25) {
-        expect(result.dimensionnement.evaluationRatio).toBe("optimal");
+        expect(result.data?.dimensionnement.evaluationRatio).toBe("optimal");
       }
     });
 
@@ -1024,10 +1038,11 @@ describe("PuissanceCretePVService", () => {
         onduleurMoyen
       );
       if (
-        result.dimensionnement.ratioDCAC > 1.25 &&
-        result.dimensionnement.ratioDCAC <= 1.4
+        result.data &&
+        result.data.dimensionnement.ratioDCAC > 1.25 &&
+        result.data.dimensionnement.ratioDCAC <= 1.4
       ) {
-        expect(result.dimensionnement.evaluationRatio).toBe("acceptable");
+        expect(result.data.dimensionnement.evaluationRatio).toBe("acceptable");
       }
     });
 
@@ -1044,8 +1059,8 @@ describe("PuissanceCretePVService", () => {
         4000,
         onduleurTresPetit
       );
-      if (result.dimensionnement.ratioDCAC > 1.4) {
-        expect(result.dimensionnement.evaluationRatio).toBe("eleve");
+      if (result.data && result.data.dimensionnement.ratioDCAC > 1.4) {
+        expect(result.data.dimensionnement.evaluationRatio).toBe("eleve");
       }
     });
   });
@@ -1075,7 +1090,7 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result.grandeursChamp.iscChamp).toBeGreaterThan(0);
+      expect(result.data?.grandeursChamp.iscChamp).toBeGreaterThan(0);
     });
 
     it("doit utiliser IRRADIANCE_STC par défaut si irradiance négative", () => {
@@ -1087,7 +1102,7 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result.grandeursChamp.iscChamp).toBeGreaterThan(0);
+      expect(result.data?.grandeursChamp.iscChamp).toBeGreaterThan(0);
     });
 
     it("doit appliquer le facteur d'irradiance correctement", () => {
@@ -1107,8 +1122,9 @@ describe("PuissanceCretePVService", () => {
         4000,
         mockOnduleurValide
       );
-      expect(result1200.grandeursChamp.iscChamp).toBeGreaterThan(
-        result800.grandeursChamp.iscChamp
+
+      expect(result1200.data?.grandeursChamp.iscChamp).toBeGreaterThan(
+        result800.data ? result800.data.grandeursChamp.iscChamp : 0
       );
     });
   });
@@ -1139,8 +1155,8 @@ describe("PuissanceCretePVService", () => {
           2000,
           mockOnduleurPetit
         );
-        expect(onduleur.appareil).toBe("onduleur");
-        expect(onduleur.dimensionnement).toBeDefined();
+        expect(onduleur.data?.appareil).toBe("onduleur");
+        expect(onduleur.data?.dimensionnement).toBeDefined();
       }
     });
 
@@ -1166,7 +1182,7 @@ describe("PuissanceCretePVService", () => {
           8000,
           mockOnduleurValide
         );
-        expect(onduleur.verification).toBeDefined();
+        expect(onduleur.data?.verification).toBeDefined();
       }
     });
 
