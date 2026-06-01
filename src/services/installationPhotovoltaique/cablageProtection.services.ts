@@ -17,6 +17,7 @@ import {
   FACTEUR_TEMPERATURE_PVC,
   FACTEUR_GROUPEMENT,
 } from "../../utils/constantesPhysiques.utils.js";
+import { sendResponse } from "../../utils/handlers.utils.js";
 
 export class CablageEtProtectionsService {
   // =========================================================================
@@ -41,23 +42,15 @@ export class CablageEtProtectionsService {
       const nombreStrings = resultatModules.stringsEnParallele;
 
       if (!Isc_stc || Isc_stc <= 0)
-        return {
-          success: false,
-          error: "Isc_stc doit être supérieur à 0",
-          data: null,
-        };
+        return sendResponse(false, "Isc_stc doit être supérieur à 0", null);
       if (!Voc_stc || Voc_stc <= 0)
-        return {
-          success: false,
-          error: "Voc_stc doit être supérieur à 0",
-          data: null,
-        };
+        return sendResponse(false, "Voc_stc doit être supérieur à 0", null);
       if (!nombreStrings || nombreStrings <= 0)
-        return {
-          success: false,
-          error: "nombreStrings doit être au moins de 1",
-          data: null,
-        };
+        return sendResponse(
+          false,
+          "nombreStrings doit être au moins de 1",
+          null
+        );
 
       const Isc_max_string = Isc_stc * 1.25;
       const Isc_max_principal = Isc_stc * nombreStrings * 1.25;
@@ -79,11 +72,11 @@ export class CablageEtProtectionsService {
       );
 
       if (!sectionString.success || !sectionString.data) {
-        return {
-          success: false,
-          error: `[Câble String] ${sectionString.error}`,
-          data: null,
-        };
+        return sendResponse(
+          false,
+          `[Câble String] ${sectionString.error}`,
+          null
+        );
       }
 
       const sectionPrincipal = this.calculerSectionCableDC(
@@ -96,11 +89,11 @@ export class CablageEtProtectionsService {
       );
 
       if (!sectionPrincipal.success || !sectionPrincipal.data) {
-        return {
-          success: false,
-          error: `[Câble Principal] ${sectionPrincipal.error}`,
-          data: null,
-        };
+        return sendResponse(
+          false,
+          `[Câble Principal] ${sectionPrincipal.error}`,
+          null
+        );
       }
 
       const protectionRequise = nombreStrings >= 3;
@@ -111,38 +104,31 @@ export class CablageEtProtectionsService {
         calibreFusibleRecommande = Math.ceil(In_min);
       }
 
-      return {
-        success: true,
-        error: null,
-        data: {
-          cableString: {
-            courantEmploi_Ib: Number(Isc_max_string.toFixed(2)),
-            facteurCorrectionK: Number(k_total_string.toFixed(2)),
-            sectionConseillee_mm2: sectionString.data.section,
-            chuteTension_Pourcent: Number(
-              sectionString.data.chutePourcent.toFixed(2)
-            ),
-          },
-          cablePrincipal: {
-            courantEmploi_Ib: Number(Isc_max_principal.toFixed(2)),
-            facteurCorrectionK: Number(k_total_principal.toFixed(2)),
-            sectionConseillee_mm2: sectionPrincipal.data.section,
-            chuteTension_Pourcent: Number(
-              sectionPrincipal.data.chutePourcent.toFixed(2)
-            ),
-          },
-          protections: {
-            fusiblesStringsRequis: protectionRequise,
-            calibreFusibleString_A: calibreFusibleRecommande,
-          },
+      const returnDatas = {
+        cableString: {
+          courantEmploi_Ib: Number(Isc_max_string.toFixed(2)),
+          facteurCorrectionK: Number(k_total_string.toFixed(2)),
+          sectionConseillee_mm2: sectionString.data.section,
+          chuteTension_Pourcent: Number(
+            sectionString.data.chutePourcent.toFixed(2)
+          ),
+        },
+        cablePrincipal: {
+          courantEmploi_Ib: Number(Isc_max_principal.toFixed(2)),
+          facteurCorrectionK: Number(k_total_principal.toFixed(2)),
+          sectionConseillee_mm2: sectionPrincipal.data.section,
+          chuteTension_Pourcent: Number(
+            sectionPrincipal.data.chutePourcent.toFixed(2)
+          ),
+        },
+        protections: {
+          fusiblesStringsRequis: protectionRequise,
+          calibreFusibleString_A: calibreFusibleRecommande,
         },
       };
+      return sendResponse(true, null, returnDatas);
     } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || "Erreur DC interne",
-        data: null,
-      };
+      return sendResponse(false, error.message || "Erreur DC interne", null);
     }
   }
 
@@ -165,13 +151,9 @@ export class CablageEtProtectionsService {
     data: DimensionnementAC | null;
   } {
     if (!puissanceNominaleOnduleurWh || puissanceNominaleOnduleurWh <= 0)
-      return {
-        success: false,
-        error: "puissanceNominaleOnduleurWh invalide",
-        data: null,
-      };
+      return sendResponse(false, "puissanceNominaleOnduleurWh invalide", null);
     if (!tensionReseauV || tensionReseauV <= 0)
-      return { success: false, error: "tensionReseauV invalide", data: null };
+      return sendResponse(false, "Tension réseau invalide", null);
 
     let Ib = 0;
     if (isTriphase) {
@@ -195,11 +177,11 @@ export class CablageEtProtectionsService {
     const sectionMaximaleInitiale =
       SECTIONS_NORMALISEES[SECTIONS_NORMALISEES.length - 1];
     if (sectionMaximaleInitiale === undefined) {
-      return {
-        success: false,
-        error: "[CablageAC] Table des sections vides ou non définie.",
-        data: null,
-      };
+      return sendResponse(
+        false,
+        "[CablageAC] Table des sections vides ou non définie.",
+        null
+      );
     }
 
     let sectionSelectionnee = sectionMaximaleInitiale;
@@ -215,15 +197,15 @@ export class CablageEtProtectionsService {
     }
 
     if (!sectionTrouvee) {
-      return {
-        success: false,
-        error: `[CablageAC] Intensité requise (${Iz_requis.toFixed(
+      return sendResponse(
+        false,
+        `[CablageAC] Intensité requise (${Iz_requis.toFixed(
           1
         )}A) hors limites des tables pour l'${
           materiau === "cuivre" ? "Cuivre" : "Aluminium"
         }.`,
-        data: null,
-      };
+        null
+      );
     }
 
     const rho20 = RESISTIVITE[materiau];
@@ -264,39 +246,37 @@ export class CablageEtProtectionsService {
       ) {
         sectionSelectionnee = sectionSuivante;
       } else {
-        return {
-          success: false,
-          error: `[CablageAC] Chute de tension prohibitive (${chutePourcent.toFixed(
+        return sendResponse(
+          false,
+          `[CablageAC] Chute de tension prohibitive (${chutePourcent.toFixed(
             1
           )}%) même avec la section maximale disponible.`,
-          data: null,
-        };
+          null
+        );
       }
     }
 
-    return {
-      success: true,
-      error: null,
-      data: {
-        section: sectionSelectionnee,
-        materiau: materiau,
-        courantEmploi: Number(Ib.toFixed(2)),
-        courantAdmissible: Number((sectionSelectionnee * k_total).toFixed(2)),
-        protection: In,
-        chuteTension: Number(chutePourcent.toFixed(2)),
-        chuteTensionMax: 3.0,
-        ddr: {
-          type: "B",
-          sensibilite: 300,
-          norme: "NF C 15-100",
-        },
-        methodePose: methodePose,
-        facteursCorrection: {
-          kT: k_temp,
-          total: k_total,
-        },
+    const returnDatas = {
+      section: sectionSelectionnee,
+      materiau: materiau,
+      courantEmploi: Number(Ib.toFixed(2)),
+      courantAdmissible: Number((sectionSelectionnee * k_total).toFixed(2)),
+      protection: In,
+      chuteTension: Number(chutePourcent.toFixed(2)),
+      chuteTensionMax: 3.0,
+      ddr: {
+        type: "B",
+        sensibilite: 300,
+        norme: "NF C 15-100",
+      },
+      methodePose: methodePose,
+      facteursCorrection: {
+        kT: k_temp,
+        total: k_total,
       },
     };
+
+    return sendResponse(true, null, returnDatas);
   }
 
   // =========================================================================
@@ -341,23 +321,21 @@ export class CablageEtProtectionsService {
 
     if (amontCalibre <= 0 || avalCalibre <= 0) {
       commentaire = "Calibres invalides";
-      return {
-        success: false,
-        error: "Les calibres de protection doivent être supérieurs à 0.",
-        data: null,
-      };
+      return sendResponse(
+        false,
+        "Les calibres de protection doivent être supérieurs à 0.",
+        null
+      );
     }
 
-    return {
-      success: true,
-      error: null,
-      data: {
-        selectif,
-        typeSelectivite,
-        ratio: Number((Math.round(ratioAmpere * 100) / 100).toFixed(2)),
-        commentaire,
-      },
+    const returnDatas = {
+      selectif,
+      typeSelectivite,
+      ratio: Number((Math.round(ratioAmpere * 100) / 100).toFixed(2)),
+      commentaire,
     };
+
+    return sendResponse(true, null, returnDatas);
   }
 
   // =========================================================================
@@ -417,18 +395,18 @@ export class CablageEtProtectionsService {
     }
 
     if (sectionRetenue === 0) {
-      return {
-        success: false,
-        error: `Impossible de dimensionner le câble (${materiau}) pour ${longueur}m / ${courant}A. Raison : ${diagnosticErreur}`,
-        data: null,
-      };
+      return sendResponse(
+        false,
+        `Impossible de dimensionner le câble (${materiau}) pour ${longueur}m / ${courant}A. Raison : ${diagnosticErreur}`,
+        null
+      );
     }
 
-    return {
-      success: true,
-      error: null,
-      data: { section: sectionRetenue, chutePourcent: chutePourcentFinale },
+    const returnDatas = {
+      section: sectionRetenue,
+      chutePourcent: chutePourcentFinale,
     };
+    return sendResponse(true, null, returnDatas);
   }
 
   private interpolerFacteurTemperature(temp: number): number {
