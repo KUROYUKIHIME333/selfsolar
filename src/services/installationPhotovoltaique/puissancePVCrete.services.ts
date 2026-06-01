@@ -33,7 +33,7 @@ export class PuissanceCretePVService {
    * Le PR exprime la part d'énergie réellement disponible à la sortie du système
    * par rapport à l'énergie théorique produite par les panneaux.
    */
-  performanceRatio(typeInstallation: TypeInstallationPourPertes): {
+  public performanceRatio(typeInstallation: TypeInstallationPourPertes): {
     success: boolean;
     error: string | null;
     data: {
@@ -45,11 +45,7 @@ export class PuissanceCretePVService {
       !typeInstallation ||
       !TypeInstallationPourPertesArray.includes(typeInstallation)
     ) {
-      return sendResponse(
-        false,
-        "Type d'installation non pris en charge",
-        null
-      );
+      throw new Error("Type d'installation non pris en charge");
     }
     // Dictionnaire des pertes par défaut selon la configuration terrain
     const tablePertes: Record<TypeInstallationPourPertes, number> = {
@@ -80,7 +76,7 @@ export class PuissanceCretePVService {
    * Standard: Pc = E_charge / (PSH × PR)
    * Pompage: Pc = E_hydraulique / (PSH × η_onduleur × PR) (p.4-5 guide)
    */
-  puissanceCretePV(
+  public puissanceCretePV(
     pompageSolaire: boolean,
     energieCrete: number | undefined, // Wh/j (Ignoré si pompageSolaire = true)
     PSH: number, // h/j (Heures d'ensoleillement équivalentes à 1000W/m²)
@@ -98,17 +94,13 @@ export class PuissanceCretePVService {
     };
 
     if (typeof PSH !== "number" || isNaN(PSH) || PSH <= 0) {
-      return sendResponse(
-        false,
-        "Le PSH (Peak Sun Hours) doit être un nombre strictement supérieur à 0.",
-        defaultPuissanceCrete
+      throw new Error(
+        "Le PSH (Peak Sun Hours) doit être un nombre strictement supérieur à 0."
       );
     }
     if (typeof PR !== "number" || isNaN(PR) || PR <= 0 || PR > 1) {
-      return sendResponse(
-        false,
-        "Le Performance Ratio (PR) doit être compris strictement entre 0 et 1.",
-        defaultPuissanceCrete
+      throw new Error(
+        "Le Performance Ratio (PR) doit être compris strictement entre 0 et 1."
       );
     }
 
@@ -117,10 +109,8 @@ export class PuissanceCretePVService {
     // Pompage Solaire Direct
     if (pompageSolaire && !energieCrete) {
       if (!pompageCaracteristiques) {
-        return sendResponse(
-          false,
-          "Les caractéristiques hydrauliques de pompage sont obligatoires lorsque le mode pompage est activé.",
-          defaultPuissanceCrete
+        throw new Error(
+          "Les caractéristiques hydrauliques de pompage sont obligatoires lorsque le mode pompage est activé."
         );
       }
 
@@ -142,18 +132,14 @@ export class PuissanceCretePVService {
           rendementPompe,
         ].some((val) => typeof val !== "number" || isNaN(val) || val <= 0)
       ) {
-        return sendResponse(
-          false,
-          "Toutes les caractéristiques de pompage doivent être des nombres valides et supérieurs à 0.",
-          defaultPuissanceCrete
+        throw new Error(
+          "Toutes les caractéristiques de pompage doivent être des nombres valides et supérieurs à 0."
         );
       }
 
       if (rendementPompe > 1 || rendementPompe < 0) {
-        return sendResponse(
-          false,
-          "Le rendement de la pompe ne peut pas être entre 0 et 1. ",
-          defaultPuissanceCrete
+        throw new Error(
+          "Le rendement de la pompe ne peut pas être entre 0 et 1."
         );
       }
 
@@ -166,10 +152,8 @@ export class PuissanceCretePVService {
       // Détermination du rendement de l'onduleur/variateur de pompage
       const rendementOnduleur = rendementOnduleurMTTP ?? 0.98;
       if (rendementOnduleur <= 0 || rendementOnduleur > 1) {
-        return sendResponse(
-          false,
-          "Le rendement de l'onduleur doit être compris entre 0 et 1.",
-          defaultPuissanceCrete
+        throw new Error(
+          "Le rendement de l'onduleur doit être compris entre 0 et 1."
         );
       }
 
@@ -185,10 +169,8 @@ export class PuissanceCretePVService {
         isNaN(energieCrete) ||
         energieCrete <= 0
       ) {
-        return sendResponse(
-          false,
-          "L'énergie de charge (Wh/j) doit être un nombre strictement supérieur à 0.",
-          defaultPuissanceCrete
+        throw new Error(
+          "L'énergie de charge (Wh/j) doit être un nombre strictement supérieur à 0."
         );
       }
 
@@ -210,7 +192,7 @@ export class PuissanceCretePVService {
    * Pour onduleurs modernes: utiliser plage MPPT (100-800V typique)
    * Pour systèmes batterie: utiliser tension système (12/24/48/96V)
    */
-  modulesPV(
+  public modulesPV(
     panneauParametres: ParametresSTCPanneau,
     puissanceCretePV: number,
     temperaturesAttendue: TemperaturesMinMax,
@@ -228,10 +210,8 @@ export class PuissanceCretePVService {
       puissanceCretePV <= 0 ||
       isNaN(puissanceCretePV)
     ) {
-      return sendResponse(
-        false,
-        "Paramètres de panneaux ou puissance crête cible invalides.",
-        null
+      throw new Error(
+        "Paramètres de panneaux ou puissance crête cible invalides."
       );
     }
 
@@ -253,10 +233,8 @@ export class PuissanceCretePVService {
         (val) => typeof val !== "number" || val <= 0 || isNaN(val)
       )
     ) {
-      return sendResponse(
-        false,
-        "Les caractéristiques électriques STC du panneau doivent être des nombres strictement positifs.",
-        null
+      throw new Error(
+        "Les caractéristiques électriques STC du panneau doivent être des nombres strictement positifs."
       );
     }
 
@@ -270,11 +248,7 @@ export class PuissanceCretePVService {
         noct_module
       );
     } catch (err: any) {
-      return sendResponse(
-        false,
-        `Erreur calcul température cellule : ${err.message}`,
-        null
-      );
+      throw new Error(`Erreur calcul température cellule : ${err.message}`);
     }
 
     // Normalisation et sécurisation des coefficients thermiques
@@ -290,10 +264,8 @@ export class PuissanceCretePVService {
     const vmpp_max = tensionMPP * (1 + pratiqueBeta * (t_cell.Tmin - T_STC)); // Vmpp max (à froid)
 
     if (tension_panneau_min <= 0 || tension_panneau_max <= 0) {
-      return sendResponse(
-        false,
-        "Les tensions corrigées du panneau sont aberrantes (inférieures ou égales à 0V). Vérifiez les températures.",
-        null
+      throw new Error(
+        "Les tensions corrigées du panneau sont aberrantes (inférieures ou égales à 0V). Vérifiez les températures."
       );
     }
 
@@ -317,11 +289,7 @@ export class PuissanceCretePVService {
     } else {
       const resTension = tensionSystemePV(puissanceCretePV);
       if (!resTension.success) {
-        return sendResponse(
-          false,
-          `Calcul tension système échoué : ${resTension.error}`,
-          null
-        );
+        throw new Error(`Calcul tension système échoué : ${resTension.error}`);
       }
       tension_DC_system_PV = resTension.tension;
       configuration_system = resTension.config;
@@ -361,12 +329,10 @@ export class PuissanceCretePVService {
     );
 
     if (!resClimatString.success || !resClimatPara.success) {
-      return sendResponse(
-        false,
+      throw new Error(
         `Erreur dans la répartition climatique : ${
           resClimatString.error || resClimatPara.error
-        }`,
-        null
+        }`
       );
     }
 
@@ -444,7 +410,7 @@ export class PuissanceCretePVService {
    * 4. Puissance DC max comparée à puissance STC
    *
    */
-  onduleur(
+  public onduleur(
     resultatsModules: ResultatModulesPV,
     panneauParametres: ParametresSTCPanneau,
     irradianceMax: number,
@@ -454,10 +420,8 @@ export class PuissanceCretePVService {
     puissanceDemarrage?: number | null
   ): { success: boolean; error: string | null; data: ResultatOnduleur | null } {
     if (!resultatsModules || !panneauParametres) {
-      return sendResponse(
-        false,
-        "Les résultats des modules et les paramètres des panneaux sont requis.",
-        null
+      throw new Error(
+        "Les résultats des modules et les paramètres des panneaux sont requis."
       );
     }
 
@@ -473,10 +437,8 @@ export class PuissanceCretePVService {
     } = resultatsModules;
 
     if (!_temperaturesCellule || !_modules || !puissancePVInstallee) {
-      return sendResponse(
-        false,
-        "Données de structure internes du champ PV manquantes ou invalides.",
-        null
+      throw new Error(
+        "Données de structure internes du champ PV manquantes ou invalides."
       );
     }
 
@@ -504,10 +466,8 @@ export class PuissanceCretePVService {
 
     // Validation des puissances calculées pour éviter les divisions par zéro
     if (puissanceChampsWcSTC <= 0) {
-      return sendResponse(
-        false,
-        "La puissance crête installée calculée (STC) doit être strictement supérieure à 0.",
-        null
+      throw new Error(
+        "La puissance crête installée calculée (STC) doit être strictement supérieure à 0."
       );
     }
 
