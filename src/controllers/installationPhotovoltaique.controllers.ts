@@ -40,7 +40,7 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Analyse la consommation électrique des équipements
    */
-  async analyserConsommation(
+  public async analyserConsommation(
     request: FastifyRequest<{
       Body: {
         equipements: Equipement[];
@@ -153,7 +153,7 @@ export class InstallationPhotovoltaiqueController {
    * Analyse des données météorologiques
    * Elles sont récupérées de PVGIS (voir parametreSite.services.ts)
    */
-  async analyserGeographie(
+  public async analyserGeographie(
     request: FastifyRequest<{ Body: { localisation: Localisation } }>,
     reply: FastifyReply
   ) {
@@ -217,7 +217,7 @@ export class InstallationPhotovoltaiqueController {
    * Obtention de la capacité du bloc batteries
    * Si besoin
    */
-  async etablirStockage(
+  public async etablirStockage(
     request: FastifyRequest<{
       Body: {
         technologieBattery: TechnologieBatterie;
@@ -287,7 +287,7 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Obtention de la puissance crète et des pertes
    */
-  async etablirPuissanceCrete(
+  public async etablirPuissanceCrete(
     request: FastifyRequest<{
       Body: {
         typeInstallation: TypeInstallationPourPertes;
@@ -409,7 +409,7 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Obtention de le nombres des panneaux photovoltaiques et leurs caractéristiques
    */
-  async dimensionnerModulesPV(
+  public async dimensionnerModulesPV(
     request: FastifyRequest<{
       Body: {
         parametresPanneau: ParametresSTCPanneau;
@@ -485,7 +485,7 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Obtention de le nombres de batteries et leurs caractéristiques
    */
-  async dimensionnerModulesBatteries(
+  public async dimensionnerModulesBatteries(
     request: FastifyRequest<{
       Body: {
         tensionSysteme_V: number;
@@ -547,7 +547,7 @@ export class InstallationPhotovoltaiqueController {
    * Vérification de l'onduleur proposé
    *Ou bien choix d'un onduleur adapté
    */
-  async dimensionnerOnduleur(
+  public async dimensionnerOnduleur(
     request: FastifyRequest<{
       Body: {
         resultats_modules: ResultatModulesPV;
@@ -618,7 +618,7 @@ export class InstallationPhotovoltaiqueController {
    * Dimensionner les cables
    * Choisir les protections
    */
-  async dimensionnerCablesEtProtections(
+  public async dimensionnerCablesEtProtections(
     request: FastifyRequest<{
       Body: {
         resultatModules: ResultatModulesPV;
@@ -652,7 +652,7 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Endpoint de vérification santé des services
    */
-  async sante(_request: FastifyRequest, reply: FastifyReply) {
+  public async sante(_request: FastifyRequest, reply: FastifyReply) {
     const data = {
       status: "opérationnel",
       services: {
@@ -679,7 +679,7 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Endpoint pour récupérer la liste des panneaux photovoltaiques
    */
-  async listePanneaux(request: FastifyRequest, reply: FastifyReply) {
+  public async listePanneaux(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
 
     try {
@@ -698,7 +698,7 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Endpoint pour récupérer la liste des batteries
    */
-  async listeBatteries(request: FastifyRequest, reply: FastifyReply) {
+  public async listeBatteries(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
 
     try {
@@ -717,7 +717,7 @@ export class InstallationPhotovoltaiqueController {
   /**
    * Endpoint pour récupérer la liste des panneaux et des batteries en meme temps
    */
-  async listes(request: FastifyRequest, reply: FastifyReply) {
+  public async listes(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
 
     try {
