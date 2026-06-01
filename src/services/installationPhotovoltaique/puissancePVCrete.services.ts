@@ -10,6 +10,7 @@ import type {
   ConfigurationTension,
   EvaluationRatioOnduleur,
 } from "../../types/installationPhotovoltaique.types.js";
+import { TypeInstallationPourPertesArray } from "../../types/installationPhotovoltaique.types.js";
 import {
   IRRADIANCE_STC,
   FACTEUR_SECURITE_COURANT,
@@ -33,9 +34,16 @@ export class PuissanceCretePVService {
    * par rapport à l'énergie théorique produite par les panneaux.
    */
   performanceRatio(typeInstallation: TypeInstallationPourPertes): {
-    pertesTotales: number; // En pourcentage (%)
+    success: boolean;
+    error: string | null;
+    data : {pertesTotales: number; // En pourcentage (%)
     PR: number; // Facteur compris entre 0 et 1
+    } | null;
+    
   } {
+    if (!typeInstallation || !TypeInstallationPourPertesArray.includes(typeInstallation)) {
+      return sendResponse(false, "Type d'installation non pris en charge", null)
+    }
     // Dictionnaire des pertes par défaut selon la configuration terrain
     const tablePertes: Record<TypeInstallationPourPertes, number> = {
       HAUTE_QUALITE: 10, // Conditions labo, nettoyage fréquent, câblage optimisé
@@ -46,16 +54,13 @@ export class PuissanceCretePVService {
       ANCIEN: 28, // Vieillissement prématuré des composants / dégradation induite
     };
 
-    // fallback si le type passé est invalide au runtime
-    const pertes_system = tablePertes[typeInstallation] ?? tablePertes.STANDARD;
 
-    // Performance Ratio (PR)
-    const performance_ratio = (100 - pertes_system) / 100;
+    const responseDatas = {
+      pertesTotales: tablePertes[typeInstallation] ?? tablePertes.STANDARD,
+      PR: Number(((100 - (tablePertes[typeInstallation] ?? tablePertes.STANDARD)) / 100).toFixed(2)), 
+    }
 
-    return {
-      pertesTotales: pertes_system,
-      PR: Number(performance_ratio.toFixed(2)), // Sécurité sur les arrondis de division JS
-    };
+    return sendResponse(true, null, responseDatas)
   }
 
   /**
