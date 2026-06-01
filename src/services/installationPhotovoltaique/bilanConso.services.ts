@@ -1,7 +1,5 @@
-import { success } from "zod/v4";
 import type { Equipement } from "../../types/installationPhotovoltaique.types.js";
 import { sendResponse } from "../../utils/handlers.utils.js";
-import { error } from "node:console";
 
 // Service de calcul du bilan de consommation électrique
 // Basé sur NFC 15-100 - Méthode des coefficients de simultanéité et d'appel
