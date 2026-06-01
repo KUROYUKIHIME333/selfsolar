@@ -15,8 +15,8 @@ export const controllerErrorHandler = (error: unknown, name: string) => {
 // Format standard des reponses
 export const sendResponse = (
   successValue: boolean,
-  errorValue: string | null | undefined,
-  dataValue: null | undefined | string | number | Record<string, unknown>
+  errorValue: string | null,
+  dataValue: any,
 ) => {
   return {
     success: successValue,
