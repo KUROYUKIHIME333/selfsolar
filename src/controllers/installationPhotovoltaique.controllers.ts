@@ -556,7 +556,10 @@ export class InstallationPhotovoltaiqueController {
       );
     }
   }
-
+  /**
+   * Dimensionner les cables
+   * Choisir les protections
+   */
   async dimensionnerCablesEtProtections(
     request: FastifyRequest<{
       Body: {
