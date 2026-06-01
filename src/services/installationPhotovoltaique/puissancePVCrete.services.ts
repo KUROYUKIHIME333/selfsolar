@@ -89,10 +89,6 @@ export class PuissanceCretePVService {
     data: { puissanceCrete: number } | null;
   } {
     // Validations des variables communes fondamentales pour eviter les divisions par zéro
-    const defaultPuissanceCrete = {
-      puissanceCrete: 0,
-    };
-
     if (typeof PSH !== "number" || isNaN(PSH) || PSH <= 0) {
       throw new Error(
         "Le PSH (Peak Sun Hours) doit être un nombre strictement supérieur à 0."
