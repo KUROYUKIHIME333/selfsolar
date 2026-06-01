@@ -20,6 +20,7 @@ import {
   temperatureCelluleMinMax,
   nombreParClimat,
 } from "../../utils/impactClimatSurModules.utils.js";
+import { sendResponse } from "../../utils/handlers.utils.js";
 
 /**
  * Service de dimensionnement de la puissance crête PV et des composants
@@ -71,23 +72,28 @@ export class PuissanceCretePVService {
     PR: number, // Facteur 0 à 1 (Performance Ratio)
     pompageCaracteristiques?: PompageSolaireCaracteristiques | undefined,
     rendementOnduleurMTTP?: number | undefined
-  ): { success: boolean; puissanceCrete: number; error?: string } {
+  ): {
+    success: boolean;
+    error: string | null;
+    data: { puissanceCrete: number } | null;
+  } {
     // Validations des variables communes fondamentales pour eviter les divisions par zéro
+    const defaultPuissanceCrete = {
+      puissanceCrete: 0,
+    };
     if (typeof PSH !== "number" || isNaN(PSH) || PSH <= 0) {
-      return {
-        success: false,
-        puissanceCrete: 0,
-        error:
-          "Le PSH (Peak Sun Hours) doit être un nombre strictement supérieur à 0.",
-      };
+      return sendResponse(
+        false,
+        "Le PSH (Peak Sun Hours) doit être un nombre strictement supérieur à 0.",
+        defaultPuissanceCrete
+      );
     }
     if (typeof PR !== "number" || isNaN(PR) || PR <= 0 || PR > 1) {
-      return {
-        success: false,
-        puissanceCrete: 0,
-        error:
-          "Le Performance Ratio (PR) doit être compris strictement entre 0 et 1.",
-      };
+      return sendResponse(
+        false,
+        "Le Performance Ratio (PR) doit être compris strictement entre 0 et 1.",
+        defaultPuissanceCrete
+      );
     }
 
     let Pc: number;
@@ -95,12 +101,11 @@ export class PuissanceCretePVService {
     // Pompage Solaire Direct
     if (pompageSolaire && !energieCrete) {
       if (!pompageCaracteristiques) {
-        return {
-          success: false,
-          puissanceCrete: 0,
-          error:
-            "Les caractéristiques hydrauliques de pompage sont obligatoires lorsque le mode pompage est activé.",
-        };
+        return sendResponse(
+          false,
+          "Les caractéristiques hydrauliques de pompage sont obligatoires lorsque le mode pompage est activé.",
+          defaultPuissanceCrete
+        );
       }
 
       const {
@@ -121,21 +126,19 @@ export class PuissanceCretePVService {
           rendementPompe,
         ].some((val) => typeof val !== "number" || isNaN(val) || val <= 0)
       ) {
-        return {
-          success: false,
-          puissanceCrete: 0,
-          error:
-            "Toutes les caractéristiques de pompage doivent être des nombres valides et supérieurs à 0.",
-        };
+        return sendResponse(
+          false,
+          "Toutes les caractéristiques de pompage doivent être des nombres valides et supérieurs à 0.",
+          defaultPuissanceCrete
+        );
       }
 
-      if (rendementPompe > 1) {
-        return {
-          success: false,
-          puissanceCrete: 0,
-          error:
-            "Le rendement de la pompe ne peut pas être supérieur à 1 (100%).",
-        };
+      if (rendementPompe > 1 || rendementPompe < 0) {
+        return sendResponse(
+          false,
+          "Le rendement de la pompe ne peut pas être entre 0 et 1. ",
+          defaultPuissanceCrete
+        );
       }
 
       // Calcul de l'énergie hydraulique requise par jour (en Wh/j)
@@ -147,11 +150,11 @@ export class PuissanceCretePVService {
       // Détermination du rendement de l'onduleur/variateur de pompage
       const rendementOnduleur = rendementOnduleurMTTP ?? 0.98;
       if (rendementOnduleur <= 0 || rendementOnduleur > 1) {
-        return {
-          success: false,
-          puissanceCrete: 0,
-          error: "Le rendement de l'onduleur doit être compris entre 0 et 1.",
-        };
+        return sendResponse(
+          false,
+          "Le rendement de l'onduleur doit être compris entre 0 et 1.",
+          defaultPuissanceCrete
+        );
       }
 
       // Ajustement empirique du PR : Pertes d'intermittence et couplage direct (-10%)
@@ -166,12 +169,11 @@ export class PuissanceCretePVService {
         isNaN(energieCrete) ||
         energieCrete <= 0
       ) {
-        return {
-          success: false,
-          puissanceCrete: 0,
-          error:
-            "L'énergie de charge (Wh/j) doit être un nombre strictement supérieur à 0.",
-        };
+        return sendResponse(
+          false,
+          "L'énergie de charge (Wh/j) doit être un nombre strictement supérieur à 0.",
+          defaultPuissanceCrete
+        );
       }
 
       // Formule classique : Pc = E_charge / (PSH * PR)
@@ -179,10 +181,10 @@ export class PuissanceCretePVService {
     }
 
     // Retour propre avec arrondi de sécurité supérieur
-    return {
-      success: true,
+    const returnDatas = {
       puissanceCrete: Math.ceil(Pc),
     };
+    return sendResponse(true, null, returnDatas);
   }
 
   /**
