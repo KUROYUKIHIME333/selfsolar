@@ -96,6 +96,7 @@ export class PuissanceCretePVService {
     const defaultPuissanceCrete = {
       puissanceCrete: 0,
     };
+
     if (typeof PSH !== "number" || isNaN(PSH) || PSH <= 0) {
       return sendResponse(
         false,
