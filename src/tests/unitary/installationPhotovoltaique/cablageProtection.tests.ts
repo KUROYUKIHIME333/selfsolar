@@ -58,14 +58,17 @@ describe("CablageEtProtectionsService", () => {
   // ============================================================
   describe("dimensionnerCablesDC", () => {
     it("doit retourner un résultat conforme à l'interface ResultatDimensionnementDC", () => {
-      const result = service.dimensionnerCablesDC(mockModules, mockPanneau);
+      const response = service.dimensionnerCablesDC(mockModules, mockPanneau);
+
+      expect(response.success).toBe(true);
+      const result = response.data!;
 
       // Structure du câble String
       expect(result.cableString).toBeDefined();
       expect(result.cableString.courantEmploi_Ib).toBeGreaterThan(0);
       expect(result.cableString.facteurCorrectionK).toBeGreaterThan(0);
       expect(result.cableString.sectionConseillee_mm2).toBeGreaterThan(0);
-      expect(result.cableString.chuteTension_Pourcent).toBeLessThanOrEqual(1.0); // Max 1% pour les strings
+      expect(result.cableString.chuteTension_Pourcent).toBeLessThanOrEqual(1.0);
 
       // Structure du câble Principal
       expect(result.cablePrincipal).toBeDefined();
@@ -73,11 +76,11 @@ describe("CablageEtProtectionsService", () => {
       expect(result.cablePrincipal.sectionConseillee_mm2).toBeGreaterThan(0);
       expect(result.cablePrincipal.chuteTension_Pourcent).toBeLessThanOrEqual(
         2.0
-      ); // Max 2% pour le principal
+      );
     });
 
     it("doit calculer correctement les courants d'emploi Ib (Isc * 1.25)", () => {
-      const result = service.dimensionnerCablesDC(
+      const response = service.dimensionnerCablesDC(
         mockModules,
         mockPanneau,
         15,
@@ -85,6 +88,9 @@ describe("CablageEtProtectionsService", () => {
         30,
         "cuivre"
       );
+
+      expect(response.success).toBe(true);
+      const result = response.data!;
 
       const courantStringAttendu = mockPanneau.courantCourtCircuit * 1.25;
       const courantPrincipalAttendu =
@@ -101,7 +107,7 @@ describe("CablageEtProtectionsService", () => {
     });
 
     it("doit dimensionner une section principale supérieure ou égale à la section string", () => {
-      const result = service.dimensionnerCablesDC(
+      const response = service.dimensionnerCablesDC(
         mockModules,
         mockPanneau,
         15,
@@ -110,6 +116,9 @@ describe("CablageEtProtectionsService", () => {
         "cuivre"
       );
 
+      expect(response.success).toBe(true);
+      const result = response.data!;
+
       expect(
         result.cablePrincipal.sectionConseillee_mm2
       ).toBeGreaterThanOrEqual(result.cableString.sectionConseillee_mm2);
@@ -117,10 +126,13 @@ describe("CablageEtProtectionsService", () => {
 
     it("ne doit pas imposer de fusibles si le nombre de strings est inférieur à 3", () => {
       const modulesDeuxStrings = { ...mockModules, stringsEnParallele: 2 };
-      const result = service.dimensionnerCablesDC(
+      const response = service.dimensionnerCablesDC(
         modulesDeuxStrings,
         mockPanneau
       );
+
+      expect(response.success).toBe(true);
+      const result = response.data!;
 
       expect(result.protections.fusiblesStringsRequis).toBe(false);
       expect(result.protections.calibreFusibleString_A).toBe(0);
@@ -128,10 +140,13 @@ describe("CablageEtProtectionsService", () => {
 
     it("doit exiger des fusibles et calculer le calibre si le nombre de strings ≥ 3", () => {
       const modulesTroisStrings = { ...mockModules, stringsEnParallele: 3 };
-      const result = service.dimensionnerCablesDC(
+      const response = service.dimensionnerCablesDC(
         modulesTroisStrings,
         mockPanneau
       );
+
+      expect(response.success).toBe(true);
+      const result = response.data!;
 
       const calibreAttenduMin = Math.ceil(
         1.4 * mockPanneau.courantCourtCircuit
@@ -141,11 +156,16 @@ describe("CablageEtProtectionsService", () => {
       expect(result.protections.calibreFusibleString_A).toBe(calibreAttenduMin);
     });
 
-    it("doit lever une erreur si les paramètres STC du panneau sont invalides", () => {
+    it("doit retourner un échec si les paramètres STC du panneau sont invalides", () => {
       const panneauInvalide = { ...mockPanneau, courantCourtCircuit: 0 };
-      expect(() =>
-        service.dimensionnerCablesDC(mockModules, panneauInvalide)
-      ).toThrow();
+      const response = service.dimensionnerCablesDC(
+        mockModules,
+        panneauInvalide
+      );
+
+      // Correction ici : Le service renvoie un objet d'erreur, il ne "throw" pas.
+      expect(response.success).toBe(false);
+      expect(response.error).toContain("Isc_stc doit être supérieur à 0");
     });
   });
 
@@ -154,26 +174,29 @@ describe("CablageEtProtectionsService", () => {
   // ============================================================
   describe("dimensionnerCablageAC", () => {
     it("doit correctement dimensionner un système monophasé", () => {
-      const result = service.dimensionnerCablageAC(
-        3000, // 3kW nominal
-        230, // 230V
-        false, // Monophasé
-        20, // 20 mètres
-        0.85, // cosPhi
-        35, // 35°C ambiant
+      const response = service.dimensionnerCablageAC(
+        3000,
+        230,
+        false,
+        20,
+        0.85,
+        35,
         "cuivre",
         "conduit_encastre"
       );
 
+      expect(response.success).toBe(true);
+      const result = response.data!;
+
       expect(result.section).toBeGreaterThan(0);
       expect(result.courantEmploi).toBeCloseTo(3000 / (230 * 0.85), 2);
       expect(result.protection).toBeGreaterThan(result.courantEmploi);
-      expect(result.chuteTension).toBeLessThanOrEqual(3.0); // Doit respecter la limite de 3%
+      expect(result.chuteTension).toBeLessThanOrEqual(3.0);
       expect(result.ddr.type).toBe("B");
     });
 
     it("doit correctement dimensionner un système triphasé (courant plus faible à puissance égale)", () => {
-      const resultMono = service.dimensionnerCablageAC(
+      const responseMono = service.dimensionnerCablageAC(
         10000,
         400,
         false,
@@ -182,7 +205,7 @@ describe("CablageEtProtectionsService", () => {
         30,
         "cuivre"
       );
-      const resultTri = service.dimensionnerCablageAC(
+      const responseTri = service.dimensionnerCablageAC(
         10000,
         400,
         true,
@@ -192,17 +215,37 @@ describe("CablageEtProtectionsService", () => {
         "cuivre"
       );
 
+      expect(responseMono.success).toBe(true);
+      expect(responseTri.success).toBe(true);
+
+      const resultMono = responseMono.data!;
+      const resultTri = responseTri.data!;
+
       expect(resultTri.courantEmploi).toBeLessThan(resultMono.courantEmploi);
       expect(resultTri.section).toBeLessThanOrEqual(resultMono.section);
     });
 
-    it("doit lever une erreur si la puissance de l'onduleur ou la tension réseau est nulle ou négative", () => {
-      expect(() => service.dimensionnerCablageAC(0, 230, false, 10)).toThrow(
+    it("doit retourner une erreur si la puissance de l'onduleur ou la tension réseau est nulle ou négative", () => {
+      // Correction ici : Changement du .toThrow() vers la vérification de l'objet de réponse
+      const responsePuissance = service.dimensionnerCablageAC(
+        0,
+        230,
+        false,
+        10
+      );
+      expect(responsePuissance.success).toBe(false);
+      expect(responsePuissance.error).toBe(
         "puissanceNominaleOnduleurWh invalide"
       );
-      expect(() =>
-        service.dimensionnerCablageAC(3000, -230, false, 10)
-      ).toThrow("tensionReseauV invalide");
+
+      const responseTension = service.dimensionnerCablageAC(
+        3000,
+        -230,
+        false,
+        10
+      );
+      expect(responseTension.success).toBe(false);
+      expect(responseTension.error).toBe("Tension réseau invalide");
     });
   });
 
@@ -214,10 +257,13 @@ describe("CablageEtProtectionsService", () => {
       const protectionAmont = { calibre: 32, type: "disjoncteur" };
       const protectionAval = { calibre: 16, type: "fusible" };
 
-      const result = service.verifierSelectivite(
+      const response = service.verifierSelectivite(
         protectionAmont,
         protectionAval
       );
+
+      expect(response.success).toBe(true);
+      const result = response.data!;
 
       expect(result.selectif).toBe(true);
       expect(result.typeSelectivite).toBe("ampèremétrique");
@@ -239,10 +285,13 @@ describe("CablageEtProtectionsService", () => {
         temporisation: 0,
       };
 
-      const result = service.verifierSelectivite(
+      const response = service.verifierSelectivite(
         protectionAmont,
         protectionAval
       );
+
+      expect(response.success).toBe(true);
+      const result = response.data!;
 
       expect(result.selectif).toBe(true);
       expect(result.typeSelectivite).toBe("chronométrique");
@@ -253,12 +302,15 @@ describe("CablageEtProtectionsService", () => {
 
     it("doit rejeter la sélectivité si le ratio est insuffisant et sans décalage temporel", () => {
       const protectionAmont = { calibre: 20, type: "disjoncteur" };
-      const protectionAval = { calibre: 16, type: "disjoncteur" }; // Ratio = 1.25 (< 1.6)
+      const protectionAval = { calibre: 16, type: "disjoncteur" };
 
-      const result = service.verifierSelectivite(
+      const response = service.verifierSelectivite(
         protectionAmont,
         protectionAval
       );
+
+      expect(response.success).toBe(true);
+      const result = response.data!;
 
       expect(result.selectif).toBe(false);
       expect(result.typeSelectivite).toBe("aucune");
@@ -268,11 +320,16 @@ describe("CablageEtProtectionsService", () => {
     });
 
     it("doit gérer les calibres invalides de manière robuste", () => {
-      const result = service.verifierSelectivite(
+      const response = service.verifierSelectivite(
         { calibre: 0, type: "disjoncteur" },
         { calibre: 16, type: "fusible" }
       );
-      expect(result.commentaire).toBe("Calibres invalides");
+
+      // Correction ici : Le service renvoie un code success: false, le corps du message est dans response.error
+      expect(response.success).toBe(false);
+      expect(response.error).toBe(
+        "Les calibres de protection doivent être supérieurs à 0."
+      );
     });
   });
 });
