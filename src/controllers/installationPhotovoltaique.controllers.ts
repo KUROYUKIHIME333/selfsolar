@@ -315,7 +315,7 @@ export class InstallationPhotovoltaiqueController {
 
       const {
         success: PcSuccess,
-        puissanceCrete: PcValue,
+        data: PcValue,
         error: PcError,
       } = puissanceCretePVService.puissanceCretePV(
         pompageSolaire,
@@ -333,7 +333,7 @@ export class InstallationPhotovoltaiqueController {
       return sendSuccess(
         reply,
         {
-          Pc: PcValue,
+          Pc: PcValue?.puissanceCrete,
           pertesTotales: pertesTotales,
         },
         200
