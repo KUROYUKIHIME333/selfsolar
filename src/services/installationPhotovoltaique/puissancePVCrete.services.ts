@@ -414,13 +414,9 @@ export class PuissanceCretePVService {
     puissanceChargeContinue: number,
     onduleurCandidat?: ParametresOnduleur | null,
     puissanceDemarrage?: number | null
-  ): { success: boolean; data?: ResultatOnduleur; error?: string } {
+  ): { success: boolean; error: string | null ; data: ResultatOnduleur | null} {
     if (!resultatsModules || !panneauParametres) {
-      return {
-        success: false,
-        error:
-          "Les résultats des modules et les paramètres des panneaux sont requis.",
-      };
+      return sendResponse(false, "Les résultats des modules et les paramètres des panneaux sont requis.", null);
     }
 
     const {
@@ -435,11 +431,7 @@ export class PuissanceCretePVService {
     } = resultatsModules;
 
     if (!_temperaturesCellule || !_modules || !puissancePVInstallee) {
-      return {
-        success: false,
-        error:
-          "Données de structure internes du champ PV manquantes ou invalides.",
-      };
+      return sendResponse(false, "Données de structure internes du champ PV manquantes ou invalides.", null);
     }
 
     const { tCellMin, tCellMax } = _temperaturesCellule;
@@ -466,11 +458,7 @@ export class PuissanceCretePVService {
 
     // Validation des puissances calculées pour éviter les divisions par zéro
     if (puissanceChampsWcSTC <= 0) {
-      return {
-        success: false,
-        error:
-          "La puissance crête installée calculée (STC) doit être strictement supérieure à 0.",
-      };
+      return sendResponse(false, "La puissance crête installée calculée (STC) doit être strictement supérieure à 0.", null);
     }
 
     // Bornes de dimensionnement théorique
@@ -641,9 +629,7 @@ export class PuissanceCretePVService {
       }
     }
 
-    return {
-      success: true,
-      data: {
+    const responseDatas = {
         appareil: "onduleur",
         typeSysteme,
         rappelVocStringFroid: vocStringFroid || null,
@@ -674,8 +660,8 @@ export class PuissanceCretePVService {
             : null,
         avertissements,
         erreurs,
-      },
-    };
+      };
+    return sendResponse(true, null, responseDatas);
   }
 }
 
