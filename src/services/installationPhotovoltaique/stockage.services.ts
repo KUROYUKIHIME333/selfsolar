@@ -184,7 +184,7 @@ export class StockageService {
     });
 
     if (errorValidation) {
-      return { success: false, error: errorValidation, data: null };
+      return sendResponse(false, errorValidation, null);
     }
 
     const batteriesParString = Math.round(tensionSystem / tensionBatterie);
@@ -200,18 +200,15 @@ export class StockageService {
 
     const stringsEnParallele = Math.ceil(capaciteTotal / capaciteBatterie);
 
-    return {
-      success: true,
-      error: null,
-      data: {
+    const returnDatas = {
         appareil: "Batteries",
         nombre: batteriesParString * stringsEnParallele,
         disposition: {
           batteriesParString: batteriesParString,
           modulesEnParallele: stringsEnParallele,
         },
-      },
-    };
+      };
+    return sendResponse(true, null, returnDatas);
   }
 
   /**
