@@ -3,6 +3,7 @@ import type {
   ResultatStockage,
 } from "../../types/installationPhotovoltaique.types.js";
 import { CONFIG_TECHNOLOGIES } from "../../utils/constantesPhysiques.utils.js";
+import { sendResponse } from "../../utils/handlers.utils.js";
 
 // Spécifications de la technologie conformes IEC 62619 (Li-ion), IEC 60896 (plomb) et p.6 du guide
 
@@ -85,16 +86,12 @@ export class StockageService {
     });
 
     if (errorValidation) {
-      return { success: false, error: errorValidation, data: null };
+      return sendResponse(false, errorValidation, null);
     }
 
     const config = CONFIG_TECHNOLOGIES[technologie];
     if (!config) {
-      return {
-        success: false,
-        error: `Technologie batterie non supportée: ${technologie}`,
-        data: null,
-      };
+      return sendResponse(false, `Technologie batterie non supportée: ${technologie}`, null);
     }
 
     const { profondeurDecharge, cyclesMin, cyclesMax, tempMin, tempMax } =
@@ -136,10 +133,7 @@ export class StockageService {
     // Conversion Ah
     const capaciteNominaleAh = capaciteNominaleWh / tensionSysteme;
 
-    return {
-      success: true,
-      error: null,
-      data: {
+    const returnDatas = {
         appareil: "Batteries",
         typeBatterie: technologie,
         DoDMax: profondeurDecharge,
@@ -158,8 +152,8 @@ export class StockageService {
         },
         autonomieJours: autonomie,
         temperatureDeratingApplique: deratingApplique,
-      },
-    };
+      };
+    return sendResponse(true, null, returnDatas);
   }
 
   /**
