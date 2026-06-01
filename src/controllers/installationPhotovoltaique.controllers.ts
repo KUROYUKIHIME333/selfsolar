@@ -75,19 +75,59 @@ export class InstallationPhotovoltaiqueController {
         );
       }
 
-      const energieJournaliereTotal =
-        bilanConsommationService.energieTotal(equipements);
+      const {
+        success: successEc,
+        error: errorEc,
+        data: energieJournaliereTotal,
+      } = bilanConsommationService.energieTotal(equipements);
 
-      const puissanceAppeleeMax = bilanConsommationService.puissanceAppelee(
+      const {
+        success: successPam,
+        error: errorPam,
+        data: puissanceAppeleeMax,
+      } = bilanConsommationService.puissanceAppelee(
         equipements,
         facteurFoisonnementGlobal ?? 0.8
       );
 
-      const puissanceInstalleeTotal =
-        bilanConsommationService.puissanceInstaleeAC(equipements);
+      const {
+        success: successPia,
+        error: errorPia,
+        data: puissanceInstalleeTotal,
+      } = bilanConsommationService.puissanceInstaleeAC(equipements);
+      bilanConsommationService.puissanceInstaleeAC(equipements);
 
-      const puissancePicDemarrage =
-        bilanConsommationService.puissancePic(equipements);
+      const {
+        success: successPp,
+        error: errorPp,
+        data: puissancePicDemarrage,
+      } = bilanConsommationService.puissancePic(equipements);
+      bilanConsommationService.puissancePic(equipements);
+
+      if (
+        !successEc ||
+        !successPam ||
+        !successPia ||
+        !successPp ||
+        errorEc ||
+        errorPam ||
+        errorPia ||
+        errorPp ||
+        !energieJournaliereTotal ||
+        !puissanceAppeleeMax ||
+        !puissanceInstalleeTotal ||
+        !puissancePicDemarrage
+      ) {
+        return sendError(
+          reply,
+          errorEc ||
+            errorPam ||
+            errorPia ||
+            errorPp ||
+            "Une erreur est survenue lors de l'analyse de la consommation",
+          400
+        );
+      }
 
       return sendSuccess(
         reply,
