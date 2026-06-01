@@ -5,7 +5,7 @@ import type { Equipement } from "../../../types/installationPhotovoltaique.types
 describe("BilanConsommationService", () => {
   const service = new BilanConsommationService();
 
-  // Messages d'erreur attendus définis dans ton service
+  // Messages d'erreur attendus définis dans le service
   const errorInvalide = "Liste des equipements invalide";
   const errorVide = "Liste des equipements vide";
 
@@ -16,7 +16,7 @@ describe("BilanConsommationService", () => {
     { nom: "Frigo", P: 200, h: 24, k: 5 }, // 4800 Wh, Pic moteur x5
   ];
 
-  // --- NOUVELLE SUITE : Validation stricte globale ---
+  // --- Validation stricte globale ---
   describe("Validation globale des entrées (validationEquipements)", () => {
     it("doit lever une exception si la liste d'équipements est vide", () => {
       expect(() => service.energieTotal([])).toThrowError(errorVide);
@@ -48,8 +48,9 @@ describe("BilanConsommationService", () => {
   // --- Tests pour energieTotal ---
   describe("energieTotal", () => {
     it("doit calculer l'énergie totale journalière nominale correcte", () => {
-      const total = service.energieTotal(mockEquipements);
-      expect(total).toBe(600 + 600 + 4800); // 6000 Wh/j
+      const result = service.energieTotal(mockEquipements);
+      expect(result.success).toBe(true);
+      expect(result.data).toBe(600 + 600 + 4800); // 6000 Wh/j
     });
 
     it("doit ignorer les équipements avec une puissance ou une durée négative ou nulle", () => {
@@ -59,7 +60,8 @@ describe("BilanConsommationService", () => {
         { nom: "h Négative", P: 100, h: -2, k: 1 }, // traité comme h=0 -> 0 Wh
         { nom: "Zéro", P: 0, h: 0, k: 1 }, // 0 Wh
       ];
-      expect(service.energieTotal(badEquipements)).toBe(50);
+      const result = service.energieTotal(badEquipements);
+      expect(result.data).toBe(50);
     });
 
     it("doit ignorer proprement les types incorrects reçus au runtime", () => {
@@ -67,7 +69,8 @@ describe("BilanConsommationService", () => {
         { nom: "Fake 1", P: "100" as unknown as number, h: 2, k: 1 }, // P n'est pas un number -> P=0
         { nom: "Fake 2", P: 100, h: "2" as unknown as number, k: 1 }, // h n'est pas un number -> h=0
       ];
-      expect(service.energieTotal(badTypes)).toBe(0);
+      const result = service.energieTotal(badTypes);
+      expect(result.data).toBe(0);
     });
   });
 
@@ -76,21 +79,23 @@ describe("BilanConsommationService", () => {
     // Somme nominale P = 100 + 150 + 200 = 450W
 
     it("doit appliquer kf = 1 si kf est null, undefined ou invalide", () => {
-      expect(service.puissanceAppelee(mockEquipements, null)).toBe(450);
-      expect(service.puissanceAppelee(mockEquipements, undefined)).toBe(450);
-      expect(service.puissanceAppelee(mockEquipements, -0.5)).toBe(450);
-      expect(service.puissanceAppelee(mockEquipements, 1.5)).toBe(450);
+      expect(service.puissanceAppelee(mockEquipements, null).data).toBe(450);
+      expect(service.puissanceAppelee(mockEquipements, undefined).data).toBe(
+        450
+      );
+      expect(service.puissanceAppelee(mockEquipements, -0.5).data).toBe(450);
+      expect(service.puissanceAppelee(mockEquipements, 1.5).data).toBe(450);
     });
 
     it("doit appliquer correctement un facteur kf valide (ex: 0.8 selon NFC 15-100)", () => {
       // 450 * 0.8 = 360W
       const result = service.puissanceAppelee(mockEquipements, 0.8);
-      expect(result).toBe(360);
+      expect(result.data).toBe(360);
     });
 
     it("doit appliquer un facteur kf limite à 1.0", () => {
       const result = service.puissanceAppelee(mockEquipements, 1.0);
-      expect(result).toBe(450);
+      expect(result.data).toBe(450);
     });
   });
 
@@ -98,7 +103,7 @@ describe("BilanConsommationService", () => {
   describe("puissanceInstaleeAC", () => {
     it("doit sommer simplement toutes les puissances nominales valides", () => {
       const result = service.puissanceInstaleeAC(mockEquipements);
-      expect(result).toBe(450); // 100 + 150 + 200
+      expect(result.data).toBe(450); // 100 + 150 + 200
     });
 
     it("doit exclure les puissances négatives du calcul global", () => {
@@ -106,7 +111,8 @@ describe("BilanConsommationService", () => {
         { nom: "A", P: 500, h: 2 },
         { nom: "B", P: -500, h: 2 }, // traité comme P=0
       ];
-      expect(service.puissanceInstaleeAC(mixed)).toBe(500);
+      const result = service.puissanceInstaleeAC(mixed);
+      expect(result.data).toBe(500);
     });
   });
 
@@ -115,7 +121,7 @@ describe("BilanConsommationService", () => {
     it("doit calculer le pic total en multipliant chaque puissance par son coefficient de démarrage (k)", () => {
       // (100 * 1) + (150 * 1) + (200 * 5) = 100 + 150 + 1000 = 1250W
       const result = service.puissancePic(mockEquipements);
-      expect(result).toBe(1250);
+      expect(result.data).toBe(1250);
     });
 
     it("doit appliquer k = 1 par défaut si k est absent, null ou inférieur à 1", () => {
@@ -124,7 +130,8 @@ describe("BilanConsommationService", () => {
         { nom: "PC Portable", P: 90, h: 8, k: 0.5 }, // k < 1 -> k=1 -> 90W
         { nom: "Clim", P: 1500, h: 6, k: null as unknown as number }, // k invalide -> k=1 -> 1500W
       ];
-      expect(service.puissancePic(eqChargesChocs)).toBe(1000 + 90 + 1500); // 2590W
+      const result = service.puissancePic(eqChargesChocs);
+      expect(result.data).toBe(1000 + 90 + 1500); // 2590W
     });
   });
 
@@ -137,13 +144,13 @@ describe("BilanConsommationService", () => {
       ];
 
       // Énergie totale brute attendue : 13.995 + 2.877 = 16.872 -> Arrondi à 16.87
-      expect(service.energieTotal(eqFlottants)).toBe(16.87);
+      expect(service.energieTotal(eqFlottants).data).toBe(16.87);
 
       // Puissance Pic brute attendue : 11.196 + 4.521 = 15.717 -> Arrondi à 15.72
-      expect(service.puissancePic(eqFlottants)).toBe(15.72);
+      expect(service.puissancePic(eqFlottants).data).toBe(15.72);
 
       // Puissance installée brute attendue : 9.33 + 4.11 = 13.44
-      expect(service.puissanceInstaleeAC(eqFlottants)).toBe(13.44);
+      expect(service.puissanceInstaleeAC(eqFlottants).data).toBe(13.44);
     });
 
     it("ne doit pas altérer par mutation le tableau d'équipements initial (Immuabilité)", () => {
@@ -164,9 +171,9 @@ describe("BilanConsommationService", () => {
         { nom: "Éclairage Public Zone", P: 8500, h: 12, k: 1 }, // P_pic = 8500W,   E = 102000Wh
       ];
 
-      expect(service.energieTotal(miniReseauGoma)).toBe(1332000); // 1.332 MWh/j
-      expect(service.puissanceInstaleeAC(miniReseauGoma)).toBe(68500); // 68.5 kW
-      expect(service.puissancePic(miniReseauGoma)).toBe(361000); // 361 kW de pointe transitoire
+      expect(service.energieTotal(miniReseauGoma).data).toBe(1332000); // 1.332 MWh/j
+      expect(service.puissanceInstaleeAC(miniReseauGoma).data).toBe(68500); // 68.5 kW
+      expect(service.puissancePic(miniReseauGoma).data).toBe(361000); // 361 kW de pointe transitoire
     });
   });
 });
