@@ -302,8 +302,26 @@ export class InstallationPhotovoltaiqueController {
         );
       }
 
-      const { pertesTotales, PR } =
-        puissanceCretePVService.performanceRatio(typeInstallation);
+      const {
+        success: PrSuccess,
+        error: PrError,
+        data: PrData,
+      } = puissanceCretePVService.performanceRatio(typeInstallation);
+
+      if (
+        !PrData ||
+        !PrSuccess ||
+        PrError ||
+        typeof PrData?.PR !== "number" ||
+        typeof PrData?.pertesTotales !== "number"
+      ) {
+        return sendError(
+          reply,
+          PrError ||
+            "Un probleme est survenu pour avoir le Ratio de perfornance",
+          400
+        );
+      }
 
       let Ec = energieCrete_Wh;
 
@@ -321,7 +339,7 @@ export class InstallationPhotovoltaiqueController {
         pompageSolaire,
         Ec,
         PSH_heuresParJour,
-        PR,
+        PrData.PR,
         pompageCaracteristiques,
         rendementOnduleurMPPT
       );
@@ -334,7 +352,7 @@ export class InstallationPhotovoltaiqueController {
         reply,
         {
           Pc: PcValue?.puissanceCrete,
-          pertesTotales: pertesTotales,
+          pertesTotales: PrData.pertesTotales,
         },
         200
       );
