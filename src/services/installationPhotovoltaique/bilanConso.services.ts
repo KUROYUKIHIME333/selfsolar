@@ -2,22 +2,13 @@ import type { Equipement } from "../../types/installationPhotovoltaique.types.js
 
 // Service de calcul du bilan de consommation électrique
 // Basé sur NFC 15-100 - Méthode des coefficients de simultanéité et d'appel
-
-const validationEquipements = (equipements: Equipement[]) => {
-  if (!Array.isArray(equipements)) {
-    throw new Error("Liste des equipements invalide");
-  }
-  if (equipements.length === 0) {
-    throw new Error("Liste des equipements vide");
-  }
-};
 export class BilanConsommationService {
   /**
    * Calcule l'énergie journalière totale consommée
    * Formule: E_charge [Wh/j] = Σ (P_i × h_i)
    */
-  energieTotal(equipements: Equipement[]): number {
-    validationEquipements(equipements);
+  public energieTotal(equipements: Equipement[]): number {
+    this.validationEquipements(equipements);
 
     const total = equipements.reduce((acc, eq) => {
       const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
@@ -37,11 +28,11 @@ export class BilanConsommationService {
    * @param kf Facteur de foisonnement global (0.6-1.0, défaut 0.8 selon NFC 15-100)
    * @returns Puissance appelée en W
    */
-  puissanceAppelee(
+  public puissanceAppelee(
     equipements: Equipement[],
     kf: number | null | undefined
   ): number {
-    validationEquipements(equipements);
+    this.validationEquipements(equipements);
 
     const P_crete_charge = equipements.reduce((acc, eq) => {
       const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
@@ -63,8 +54,8 @@ export class BilanConsommationService {
    * @param equipements Liste des équipements
    * @returns Puissance totale installée en W
    */
-  puissanceInstaleeAC(equipements: Equipement[]): number {
-    validationEquipements(equipements);
+  public puissanceInstaleeAC(equipements: Equipement[]): number {
+    this.validationEquipements(equipements);
 
     const P_installee = equipements.reduce((acc, eq) => {
       const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
@@ -80,8 +71,8 @@ export class BilanConsommationService {
    * @param equipements Liste des équipements avec leur facteur de démarrage individuel k
    * @returns Puissance de pointe maximale en W (dimensionnement transitoire de l'onduleur)
    */
-  puissancePic(equipements: Equipement[]): number {
-    validationEquipements(equipements);
+  public puissancePic(equipements: Equipement[]): number {
+    this.validationEquipements(equipements);
 
     const P_pic = equipements.reduce((acc, eq) => {
       const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
@@ -92,6 +83,15 @@ export class BilanConsommationService {
     }, 0);
 
     return Number(P_pic.toFixed(2)); // en W
+  }
+
+  private validationEquipements(equipements: Equipement[]) {
+    if (!Array.isArray(equipements)) {
+      throw new Error("Liste des equipements invalide");
+    }
+    if (equipements.length === 0) {
+      throw new Error("Liste des equipements vide");
+    }
   }
 }
 
