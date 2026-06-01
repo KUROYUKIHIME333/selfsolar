@@ -91,7 +91,11 @@ export class StockageService {
 
     const config = CONFIG_TECHNOLOGIES[technologie];
     if (!config) {
-      return sendResponse(false, `Technologie batterie non supportée: ${technologie}`, null);
+      return sendResponse(
+        false,
+        `Technologie batterie non supportée: ${technologie}`,
+        null
+      );
     }
 
     const { profondeurDecharge, cyclesMin, cyclesMax, tempMin, tempMax } =
@@ -134,25 +138,25 @@ export class StockageService {
     const capaciteNominaleAh = capaciteNominaleWh / tensionSysteme;
 
     const returnDatas = {
-        appareil: "Batteries",
-        typeBatterie: technologie,
-        DoDMax: profondeurDecharge,
-        cyclesDoDMax: {
-          min: cyclesMin,
-          max: cyclesMax,
-        },
-        plageTemperatureFonctionnement: {
-          min: tempMin,
-          max: tempMax,
-        },
-        capacite: {
-          utile_Wh: Math.round(capaciteUtile),
-          nominale_Wh: Math.round(capaciteNominaleWh),
-          nominale_Ah: Math.round(capaciteNominaleAh * 10) / 10,
-        },
-        autonomieJours: autonomie,
-        temperatureDeratingApplique: deratingApplique,
-      };
+      appareil: "Batteries",
+      typeBatterie: technologie,
+      DoDMax: profondeurDecharge,
+      cyclesDoDMax: {
+        min: cyclesMin,
+        max: cyclesMax,
+      },
+      plageTemperatureFonctionnement: {
+        min: tempMin,
+        max: tempMax,
+      },
+      capacite: {
+        utile_Wh: Math.round(capaciteUtile),
+        nominale_Wh: Math.round(capaciteNominaleWh),
+        nominale_Ah: Math.round(capaciteNominaleAh * 10) / 10,
+      },
+      autonomieJours: autonomie,
+      temperatureDeratingApplique: deratingApplique,
+    };
     return sendResponse(true, null, returnDatas);
   }
 
@@ -201,13 +205,13 @@ export class StockageService {
     const stringsEnParallele = Math.ceil(capaciteTotal / capaciteBatterie);
 
     const returnDatas = {
-        appareil: "Batteries",
-        nombre: batteriesParString * stringsEnParallele,
-        disposition: {
-          batteriesParString: batteriesParString,
-          modulesEnParallele: stringsEnParallele,
-        },
-      };
+      appareil: "Batteries",
+      nombre: batteriesParString * stringsEnParallele,
+      disposition: {
+        batteriesParString: batteriesParString,
+        modulesEnParallele: stringsEnParallele,
+      },
+    };
     return sendResponse(true, null, returnDatas);
   }
 
@@ -237,7 +241,7 @@ export class StockageService {
     });
 
     if (errorValidation) {
-      return { success: false, error: errorValidation, data: null };
+      return sendResponse(false, errorValidation, null);
     }
 
     // Courant charge max (entrée PV)
@@ -251,16 +255,13 @@ export class StockageService {
     const iBMSRecommande =
       Math.max(courantChargeMax, courantDechargeMax) * 1.25;
 
-    return {
-      success: true,
-      error: null,
-      data: {
-        appareil: "Battery Management System",
-        IChargeMax: Math.round(courantChargeMax * 100) / 100,
-        IDechargeMax: Math.round(courantDechargeMax * 100) / 100,
-        IBMSRecommande: Math.ceil(iBMSRecommande / 10) * 10, // Arrondi à la dizaine supérieure
-      },
+    const returnDatas = {
+      appareil: "Battery Management System",
+      IChargeMax: Math.round(courantChargeMax * 100) / 100,
+      IDechargeMax: Math.round(courantDechargeMax * 100) / 100,
+      IBMSRecommande: Math.ceil(iBMSRecommande / 10) * 10, // Arrondi à la dizaine supérieure
     };
+    return sendResponse(true, null, returnDatas);
   }
 }
 
