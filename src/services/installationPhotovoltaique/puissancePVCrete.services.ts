@@ -69,7 +69,6 @@ export class PuissanceCretePVService {
    * Standard: Pc = E_charge / (PSH × PR)
    * Pompage: Pc = E_hydraulique / (PSH × η_onduleur × PR) (p.4-5 guide)
    */
-
   puissanceCretePV(
     pompageSolaire: boolean,
     energieCrete: number | undefined, // Wh/j (Ignoré si pompageSolaire = true)
@@ -206,17 +205,14 @@ export class PuissanceCretePVService {
     irradianceMax: number,
     tensionSystem?: number,
     configurationSystem?: ConfigurationTension
-  ): { success: boolean; data?: ResultatModulesPV; error?: string } {
+  ): { success: boolean;  error: string | null; data: ResultatModulesPV | null } {
     if (
       !panneauParametres ||
       typeof puissanceCretePV !== "number" ||
       puissanceCretePV <= 0 ||
       isNaN(puissanceCretePV)
     ) {
-      return {
-        success: false,
-        error: "Paramètres de panneaux ou puissance crête cible invalides.",
-      };
+      return sendResponse(false, "Paramètres de panneaux ou puissance crête cible invalides.", null)
     }
 
     const {
@@ -237,11 +233,7 @@ export class PuissanceCretePVService {
         (val) => typeof val !== "number" || val <= 0 || isNaN(val)
       )
     ) {
-      return {
-        success: false,
-        error:
-          "Les caractéristiques électriques STC du panneau doivent être des nombres strictement positifs.",
-      };
+      return sendResponse(false, "Les caractéristiques électriques STC du panneau doivent être des nombres strictement positifs.",null);
     }
 
     const noct_module = noct ?? 45;
@@ -254,10 +246,7 @@ export class PuissanceCretePVService {
         noct_module
       );
     } catch (err: any) {
-      return {
-        success: false,
-        error: `Erreur calcul température cellule : ${err.message}`,
-      };
+      return sendResponse(false, `Erreur calcul température cellule : ${err.message}`, null);
     }
 
     // Normalisation et sécurisation des coefficients thermiques
@@ -273,11 +262,7 @@ export class PuissanceCretePVService {
     const vmpp_max = tensionMPP * (1 + pratiqueBeta * (t_cell.Tmin - T_STC)); // Vmpp max (à froid)
 
     if (tension_panneau_min <= 0 || tension_panneau_max <= 0) {
-      return {
-        success: false,
-        error:
-          "Les tensions corrigées du panneau sont aberrantes (inférieures ou égales à 0V). Vérifiez les températures.",
-      };
+      return sendResponse(false, "Les tensions corrigées du panneau sont aberrantes (inférieures ou égales à 0V). Vérifiez les températures.", null);
     }
 
     // Puissances corrigées en température
@@ -300,10 +285,7 @@ export class PuissanceCretePVService {
     } else {
       const resTension = tensionSystemePV(puissanceCretePV);
       if (!resTension.success) {
-        return {
-          success: false,
-          error: `Calcul tension système échoué : ${resTension.error}`,
-        };
+        return sendResponse(false, `Calcul tension système échoué : ${resTension.error}`, null);
       }
       tension_DC_system_PV = resTension.tension;
       configuration_system = resTension.config;
@@ -343,21 +325,16 @@ export class PuissanceCretePVService {
     );
 
     if (!resClimatString.success || !resClimatPara.success) {
-      return {
-        success: false,
-        error: `Erreur dans la répartition climatique : ${
+      return sendResponse(false, `Erreur dans la répartition climatique : ${
           resClimatString.error || resClimatPara.error
-        }`,
-      };
+        }`, null);
     }
 
     const N_panneaux_par_string = resClimatString.nombrePanneaux;
     const N_string_en_parallele = resClimatPara.nombrePanneaux || 1; // Sécurité : au moins 1 string en parallèle
 
     // Formatage du résultat final propre
-    return {
-      success: true,
-      data: {
+    const responseDatas = {
         appareil: "panneaux photovoltaiques",
         configuration: configuration_system,
         panneauxParString: N_panneaux_par_string,
@@ -414,8 +391,8 @@ export class PuissanceCretePVService {
           vmppModuleFroid: Number(vmpp_max.toFixed(2)),
           vocModuleFroid: Number(tension_panneau_max.toFixed(2)),
         },
-      },
-    };
+      };
+    return sendResponse(true, null, responseDatas);
   }
 
   /**
