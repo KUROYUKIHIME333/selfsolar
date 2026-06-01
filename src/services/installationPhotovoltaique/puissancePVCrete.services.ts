@@ -36,13 +36,20 @@ export class PuissanceCretePVService {
   performanceRatio(typeInstallation: TypeInstallationPourPertes): {
     success: boolean;
     error: string | null;
-    data : {pertesTotales: number; // En pourcentage (%)
-    PR: number; // Facteur compris entre 0 et 1
+    data: {
+      pertesTotales: number; // En pourcentage (%)
+      PR: number; // Facteur compris entre 0 et 1
     } | null;
-    
   } {
-    if (!typeInstallation || !TypeInstallationPourPertesArray.includes(typeInstallation)) {
-      return sendResponse(false, "Type d'installation non pris en charge", null)
+    if (
+      !typeInstallation ||
+      !TypeInstallationPourPertesArray.includes(typeInstallation)
+    ) {
+      return sendResponse(
+        false,
+        "Type d'installation non pris en charge",
+        null
+      );
     }
     // Dictionnaire des pertes par défaut selon la configuration terrain
     const tablePertes: Record<TypeInstallationPourPertes, number> = {
@@ -54,13 +61,17 @@ export class PuissanceCretePVService {
       ANCIEN: 28, // Vieillissement prématuré des composants / dégradation induite
     };
 
-
     const responseDatas = {
       pertesTotales: tablePertes[typeInstallation] ?? tablePertes.STANDARD,
-      PR: Number(((100 - (tablePertes[typeInstallation] ?? tablePertes.STANDARD)) / 100).toFixed(2)), 
-    }
+      PR: Number(
+        (
+          (100 - (tablePertes[typeInstallation] ?? tablePertes.STANDARD)) /
+          100
+        ).toFixed(2)
+      ),
+    };
 
-    return sendResponse(true, null, responseDatas)
+    return sendResponse(true, null, responseDatas);
   }
 
   /**
@@ -205,14 +216,22 @@ export class PuissanceCretePVService {
     irradianceMax: number,
     tensionSystem?: number,
     configurationSystem?: ConfigurationTension
-  ): { success: boolean;  error: string | null; data: ResultatModulesPV | null } {
+  ): {
+    success: boolean;
+    error: string | null;
+    data: ResultatModulesPV | null;
+  } {
     if (
       !panneauParametres ||
       typeof puissanceCretePV !== "number" ||
       puissanceCretePV <= 0 ||
       isNaN(puissanceCretePV)
     ) {
-      return sendResponse(false, "Paramètres de panneaux ou puissance crête cible invalides.", null)
+      return sendResponse(
+        false,
+        "Paramètres de panneaux ou puissance crête cible invalides.",
+        null
+      );
     }
 
     const {
@@ -233,7 +252,11 @@ export class PuissanceCretePVService {
         (val) => typeof val !== "number" || val <= 0 || isNaN(val)
       )
     ) {
-      return sendResponse(false, "Les caractéristiques électriques STC du panneau doivent être des nombres strictement positifs.",null);
+      return sendResponse(
+        false,
+        "Les caractéristiques électriques STC du panneau doivent être des nombres strictement positifs.",
+        null
+      );
     }
 
     const noct_module = noct ?? 45;
@@ -246,7 +269,11 @@ export class PuissanceCretePVService {
         noct_module
       );
     } catch (err: any) {
-      return sendResponse(false, `Erreur calcul température cellule : ${err.message}`, null);
+      return sendResponse(
+        false,
+        `Erreur calcul température cellule : ${err.message}`,
+        null
+      );
     }
 
     // Normalisation et sécurisation des coefficients thermiques
@@ -262,7 +289,11 @@ export class PuissanceCretePVService {
     const vmpp_max = tensionMPP * (1 + pratiqueBeta * (t_cell.Tmin - T_STC)); // Vmpp max (à froid)
 
     if (tension_panneau_min <= 0 || tension_panneau_max <= 0) {
-      return sendResponse(false, "Les tensions corrigées du panneau sont aberrantes (inférieures ou égales à 0V). Vérifiez les températures.", null);
+      return sendResponse(
+        false,
+        "Les tensions corrigées du panneau sont aberrantes (inférieures ou égales à 0V). Vérifiez les températures.",
+        null
+      );
     }
 
     // Puissances corrigées en température
@@ -285,7 +316,11 @@ export class PuissanceCretePVService {
     } else {
       const resTension = tensionSystemePV(puissanceCretePV);
       if (!resTension.success) {
-        return sendResponse(false, `Calcul tension système échoué : ${resTension.error}`, null);
+        return sendResponse(
+          false,
+          `Calcul tension système échoué : ${resTension.error}`,
+          null
+        );
       }
       tension_DC_system_PV = resTension.tension;
       configuration_system = resTension.config;
@@ -325,9 +360,13 @@ export class PuissanceCretePVService {
     );
 
     if (!resClimatString.success || !resClimatPara.success) {
-      return sendResponse(false, `Erreur dans la répartition climatique : ${
+      return sendResponse(
+        false,
+        `Erreur dans la répartition climatique : ${
           resClimatString.error || resClimatPara.error
-        }`, null);
+        }`,
+        null
+      );
     }
 
     const N_panneaux_par_string = resClimatString.nombrePanneaux;
@@ -335,63 +374,61 @@ export class PuissanceCretePVService {
 
     // Formatage du résultat final propre
     const responseDatas = {
-        appareil: "panneaux photovoltaiques",
-        configuration: configuration_system,
-        panneauxParString: N_panneaux_par_string,
-        stringsEnParallele: N_string_en_parallele,
-        totalPanneaux: N_panneaux_par_string * N_string_en_parallele,
-        tensionStringMin: Number(
-          (N_panneaux_par_string * tension_panneau_min).toFixed(2)
+      appareil: "panneaux photovoltaiques",
+      configuration: configuration_system,
+      panneauxParString: N_panneaux_par_string,
+      stringsEnParallele: N_string_en_parallele,
+      totalPanneaux: N_panneaux_par_string * N_string_en_parallele,
+      tensionStringMin: Number(
+        (N_panneaux_par_string * tension_panneau_min).toFixed(2)
+      ),
+      tensionStringMax: Number((N_panneaux_par_string * vmpp_max).toFixed(2)),
+      tensionStringSTC: Number((N_panneaux_par_string * tensionMPP).toFixed(2)),
+      vocStringFroid: Number(
+        (N_panneaux_par_string * tension_panneau_max).toFixed(2)
+      ),
+      courantCourtCircuitPV: Number(
+        (N_string_en_parallele * courantCourtCircuit).toFixed(2)
+      ),
+      courantPVMin: Number(
+        (N_string_en_parallele * courant_panneau_min).toFixed(2)
+      ),
+      courantPVMax: Number(
+        (N_string_en_parallele * courant_panneau_max).toFixed(2)
+      ),
+      puissancePVInstallee: {
+        stc: Number(
+          (
+            N_panneaux_par_string *
+            N_string_en_parallele *
+            puissanceCreteModule
+          ).toFixed(2)
         ),
-        tensionStringMax: Number((N_panneaux_par_string * vmpp_max).toFixed(2)),
-        tensionStringSTC: Number(
-          (N_panneaux_par_string * tensionMPP).toFixed(2)
+        min: Number(
+          (
+            N_panneaux_par_string *
+            N_string_en_parallele *
+            puissance_panneau_min
+          ).toFixed(2)
         ),
-        vocStringFroid: Number(
-          (N_panneaux_par_string * tension_panneau_max).toFixed(2)
+        max: Number(
+          (
+            N_panneaux_par_string *
+            N_string_en_parallele *
+            puissance_panneau_max
+          ).toFixed(2)
         ),
-        courantCourtCircuitPV: Number(
-          (N_string_en_parallele * courantCourtCircuit).toFixed(2)
-        ),
-        courantPVMin: Number(
-          (N_string_en_parallele * courant_panneau_min).toFixed(2)
-        ),
-        courantPVMax: Number(
-          (N_string_en_parallele * courant_panneau_max).toFixed(2)
-        ),
-        puissancePVInstallee: {
-          stc: Number(
-            (
-              N_panneaux_par_string *
-              N_string_en_parallele *
-              puissanceCreteModule
-            ).toFixed(2)
-          ),
-          min: Number(
-            (
-              N_panneaux_par_string *
-              N_string_en_parallele *
-              puissance_panneau_min
-            ).toFixed(2)
-          ),
-          max: Number(
-            (
-              N_panneaux_par_string *
-              N_string_en_parallele *
-              puissance_panneau_max
-            ).toFixed(2)
-          ),
-        },
-        _temperaturesCellule: {
-          tCellMin: t_cell.Tmin,
-          tCellMax: t_cell.Tmax,
-        },
-        _modules: {
-          vmppModuleChaud: Number(tension_panneau_min.toFixed(2)),
-          vmppModuleFroid: Number(vmpp_max.toFixed(2)),
-          vocModuleFroid: Number(tension_panneau_max.toFixed(2)),
-        },
-      };
+      },
+      _temperaturesCellule: {
+        tCellMin: t_cell.Tmin,
+        tCellMax: t_cell.Tmax,
+      },
+      _modules: {
+        vmppModuleChaud: Number(tension_panneau_min.toFixed(2)),
+        vmppModuleFroid: Number(vmpp_max.toFixed(2)),
+        vocModuleFroid: Number(tension_panneau_max.toFixed(2)),
+      },
+    };
     return sendResponse(true, null, responseDatas);
   }
 
@@ -414,9 +451,13 @@ export class PuissanceCretePVService {
     puissanceChargeContinue: number,
     onduleurCandidat?: ParametresOnduleur | null,
     puissanceDemarrage?: number | null
-  ): { success: boolean; error: string | null ; data: ResultatOnduleur | null} {
+  ): { success: boolean; error: string | null; data: ResultatOnduleur | null } {
     if (!resultatsModules || !panneauParametres) {
-      return sendResponse(false, "Les résultats des modules et les paramètres des panneaux sont requis.", null);
+      return sendResponse(
+        false,
+        "Les résultats des modules et les paramètres des panneaux sont requis.",
+        null
+      );
     }
 
     const {
@@ -431,7 +472,11 @@ export class PuissanceCretePVService {
     } = resultatsModules;
 
     if (!_temperaturesCellule || !_modules || !puissancePVInstallee) {
-      return sendResponse(false, "Données de structure internes du champ PV manquantes ou invalides.", null);
+      return sendResponse(
+        false,
+        "Données de structure internes du champ PV manquantes ou invalides.",
+        null
+      );
     }
 
     const { tCellMin, tCellMax } = _temperaturesCellule;
@@ -458,7 +503,11 @@ export class PuissanceCretePVService {
 
     // Validation des puissances calculées pour éviter les divisions par zéro
     if (puissanceChampsWcSTC <= 0) {
-      return sendResponse(false, "La puissance crête installée calculée (STC) doit être strictement supérieure à 0.", null);
+      return sendResponse(
+        false,
+        "La puissance crête installée calculée (STC) doit être strictement supérieure à 0.",
+        null
+      );
     }
 
     // Bornes de dimensionnement théorique
@@ -630,37 +679,37 @@ export class PuissanceCretePVService {
     }
 
     const responseDatas = {
-        appareil: "onduleur",
-        typeSysteme,
-        rappelVocStringFroid: vocStringFroid || null,
-        grandeursChamp: {
-          tCellMin: Math.round(tCellMin * 10) / 10,
-          tCellMax: Math.round(tCellMax * 10) / 10,
-          vocChampFroid: Math.round(vocChampFroidCalc * 100) / 100,
-          vmppChampChaud: Math.round(vmppChampChaud * 100) / 100,
-          vmppChampFroid: Math.round(vmppChampFroid * 100) / 100,
-          vmppNominal: Math.round(vmppNominal * 100) / 100,
-          iscChamp: Math.round(iscChamp * 1000) / 1000,
-          puissanceChampsWcSTC: Math.round(puissanceChampsWcSTC),
-          puissanceChampsWcMax: Math.round(puissanceChampsWcMax),
-        },
-        dimensionnement: {
-          puissanceACMin: Math.round(puissanceACMin),
-          puissanceACRecommandee: Math.round(puissanceACRecommandee),
-          puissanceACMax: Math.round(puissanceACMax),
-          ratioDCAC: Math.round(ratioDCAC * 1000) / 1000,
-          evaluationRatio,
-        },
-        verification:
-          onduleurCandidat && onduleurCandidat.puissanceACNominale > 0
-            ? {
-                compatible: erreurs.length === 0,
-                details: verificationsCompatibilite!,
-              }
-            : null,
-        avertissements,
-        erreurs,
-      };
+      appareil: "onduleur",
+      typeSysteme,
+      rappelVocStringFroid: vocStringFroid || null,
+      grandeursChamp: {
+        tCellMin: Math.round(tCellMin * 10) / 10,
+        tCellMax: Math.round(tCellMax * 10) / 10,
+        vocChampFroid: Math.round(vocChampFroidCalc * 100) / 100,
+        vmppChampChaud: Math.round(vmppChampChaud * 100) / 100,
+        vmppChampFroid: Math.round(vmppChampFroid * 100) / 100,
+        vmppNominal: Math.round(vmppNominal * 100) / 100,
+        iscChamp: Math.round(iscChamp * 1000) / 1000,
+        puissanceChampsWcSTC: Math.round(puissanceChampsWcSTC),
+        puissanceChampsWcMax: Math.round(puissanceChampsWcMax),
+      },
+      dimensionnement: {
+        puissanceACMin: Math.round(puissanceACMin),
+        puissanceACRecommandee: Math.round(puissanceACRecommandee),
+        puissanceACMax: Math.round(puissanceACMax),
+        ratioDCAC: Math.round(ratioDCAC * 1000) / 1000,
+        evaluationRatio,
+      },
+      verification:
+        onduleurCandidat && onduleurCandidat.puissanceACNominale > 0
+          ? {
+              compatible: erreurs.length === 0,
+              details: verificationsCompatibilite!,
+            }
+          : null,
+      avertissements,
+      erreurs,
+    };
     return sendResponse(true, null, responseDatas);
   }
 }
