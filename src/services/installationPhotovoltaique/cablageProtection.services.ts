@@ -124,8 +124,8 @@ export class CablageEtProtectionsService {
         },
       };
       return sendResponse(true, null, returnDatas);
-    } catch (error: any) {
-      return sendResponse(false, error.message || "Erreur DC interne", null);
+    } catch (error: unknown) {
+      throw new Error((error as Error).message || "Erreur DC interne")
     }
   }
 
