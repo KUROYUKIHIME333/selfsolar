@@ -20,10 +20,7 @@ import {
 import { sendResponse } from "../../utils/handlers.utils.js";
 
 export class CablageEtProtectionsService {
-  // =========================================================================
   // DIMENSIONNEMENT CÂBLES DC (STRING & PRINCIPAL PV)
-  // =========================================================================
-
   public dimensionnerCablesDC(
     resultatModules: ResultatModulesPV,
     panneauParametres: ParametresSTCPanneau,
@@ -132,10 +129,7 @@ export class CablageEtProtectionsService {
     }
   }
 
-  // =========================================================================
   // DIMENSIONNEMENT CÂBLES AC (ONDULEUR -> RÉSEAU)
-  // =========================================================================
-
   public dimensionnerCablageAC(
     puissanceNominaleOnduleurWh: number,
     tensionReseauV: number,
@@ -279,10 +273,7 @@ export class CablageEtProtectionsService {
     return sendResponse(true, null, returnDatas);
   }
 
-  // =========================================================================
   // VÉRIFICATION DE LA SÉLECTIVITÉ DES PROTECTIONS
-  // =========================================================================
-
   public verifierSelectivite(
     protectionAmont: { calibre: number; type: string; temporisation?: number },
     protectionAval: { calibre: number; type: string; temporisation?: number }
@@ -338,9 +329,7 @@ export class CablageEtProtectionsService {
     return sendResponse(true, null, returnDatas);
   }
 
-  // =========================================================================
   // ENTRAILLES ET MÉTHODES PRIVÉES DE CALCULS TECHNIQUES
-  // =========================================================================
 
   private calculerSectionCableDC(
     courant: number,
