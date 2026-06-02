@@ -47,8 +47,7 @@ export const installationPhotovoltaiqueRoutes = async (
                 },
                 k: {
                   type: "number",
-                  minimum: 0,
-                  maximum: 1,
+                  minimum: 1,
                   description: "Facteur de pic (au démarrage surtout)",
                 },
               },
