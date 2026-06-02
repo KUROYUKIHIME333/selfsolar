@@ -259,6 +259,8 @@ export const installationPhotovoltaiqueRoutes = async (
     ),
   });
 
+  //ROUTE MODULES PV
+
   // ROUTE SANTÉ
   app.get("/sante", {
     schema: {
