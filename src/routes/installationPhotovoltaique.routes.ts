@@ -403,6 +403,157 @@ export const installationPhotovoltaiqueRoutes = async (
       ),
   });
 
+  // ROUTE ONDULEUR
+  app.post("/onduleur", {
+    schema: {
+      description:
+        "Vérification de l'onduleur proposé ou bien choix d'un onduleur adapté",
+      tags: ["onduleur", "MPPT", "PWM"],
+      body: {
+        type: "object",
+        required: [
+          "resultats_modules",
+          "parametres_panneaux",
+          "irradiance_max",
+          "typeSysteme",
+          "puissance_chargeContinue",
+          "onduleur_propose",
+          "puissance_demarrage",
+        ],
+        properties: {
+          resultats_modules: {
+            type: "object",
+            required: [
+              "appareil",
+              "panneauxParString",
+              "stringsEnParallele",
+              "totalPanneaux",
+              "tensionStringSTC",
+              "tensionStringMin",
+              "tensionStringMax",
+              "vocStringFroid",
+              "courantPVMin",
+              "courantPVMax",
+              "courantCourtCircuitPV",
+              "puissancePVInstallee",
+              "_temperaturesCellule",
+              "_modules",
+            ],
+            properties: {
+              appareil: {
+                type: "string",
+              },
+              configuration: {
+                type: "string",
+              },
+              // Disposition
+              panneauxParString: {
+                type: "number",
+                minimum: 0,
+              }, // Ns
+              stringsEnParallele: {
+                type: "number",
+                minimum: 0,
+              }, // Np
+              totalPanneaux: {
+                type: "number",
+                minimum: 0,
+              },
+              // Tensions (important pour vérifications)
+              tensionStringSTC: {
+                type: "number",
+                minimum: 0,
+              }, // Vmpp à 25°C
+              tensionStringMin: {
+                type: "number",
+                minimum: 0,
+              }, // Vmpp à Tmax (condition chaude)
+              tensionStringMax: {
+                type: "number",
+                minimum: 0,
+              }, // Vmpp à Tmin (condition froide)
+              vocStringFroid: {
+                type: "number",
+                minimum: 0,
+              }, // Voc à Tmin (CRITIQUE sécurité)
+              //Courants champ
+              courantPVMin: {
+                type: "number",
+                minimum: 0,
+              },
+              courantPVMax: {
+                type: "number",
+                minimum: 0,
+              },
+              courantCourtCircuitPV: {
+                type: "number",
+                minimum: 0,
+              },
+              // Puissances
+              puissancePVInstallee: {
+                type: "object",
+                required: ["min", "max", "stc"],
+                properties: {
+                  min: {
+                    type: "number",
+                    minimum: 0,
+                  }, // Condition chaude (déclassée)
+                  max: {
+                    type: "number",
+                    minimum: 0,
+                  }, // Condition froide
+                  stc: {
+                    type: "number",
+                    minimum: 0,
+                  }, // Puissance nominale à STC (pour ratio DC/AC)
+                },
+
+                // Métadonnées internes
+                _temperaturesCellule: {
+                  type: "object",
+                  required: ["tCellMin", "tCellMax"],
+                  properties: {
+                    tCellMin: {
+                      type: "number",
+                      minimum: 0,
+                    },
+                    tCellMax: {
+                      type: "number",
+                      minimum: 0,
+                    },
+                  },
+                },
+                _modules: {
+                  type: "object",
+                  required: [
+                    "vmppModuleChaud",
+                    "vmppModuleFroid",
+                    "vocModuleFroid",
+                  ],
+                  vmppModuleChaud: {
+                    type: "number",
+                    minimum: 0,
+                  },
+                  vmppModuleFroid: {
+                    type: "number",
+                    minimum: 0,
+                  },
+                  vocModuleFroid: {
+                    type: "number",
+                    minimum: 0,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    handler: installationPhotovoltaiqueController.dimensionnerOnduleur.bind(
+      installationPhotovoltaiqueController
+    ),
+  });
+
   // ROUTE SANTÉ
   app.get("/sante", {
     schema: {
