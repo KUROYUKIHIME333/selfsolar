@@ -68,6 +68,47 @@ export const installationPhotovoltaiqueRoutes = async (
     ),
   });
 
+  // ROUTE DONNEES PVGIS ET METEO
+  app.post("/donnees-meteo", {
+    schema: {
+      description:
+        "Données météo solaire et climatique du site de l'installation",
+      tags: ["PVGIS", "PSH", "irradiance", "G", "climat", "temperatures"],
+      body: {
+        type: "object",
+        required: ["localisation"],
+        properties: {
+          localisation: {
+            type: "object",
+            description: "Coordonnées géographiques du site",
+            required: ["lat", "long"],
+            properties: {
+              lat: {
+                type: "number",
+                minimum: -90,
+                maximum: 90,
+                description: "Latitude en degrés décimaux",
+              },
+              long: {
+                type: "number",
+                minimum: -180,
+                maximum: 180,
+                description: "Longitude en degrés décimaux",
+              },
+              altitude: {
+                type: "number",
+                description: "Altitude en mètres (pour déclassement)",
+              },
+            },
+          },
+        },
+      },
+    },
+    handler: installationPhotovoltaiqueController.analyserGeographie.bind(
+      installationPhotovoltaiqueController
+    ),
+  });
+
   // ROUTE SANTÉ
   app.get("/sante", {
     schema: {
