@@ -154,6 +154,111 @@ export const installationPhotovoltaiqueRoutes = async (
     ),
   });
 
+  // ROUTE PUISSANCE CRETE
+  app.post("/puissance-crete", {
+    schema: {
+      description: "Déterminer la puissance crète du système pv",
+      tags: ["puissance crète", "Pc"],
+      body: {
+        type: "object",
+        required: [
+          "typeInstallation",
+          "pompageSolaire",
+          "PSH_heuresParJour",
+          "avecStockage",
+        ],
+        properties: {
+          typeInstallation: {
+            type: "string",
+            default: "STANDARD",
+            description:
+              "Type d'installation: HAUTE_QUALITE , STANDARD , POUSSIEREUX , FAIBLE_MAINTENANCE , ANCIEN ou CABLE_LONG",
+          },
+          pompageSolaire: {
+            type: "boolean",
+            description: "Est ce une installation de pompage solaire ou pas",
+          },
+          energieCrete_Wh: {
+            type: "number",
+            minimum: 0,
+            description: "Consommation énergétique journaliere ne Wh/j",
+          },
+          PSH_heuresParJour: {
+            type: "number",
+            minimum: 0,
+            description: "Heure d'irradiance max par jour",
+          },
+          avecStockage: {
+            type: "boolean",
+            description:
+              "Est ce une installation ayant un stockage d'énergie par batteries ou pas",
+          },
+          pompageCaracteristiques: {
+            type: "object",
+            description: "",
+            required: [
+              "batteries",
+              "masseVolumique",
+              "accelerationPesanteur",
+              "debit",
+              "hauteurMano",
+              "rendementPompe",
+            ],
+            properties: {
+              batteries: {
+                type: "boolean",
+                default: false,
+                description:
+                  "Est ce une installation ayant un stockage d'énergie par batteries ou pas",
+              },
+              masseVolumique: {
+                type: "number",
+                minimum: 0,
+                description:
+                  "Masse volumique du fluide pompé, en kg/mètre cube",
+              },
+              accelerationPesanteur: {
+                type: "boolean",
+                minimum: 0,
+                description: "g (comme g=9.81m/s²) en m/s²",
+              },
+              debit: {
+                type: "number",
+                minimum: 0,
+                description: "Débit de la pompe en metre cube / s",
+              },
+              hauteurMano: {
+                type: "number",
+                minimum: 0,
+                description: "Hauteur manométrique en m",
+              },
+              rendementPompe: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+                description: "rendement de la pompe",
+              },
+            },
+          },
+          rendementOnduleurMPPT: {
+            type: "number",
+            minimum: 0,
+            maximum: 1,
+            description: "rendement de l'onduleur'",
+          },
+          technologieBatteries: {
+            type: "string",
+            description:
+              "Technologie de batteries utilisées: Plomb-acide , AGM/Gel , LiFePO4 , Lithium NMC/NCA ou NiCd",
+          },
+        },
+      },
+    },
+    handler: installationPhotovoltaiqueController.etablirPuissanceCrete.bind(
+      installationPhotovoltaiqueController
+    ),
+  });
+
   // ROUTE SANTÉ
   app.get("/sante", {
     schema: {
