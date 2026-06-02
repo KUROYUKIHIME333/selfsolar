@@ -412,8 +412,8 @@ export class PuissanceCretePVService {
     irradianceMax: number,
     typeSysteme: TypeSystemePV,
     puissanceChargeContinue: number,
-    onduleurCandidat?: ParametresOnduleur | null,
-    puissanceDemarrage?: number | null
+    onduleurCandidat?: ParametresOnduleur | null | undefined,
+    puissanceDemarrage?: number | null | undefined
   ): { success: boolean; error: string | null; data: ResultatOnduleur | null } {
     if (!resultatsModules || !panneauParametres) {
       throw new Error(
