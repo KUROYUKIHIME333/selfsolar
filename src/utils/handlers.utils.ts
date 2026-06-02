@@ -33,6 +33,7 @@ export const sendSuccess = (reply: FastifyReply, data: any, code = 200) => {
   const response = sendResponse(true, null, data);
   return reply.code(code).send(response);
 };
+
 export const sendError = (reply: FastifyReply, error: any, code = 400) => {
   // Si l'erreur provient de controllerErrorHandler et possède déjà une structure imbriquée
   const errorMessage =
