@@ -259,7 +259,110 @@ export const installationPhotovoltaiqueRoutes = async (
     ),
   });
 
-  //ROUTE MODULES PV
+  // ROUTE MODULES PV
+  app.post("/panneaux-pv", {
+    schema: {
+      description: "Caractéristiques des panneaux photovoltaiques",
+      tags: ["panneaux photovoltaiques", "modules pv", "panneaux", "pv"],
+      body: {
+        type: "object",
+        required: [
+          "parametresPanneau",
+          "puissanceCretePV_Wc",
+          "temperaturesAttendue",
+          "irradianceMax_W_m2",
+          "tensionSysteme_V",
+          "configurationTensionSysteme",
+        ],
+        properties: {
+          parametresPanneau: {
+            type: "object",
+            required: [
+              "puissanceCreteModule",
+              "tensionMPP",
+              "tensionVoc",
+              "courantMPP",
+              "courantCourtCircuit",
+              "coeffTempTension",
+              "coeffTempPuissance",
+              "noct",
+            ],
+            properties: {
+              puissanceCreteModule: {
+                type: "number",
+                minimum: 0,
+              },
+              tensionMPP: {
+                type: "number",
+                minimum: 0,
+              },
+              tensionVoc: {
+                type: "number",
+                minimum: 0,
+              },
+              courantMPP: {
+                type: "number",
+                minimum: 0,
+              },
+              courantCourtCircuit: {
+                type: "number",
+                minimum: 0,
+              },
+              coeffTempTension: {
+                type: "number",
+              },
+              coeffTempPuissance: {
+                type: "number",
+              },
+              coeffTempCourant: {
+                type: "number",
+              },
+              noct: {
+                type: "number",
+                minimum: 0,
+              },
+            },
+          },
+          puissanceCretePV_Wc: {
+            type: "number",
+            minimum: 0,
+          },
+          temperaturesAttendue: {
+            type: "object",
+            required: ["temperatureMin", "temperatureMax"],
+            properties: {
+              temperatureMin: {
+                type: "number",
+                minimum: -100,
+                maximum: 100,
+              },
+              temperatureMax: {
+                type: "number",
+                minimum: -100,
+                maximum: 100,
+              },
+            },
+          },
+          irradianceMax_W_m2: {
+            type: "number",
+            minimum: 0,
+          },
+          tensionSysteme_V: {
+            type: "number",
+            minimum: 0,
+          },
+          configurationTensionSysteme: {
+            type: "string",
+            description:
+              "Configuration de la tension du système : haute_tension , basse_tension ou indefini",
+          },
+        },
+      },
+    },
+    handler: installationPhotovoltaiqueController.dimensionnerModulesPV.bind(
+      installationPhotovoltaiqueController
+    ),
+  });
 
   // ROUTE SANTÉ
   app.get("/sante", {
