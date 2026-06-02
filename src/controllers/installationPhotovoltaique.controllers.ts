@@ -555,8 +555,8 @@ export class InstallationPhotovoltaiqueController {
         irradiance_max: number;
         typeSysteme: TypeSystemePV;
         puissance_chargeContinue: number;
-        onduleur_propose: ParametresOnduleur | null;
-        puissance_demarrage: number | null;
+        onduleur_propose: ParametresOnduleur | undefined;
+        puissance_demarrage: number | undefined;
       };
     }>,
     reply: FastifyReply
