@@ -3,7 +3,7 @@ import { bilanConsommationService } from "../services/installationPhotovoltaique
 import { parametresSiteService } from "../services/installationPhotovoltaique/parametreSite.services.js";
 import { puissanceCretePVService } from "../services/installationPhotovoltaique/puissancePVCrete.services.js";
 import { stockageService } from "../services/installationPhotovoltaique/stockage.services.js";
-//import { cablageEtProtectionsService } from "../services/installationPhotovoltaique/cablageProtection.services.js";
+import { cablageEtProtectionsService } from "../services/installationPhotovoltaique/cablageProtection.services.js";
 import type {
   //DimensionnementPVRequest,
   //DimensionnementPVResponse,
@@ -639,6 +639,88 @@ export class InstallationPhotovoltaiqueController {
     reply: FastifyReply
   ) {
     try {
+      const {
+        resultatModules,
+        Parametres_panneau,
+        longueur_cable_String_m,
+        longueur_cable_principal_m,
+        temperatureAmbiante,
+        materiau_conducteur_DC,
+        materiau_conducteur_AC,
+        puissance_nominale_onduleur_Wh,
+        tension_Reseau_V,
+        is_Triphase,
+        longueur_Meters,
+        cosPhi,
+        methodePose,
+      } = request.body;
+
+      // 1. Validation rapide des données requises
+      if (!resultatModules || !Parametres_panneau) {
+        return sendError(
+          reply,
+          "Les résultats des modules PV et les caractéristiques des panneaux STC sont obligatoires.",
+          400
+        );
+      }
+
+      if (!puissance_nominale_onduleur_Wh || !tension_Reseau_V) {
+        return sendError(
+          reply,
+          "La puissance nominale de l'onduleur et la tension réseau AC sont obligatoires.",
+          400
+        );
+      }
+
+      // 2. Calcul de la partie DC (Strings & Câble principal PV)
+      const resDC = cablageEtProtectionsService.dimensionnerCablesDC(
+        resultatModules,
+        Parametres_panneau,
+        longueur_cable_String_m ?? 15,
+        longueur_cable_principal_m ?? 10,
+        temperatureAmbiante ?? 30,
+        materiau_conducteur_DC ?? "cuivre"
+      );
+
+      if (!resDC.success || !resDC.data) {
+        return sendError(
+          reply,
+          resDC.error || "Erreur lors du dimensionnement des câbles DC.",
+          400
+        );
+      }
+
+      // 3. Calcul de la partie AC (Onduleur -> Réseau)
+      const resAC = cablageEtProtectionsService.dimensionnerCablageAC(
+        puissance_nominale_onduleur_Wh,
+        tension_Reseau_V,
+        is_Triphase ?? false,
+        longueur_Meters ?? 10,
+        cosPhi ?? 0.8,
+        temperatureAmbiante ?? 30,
+        materiau_conducteur_AC ?? "cuivre",
+        methodePose ?? "conduit_encastre"
+      );
+
+      if (!resAC.success || !resAC.data) {
+        return sendError(
+          reply,
+          resAC.error || "Erreur lors du dimensionnement du câblage AC.",
+          400
+        );
+      }
+
+      // 4. Fusion des résultats pour une réponse complète
+      const reponseGlobale = {
+        dimensionnementDC: resDC.data,
+        dimensionnementAC: resAC.data,
+        normesAppliquees: {
+          dc: "Guide UTE C 15-712-1 / IEC 60364",
+          ac: "NF C 15-100",
+        },
+      };
+
+      return sendSuccess(reply, reponseGlobale, 200);
     } catch (error) {
       request.log.error(error);
       return sendError(
