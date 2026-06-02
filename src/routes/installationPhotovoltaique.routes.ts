@@ -364,6 +364,45 @@ export const installationPhotovoltaiqueRoutes = async (
     ),
   });
 
+  // ROUTE MODULES BATTERIES
+  app.post("/batteries-nombres-et-config", {
+    schema: {
+      description: "Nombres de batteries en serie et parallele",
+      tags: ["Ns", "Np", "N", "nombre de batteries"],
+      body: {
+        type: "object",
+        required: [
+          "tensionSysteme_V",
+          "tensionUnitaireBatterie_V",
+          "capaciteUnitaireBatterie_Ah",
+          "capaciteTotaleRequise_Ah",
+        ],
+        properties: {
+          tensionSysteme_V: {
+            type: "number",
+            minimum: 0,
+          },
+          tensionUnitaireBatterie_V: {
+            type: "number",
+            minimum: 0,
+          },
+          capaciteUnitaireBatterie_Ah: {
+            type: "number",
+            minimum: 0,
+          },
+          capaciteTotaleRequise_Ah: {
+            type: "number",
+            minimum: 0,
+          },
+        },
+      },
+    },
+    handler:
+      installationPhotovoltaiqueController.dimensionnerModulesBatteries.bind(
+        installationPhotovoltaiqueController
+      ),
+  });
+
   // ROUTE SANTÉ
   app.get("/sante", {
     schema: {
