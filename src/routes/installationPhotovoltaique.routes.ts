@@ -109,6 +109,51 @@ export const installationPhotovoltaiqueRoutes = async (
     ),
   });
 
+  // ROUTE DIMMENSIONNEMENT BATTERIES
+  app.post("/stockage-batteries", {
+    schema: {
+      description: "Caractéristiques du système de stockage par batteries",
+      tags: ["batteries", "stockage", "Lithium", "acide", "AGM/GEL"],
+      body: {
+        type: "object",
+        required: [
+          "technologieBattery",
+          "energieJournaliere_Wh",
+          "autonomieBatterie_jours",
+          "tensionSystemeBatterie_V",
+          "temperatureAmbiante_C",
+        ],
+        properties: {
+          technologieBattery: {
+            type: "string",
+            description:
+              "Technologie de batteries utilisées: Plomb-acide , AGM/Gel , LiFePO4 , Lithium NMC/NCA ou NiCd",
+          },
+          energieJournaliere_Wh: {
+            type: "number",
+            description: "Consommation d'énergie journalière",
+          },
+          autonomieBatterie_jours: {
+            type: "number",
+            description: "Nombre de jours d'autonomie",
+          },
+          tensionSystemeBatterie_V: {
+            type: "number",
+            description: "Tension des batteries en V",
+          },
+          temperatureAmbiante_C: {
+            type: "number",
+            description:
+              "Temperature ambiante pour prendre en compte le dérating des batteries",
+          },
+        },
+      },
+    },
+    handler: installationPhotovoltaiqueController.etablirStockage.bind(
+      installationPhotovoltaiqueController
+    ),
+  });
+
   // ROUTE SANTÉ
   app.get("/sante", {
     schema: {
