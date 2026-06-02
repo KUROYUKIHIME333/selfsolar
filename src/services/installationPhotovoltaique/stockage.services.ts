@@ -71,7 +71,7 @@ export class StockageService {
    *
    * Dé-rating température plomb: -1%/°C au-delà de 25°C (p.6 guide)
    */
-  capaciteStockage(
+  public capaciteStockage(
     technologie: TechnologieBatterie = "LiFePO4",
     consommationJournaliere: number,
     autonomie: number,
@@ -163,7 +163,7 @@ export class StockageService {
   /**
    * Calcule la disposition des modules batterie (série/parallèle)
    */
-  modulesBatteries(
+  public modulesBatteries(
     tensionSystem: number,
     tensionBatterie: number,
     capaciteBatterie: number,
@@ -218,7 +218,7 @@ export class StockageService {
   /**
    * Dimensionne le régulateur de charge / BMS
    */
-  regulateurBMS(
+  public regulateurBMS(
     puissancePVCrete: number,
     tensionBatteries: number,
     puissanceChargeMax: number,
