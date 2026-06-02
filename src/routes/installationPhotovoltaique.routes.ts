@@ -224,7 +224,7 @@ export const installationPhotovoltaiqueRoutes = async (
                   "Masse volumique du fluide pompé, en kg/mètre cube",
               },
               accelerationPesanteur: {
-                type: "boolean",
+                type: "number",
                 minimum: 0,
                 description: "g (comme g=9.81m/s²) en m/s²",
               },
@@ -511,29 +511,31 @@ export const installationPhotovoltaiqueRoutes = async (
                     minimum: 0,
                   }, // Puissance nominale à STC (pour ratio DC/AC)
                 },
-
-                // Métadonnées internes
-                _temperaturesCellule: {
-                  type: "object",
-                  required: ["tCellMin", "tCellMax"],
-                  properties: {
-                    tCellMin: {
-                      type: "number",
-                      minimum: 0,
-                    },
-                    tCellMax: {
-                      type: "number",
-                      minimum: 0,
-                    },
+              },
+              // Métadonnées internes
+              _temperaturesCellule: {
+                type: "object",
+                required: ["tCellMin", "tCellMax"],
+                properties: {
+                  tCellMin: {
+                    type: "number",
+                    minimum: 0,
+                  },
+                  tCellMax: {
+                    type: "number",
+                    minimum: 0,
                   },
                 },
-                _modules: {
-                  type: "object",
-                  required: [
-                    "vmppModuleChaud",
-                    "vmppModuleFroid",
-                    "vocModuleFroid",
-                  ],
+              },
+
+              _modules: {
+                type: "object",
+                required: [
+                  "vmppModuleChaud",
+                  "vmppModuleFroid",
+                  "vocModuleFroid",
+                ],
+                properties: {
                   vmppModuleChaud: {
                     type: "number",
                     minimum: 0,
@@ -686,257 +688,257 @@ export const installationPhotovoltaiqueRoutes = async (
     ),
   });
 
-  // ROUTE CABLES & PROTECTIONS
-  app.post("/cables-et-protections", {
-    schema: {
-      description: "Dimensionner les cables et choisir les protections",
-      tags: ["câbles", "protections", "fusibles", "disjoncters", "calibre"],
-      body: {
-        type: "object",
-        required: [
-          "resultatModules",
-          "Parametres_panneau",
-          "longueur_cable_String_m",
-          "longueur_cable_principal_m",
-          "temperatureAmbiante",
-          "materiau_conducteur_AC",
-          "materiau_conducteur_DC",
-          "puissance_nominale_onduleur_Wh",
-          "tension_Reseau_V",
-          "is_Triphase",
-          "longueur_Meters",
-          "cosPhi",
-          "methodePose",
-        ],
-        properties: {
-          resultatModules: {
-            type: "object",
-            required: [
-              "appareil",
-              "panneauxParString",
-              "stringsEnParallele",
-              "totalPanneaux",
-              "tensionStringSTC",
-              "tensionStringMin",
-              "tensionStringMax",
-              "vocStringFroid",
-              "courantPVMin",
-              "courantPVMax",
-              "courantCourtCircuitPV",
-              "puissancePVInstallee",
-              "_temperaturesCellule",
-              "_modules",
-            ],
-            properties: {
-              appareil: {
-                type: "string",
-              },
-              configuration: {
-                type: "string",
-              },
-              // Disposition
-              panneauxParString: {
-                type: "number",
-                minimum: 0,
-              }, // Ns
-              stringsEnParallele: {
-                type: "number",
-                minimum: 0,
-              }, // Np
-              totalPanneaux: {
-                type: "number",
-                minimum: 0,
-              },
-              // Tensions (important pour vérifications)
-              tensionStringSTC: {
-                type: "number",
-                minimum: 0,
-              }, // Vmpp à 25°C
-              tensionStringMin: {
-                type: "number",
-                minimum: 0,
-              }, // Vmpp à Tmax (condition chaude)
-              tensionStringMax: {
-                type: "number",
-                minimum: 0,
-              }, // Vmpp à Tmin (condition froide)
-              vocStringFroid: {
-                type: "number",
-                minimum: 0,
-              }, // Voc à Tmin (CRITIQUE sécurité)
-              //Courants champ
-              courantPVMin: {
-                type: "number",
-                minimum: 0,
-              },
-              courantPVMax: {
-                type: "number",
-                minimum: 0,
-              },
-              courantCourtCircuitPV: {
-                type: "number",
-                minimum: 0,
-              },
-              // Puissances
-              puissancePVInstallee: {
-                type: "object",
-                required: ["min", "max", "stc"],
-                properties: {
-                  min: {
-                    type: "number",
-                    minimum: 0,
-                  }, // Condition chaude (déclassée)
-                  max: {
-                    type: "number",
-                    minimum: 0,
-                  }, // Condition froide
-                  stc: {
-                    type: "number",
-                    minimum: 0,
-                  }, // Puissance nominale à STC (pour ratio DC/AC)
-                },
+  // // ROUTE CABLES & PROTECTIONS
+  // app.post("/cables-et-protections", {
+  //   schema: {
+  //     description: "Dimensionner les cables et choisir les protections",
+  //     tags: ["câbles", "protections", "fusibles", "disjoncters", "calibre"],
+  //     body: {
+  //       type: "object",
+  //       required: [
+  //         "resultatModules",
+  //         "Parametres_panneau",
+  //         "longueur_cable_String_m",
+  //         "longueur_cable_principal_m",
+  //         "temperatureAmbiante",
+  //         "materiau_conducteur_AC",
+  //         "materiau_conducteur_DC",
+  //         "puissance_nominale_onduleur_Wh",
+  //         "tension_Reseau_V",
+  //         "is_Triphase",
+  //         "longueur_Meters",
+  //         "cosPhi",
+  //         "methodePose",
+  //       ],
+  //       properties: {
+  //         resultatModules: {
+  //           type: "object",
+  //           required: [
+  //             "appareil",
+  //             "panneauxParString",
+  //             "stringsEnParallele",
+  //             "totalPanneaux",
+  //             "tensionStringSTC",
+  //             "tensionStringMin",
+  //             "tensionStringMax",
+  //             "vocStringFroid",
+  //             "courantPVMin",
+  //             "courantPVMax",
+  //             "courantCourtCircuitPV",
+  //             "puissancePVInstallee",
+  //             "_temperaturesCellule",
+  //             "_modules",
+  //           ],
+  //           properties: {
+  //             appareil: {
+  //               type: "string",
+  //             },
+  //             configuration: {
+  //               type: "string",
+  //             },
+  //             // Disposition
+  //             panneauxParString: {
+  //               type: "number",
+  //               minimum: 0,
+  //             }, // Ns
+  //             stringsEnParallele: {
+  //               type: "number",
+  //               minimum: 0,
+  //             }, // Np
+  //             totalPanneaux: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //             // Tensions (important pour vérifications)
+  //             tensionStringSTC: {
+  //               type: "number",
+  //               minimum: 0,
+  //             }, // Vmpp à 25°C
+  //             tensionStringMin: {
+  //               type: "number",
+  //               minimum: 0,
+  //             }, // Vmpp à Tmax (condition chaude)
+  //             tensionStringMax: {
+  //               type: "number",
+  //               minimum: 0,
+  //             }, // Vmpp à Tmin (condition froide)
+  //             vocStringFroid: {
+  //               type: "number",
+  //               minimum: 0,
+  //             }, // Voc à Tmin (CRITIQUE sécurité)
+  //             //Courants champ
+  //             courantPVMin: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //             courantPVMax: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //             courantCourtCircuitPV: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //             // Puissances
+  //             puissancePVInstallee: {
+  //               type: "object",
+  //               required: ["min", "max", "stc"],
+  //               properties: {
+  //                 min: {
+  //                   type: "number",
+  //                   minimum: 0,
+  //                 }, // Condition chaude (déclassée)
+  //                 max: {
+  //                   type: "number",
+  //                   minimum: 0,
+  //                 }, // Condition froide
+  //                 stc: {
+  //                   type: "number",
+  //                   minimum: 0,
+  //                 }, // Puissance nominale à STC (pour ratio DC/AC)
+  //               },
 
-                // Métadonnées internes
-                _temperaturesCellule: {
-                  type: "object",
-                  required: ["tCellMin", "tCellMax"],
-                  properties: {
-                    tCellMin: {
-                      type: "number",
-                      minimum: 0,
-                    },
-                    tCellMax: {
-                      type: "number",
-                      minimum: 0,
-                    },
-                  },
-                },
-                _modules: {
-                  type: "object",
-                  required: [
-                    "vmppModuleChaud",
-                    "vmppModuleFroid",
-                    "vocModuleFroid",
-                  ],
-                  vmppModuleChaud: {
-                    type: "number",
-                    minimum: 0,
-                  },
-                  vmppModuleFroid: {
-                    type: "number",
-                    minimum: 0,
-                  },
-                  vocModuleFroid: {
-                    type: "number",
-                    minimum: 0,
-                  },
-                },
-              },
-            },
-          },
-          Parametres_panneau: {
-            type: "object",
-            required: [
-              "puissanceCreteModule",
-              "tensionMPP",
-              "tensionVoc",
-              "courantMPP",
-              "courantCourtCircuit",
-              "coeffTempTension",
-              "coeffTempPuissance",
-              "noct",
-            ],
-            properties: {
-              puissanceCreteModule: {
-                type: "number",
-                minimum: 0,
-              },
-              tensionMPP: {
-                type: "number",
-                minimum: 0,
-              },
-              tensionVoc: {
-                type: "number",
-                minimum: 0,
-              },
-              courantMPP: {
-                type: "number",
-                minimum: 0,
-              },
-              courantCourtCircuit: {
-                type: "number",
-                minimum: 0,
-              },
-              coeffTempTension: {
-                type: "number",
-              },
-              coeffTempPuissance: {
-                type: "number",
-              },
-              coeffTempCourant: {
-                type: "number",
-              },
-              noct: {
-                type: "number",
-                minimum: 0,
-              },
-            },
-          },
-          longueur_cable_String_m: {
-            type: "number",
-            minimum: 0,
-          },
-          longueur_cable_principal_m: {
-            type: "number",
-            minimum: 0,
-          },
-          temperatureAmbiante: {
-            type: "number",
-            minimum: -100,
-            maximum: 100,
-          },
-          materiau_conducteur_AC: {
-            type: "string",
-            description: "Matériaux conducteurs: cuivre ou aluminium",
-          },
-          materiau_conducteur_DC: {
-            type: "string",
-            description: "Matériaux conducteurs: cuivre ou aluminium",
-          },
-          puissance_nominale_onduleur_Wh: {
-            type: "number",
-            minimum: 0,
-          },
-          tension_Reseau_V: {
-            type: "number",
-            minimum: 0,
-          },
-          is_Triphase: {
-            type: "boolean",
-            description: "Le système est il triphasé ou non",
-          },
-          longueur_Meters: {
-            type: "number",
-            minimum: 0,
-          },
-          cosPhi: {
-            type: "number",
-            minimum: -1,
-            maximum: 1,
-          },
-          methodePose: {
-            type: "string",
-            description:
-              "Mode de pose selon NF C 15 100 : conduit_encastre , conduit_surface , air_libre , enterre ou gaine_technique",
-          },
-        },
-      },
-    },
-    handler:
-      installationPhotovoltaiqueController.dimensionnerCablesEtProtections.bind(
-        installationPhotovoltaiqueController
-      ),
-  });
+  //               // Métadonnées internes
+  //               _temperaturesCellule: {
+  //                 type: "object",
+  //                 required: ["tCellMin", "tCellMax"],
+  //                 properties: {
+  //                   tCellMin: {
+  //                     type: "number",
+  //                     minimum: 0,
+  //                   },
+  //                   tCellMax: {
+  //                     type: "number",
+  //                     minimum: 0,
+  //                   },
+  //                 },
+  //               },
+  //               _modules: {
+  //                 type: "object",
+  //                 required: [
+  //                   "vmppModuleChaud",
+  //                   "vmppModuleFroid",
+  //                   "vocModuleFroid",
+  //                 ],
+  //                 vmppModuleChaud: {
+  //                   type: "number",
+  //                   minimum: 0,
+  //                 },
+  //                 vmppModuleFroid: {
+  //                   type: "number",
+  //                   minimum: 0,
+  //                 },
+  //                 vocModuleFroid: {
+  //                   type: "number",
+  //                   minimum: 0,
+  //                 },
+  //               },
+  //             },
+  //           },
+  //         },
+  //         Parametres_panneau: {
+  //           type: "object",
+  //           required: [
+  //             "puissanceCreteModule",
+  //             "tensionMPP",
+  //             "tensionVoc",
+  //             "courantMPP",
+  //             "courantCourtCircuit",
+  //             "coeffTempTension",
+  //             "coeffTempPuissance",
+  //             "noct",
+  //           ],
+  //           properties: {
+  //             puissanceCreteModule: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //             tensionMPP: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //             tensionVoc: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //             courantMPP: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //             courantCourtCircuit: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //             coeffTempTension: {
+  //               type: "number",
+  //             },
+  //             coeffTempPuissance: {
+  //               type: "number",
+  //             },
+  //             coeffTempCourant: {
+  //               type: "number",
+  //             },
+  //             noct: {
+  //               type: "number",
+  //               minimum: 0,
+  //             },
+  //           },
+  //         },
+  //         longueur_cable_String_m: {
+  //           type: "number",
+  //           minimum: 0,
+  //         },
+  //         longueur_cable_principal_m: {
+  //           type: "number",
+  //           minimum: 0,
+  //         },
+  //         temperatureAmbiante: {
+  //           type: "number",
+  //           minimum: -100,
+  //           maximum: 100,
+  //         },
+  //         materiau_conducteur_AC: {
+  //           type: "string",
+  //           description: "Matériaux conducteurs: cuivre ou aluminium",
+  //         },
+  //         materiau_conducteur_DC: {
+  //           type: "string",
+  //           description: "Matériaux conducteurs: cuivre ou aluminium",
+  //         },
+  //         puissance_nominale_onduleur_Wh: {
+  //           type: "number",
+  //           minimum: 0,
+  //         },
+  //         tension_Reseau_V: {
+  //           type: "number",
+  //           minimum: 0,
+  //         },
+  //         is_Triphase: {
+  //           type: "boolean",
+  //           description: "Le système est il triphasé ou non",
+  //         },
+  //         longueur_Meters: {
+  //           type: "number",
+  //           minimum: 0,
+  //         },
+  //         cosPhi: {
+  //           type: "number",
+  //           minimum: -1,
+  //           maximum: 1,
+  //         },
+  //         methodePose: {
+  //           type: "string",
+  //           description:
+  //             "Mode de pose selon NF C 15 100 : conduit_encastre , conduit_surface , air_libre , enterre ou gaine_technique",
+  //         },
+  //       },
+  //     },
+  //   },
+  //   handler:
+  //     installationPhotovoltaiqueController.dimensionnerCablesEtProtections.bind(
+  //       installationPhotovoltaiqueController
+  //     ),
+  // });
 
   // ROUTE SANTÉ
   app.get("/sante", {
