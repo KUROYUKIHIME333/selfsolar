@@ -292,9 +292,9 @@ export class InstallationPhotovoltaiqueController {
       Body: {
         typeInstallation: TypeInstallationPourPertes;
         pompageSolaire: boolean;
-        energieCrete_Wh?: number;
         PSH_heuresParJour: number;
         avecStockage: boolean;
+        energieCrete_Wh?: number;
         pompageCaracteristiques?: PompageSolaireCaracteristiques;
         rendementOnduleurMPPT?: number;
         technologieBatteries?: TechnologieBatterie;
