@@ -2,7 +2,14 @@ import { FastifyInstance } from "fastify";
 import { installationPhotovoltaiqueController } from "../controllers/installationPhotovoltaique.controllers.js";
 
 // Routes API pour le dimensionnement photovoltaïque
-// Base: /api/v1/pv/*
+
+/**
+ * WARNING:
+ * Toutes les routes suivante ont comme prefixe:
+ * /api/v1/pv/
+ *
+ * Par exemple:  /api/v1/pv/donnees-meteo ou /api/v1/pv/onduleur
+ */
 export const installationPhotovoltaiqueRoutes = async (
   app: FastifyInstance
 ) => {
