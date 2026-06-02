@@ -5,6 +5,9 @@ export const controllerErrorHandler = (error: unknown, name: string) => {
     error instanceof Error
       ? error.message
       : "Erreur inconnue lors de l'analyse de consommation.";
+
+  console.log(`${name}: ${message}`);
+
   return {
     success: false,
     error: `${name}: ${message}`,
@@ -16,7 +19,7 @@ export const controllerErrorHandler = (error: unknown, name: string) => {
 export const sendResponse = (
   successValue: boolean,
   errorValue: string | null,
-  dataValue: any,
+  dataValue: any
 ) => {
   return {
     success: successValue,
@@ -37,6 +40,8 @@ export const sendError = (reply: FastifyReply, error: any, code = 400) => {
       ? error.message || error.error || JSON.stringify(error)
       : error;
   const response = sendResponse(false, errorMessage, null);
+
+  console.log(errorMessage);
 
   return reply.code(code).send(response);
 };
