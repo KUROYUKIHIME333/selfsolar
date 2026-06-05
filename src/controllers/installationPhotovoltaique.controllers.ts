@@ -95,14 +95,12 @@ export class InstallationPhotovoltaiqueController {
         error: errorPia,
         data: puissanceInstalleeTotal,
       } = bilanConsommationService.puissanceInstaleeAC(equipements);
-      bilanConsommationService.puissanceInstaleeAC(equipements);
 
       const {
         success: successPp,
         error: errorPp,
         data: puissancePicDemarrage,
       } = bilanConsommationService.puissancePic(equipements);
-      bilanConsommationService.puissancePic(equipements);
 
       if (
         !successEc ||
