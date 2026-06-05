@@ -379,7 +379,7 @@ export interface MRcalcMonthly {
 export interface MRcalcResponse {
   inputs?: {
     plane?: {
-      "fixed(i_opt)"?: {
+      fixed_inclined_optimal?: {
         slope?: { value?: number };
       };
     };
