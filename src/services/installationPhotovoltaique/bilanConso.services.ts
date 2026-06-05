@@ -1,45 +1,110 @@
 import type { Equipement } from "../../types/installationPhotovoltaique.types.js";
+import { sendResponse } from "../../utils/handlers.utils.js";
 
 // Service de calcul du bilan de consommation électrique
-// Basé sur NFC 15-100 §771 - Méthode des coefficients de simultanéité
-
+// Basé sur NFC 15-100 - Méthode des coefficients de simultanéité et d'appel
 export class BilanConsommationService {
+  /**
+   * Calcule l'énergie journalière totale consommée
+   * Formule: E_charge [Wh/j] = Σ (P_i × h_i)
+   */
+  public energieTotal(equipements: Equipement[]): {
+    success: boolean;
+    error: string | null;
+    data: number | null;
+  } {
+    this.validationEquipements(equipements);
 
-    /**
-     * Calcule l'énergie journalière totale consommée
-     * Formule: E_charge [Wh/j] = Σ (P_i × h_i × ks_i)
-     * @param equipements Liste des équipements avec puissance, durée, facteur simultanéité
-     * @returns Énergie totale en Wh/jour
-     */
-    energieTotal(equipements: Equipement[]): number {
-        const energiesEquipement = equipements.map(({ nom, P, h, ks }) => ({
-            equipement: nom || "Non nommé",
-            energie: P * h * ks
-        }));
+    const total = equipements.reduce((acc, eq) => {
+      const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
+      const heures = typeof eq.h === "number" && eq.h > 0 ? eq.h : 0;
 
-        const total = energiesEquipement.reduce((acc, { energie }) => acc + energie, 0);
+      return acc + puissance * heures;
+    }, 0);
 
-        return total; // en Wh/j
+    return sendResponse(true, null, Number(total.toFixed(2)));
+  }
+
+  /**
+   * Calcule la puissance appelée maximale simultanée en AC
+   * Formule: P_appelee = kf * Σ P_i
+   * @param equipements Liste des équipements
+   * @param kf Facteur de foisonnement global (0.6-1.0, défaut 0.8 selon NFC 15-100)
+   * @returns Puissance appelée en W
+   */
+  public puissanceAppelee(
+    equipements: Equipement[],
+    kf: number | null | undefined
+  ): { success: boolean; error: string | null; data: number | null } {
+    this.validationEquipements(equipements);
+
+    const P_crete_charge = equipements.reduce((acc, eq) => {
+      const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
+      return acc + puissance;
+    }, 0);
+
+    // Kf tient compte de la non-simultanéité entre usages différents
+    const facteurFoisonnement =
+      typeof kf === "number" && kf > 0 && kf <= 1 ? kf : 1;
+
+    const P_appelee = P_crete_charge * facteurFoisonnement;
+
+    return sendResponse(true, null, Number(P_appelee.toFixed(2)));
+  }
+
+  /**
+   * Calcule la puissance totale installée en AC (sans aucun coefficient)
+   * Formule: P_installee = Σ P_i
+   * @param equipements Liste des équipements
+   * @returns Puissance totale installée en W
+   */
+  public puissanceInstaleeAC(equipements: Equipement[]): {
+    success: boolean;
+    error: string | null;
+    data: number | null;
+  } {
+    this.validationEquipements(equipements);
+
+    const P_installee = equipements.reduce((acc, eq) => {
+      const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
+      return acc + puissance;
+    }, 0);
+
+    return sendResponse(true, null, Number(P_installee.toFixed(2))); // en W
+  }
+
+  /**
+   * Calcule la puissance de crête absolue lors du démarrage simultané des équipements
+   * Formule: P_pic = Σ (P_i × k_i)
+   * @param equipements Liste des équipements avec leur facteur de démarrage individuel k
+   * @returns Puissance de pointe maximale en W (dimensionnement transitoire de l'onduleur)
+   */
+  public puissancePic(equipements: Equipement[]): {
+    success: boolean;
+    error: string | null;
+    data: number | null;
+  } {
+    this.validationEquipements(equipements);
+
+    const P_pic = equipements.reduce((acc, eq) => {
+      const puissance = typeof eq.P === "number" && eq.P > 0 ? eq.P : 0;
+      // Si k n'est pas défini ou invalide, le coefficient d'appel par défaut est 1 (charge résistive pure)
+      const coefficientAppel = typeof eq.k === "number" && eq.k >= 1 ? eq.k : 1;
+
+      return acc + puissance * coefficientAppel;
+    }, 0);
+
+    return sendResponse(true, null, Number(P_pic.toFixed(2))); // en W
+  }
+
+  private validationEquipements(equipements: Equipement[]) {
+    if (!Array.isArray(equipements)) {
+      throw new Error("Liste des equipements invalide");
     }
-
-    /**
-     * Calcule la puissance de crête apparente (charges simultanées)
-     * Formule: P_crête = Σ (P_i × ks_i) × Kf (facteur de foisonnement global)
-     * @param equipements Liste des équipements
-     * @param kf Facteur de foisonnement global (0.6-1.0, défaut 0.8)
-     * @returns Puissance apparente en W
-     */
-    puissanceTotal(equipements: Equipement[], kf: number | null | undefined): number {
-        const P_crête_charge = equipements.reduce((acc, { P, ks }) => acc + (P * ks), 0);
-
-        // Facteur de foisonnement global selon NFC 15-100
-        // Kf tient compte de la non-simultanéité entre usages différents
-        const facteurFoisonnement = kf ?? 0.8; // Valeur standard résidentiel
-
-        const P_appelée = P_crête_charge * facteurFoisonnement;
-
-        return P_appelée; // en W
+    if (equipements.length === 0) {
+      throw new Error("Liste des equipements vide");
     }
+  }
 }
 
 export const bilanConsommationService = new BilanConsommationService();

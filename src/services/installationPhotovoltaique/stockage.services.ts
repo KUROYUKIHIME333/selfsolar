@@ -1,210 +1,268 @@
 import type {
-    TechnologieBatterie,
-    ResultatStockage
+  TechnologieBatterie,
+  ResultatStockage,
 } from "../../types/installationPhotovoltaique.types.js";
+import { CONFIG_TECHNOLOGIES } from "../../utils/constantesPhysiques.utils.js";
+import { sendResponse } from "../../utils/handlers.utils.js";
 
-// Service de dimensionnement du stockage électrochimique
-// Conforme IEC 62619 (Li-ion), IEC 60896 (plomb), p.6 guide
+// Spécifications de la technologie conformes IEC 62619 (Li-ion), IEC 60896 (plomb) et p.6 du guide
 
 export class StockageService {
+  /**
+   * Valide la cohérence physique des paramètres d'entrée
+   * Évite les divisions par zéro, les valeurs infinies ou absurdes au runtime
+   * Retourne le message d'erreur sous forme de chaîne, ou null si tout est valide
+   */
+  private validationParametres(
+    nomFonction: string,
+    parametres: Record<string, unknown>
+  ): string | null {
+    for (const [cle, val] of Object.entries(parametres)) {
+      // Évite le faux-positif si la température ambiante optionnelle n'est pas fournie
+      if (
+        cle === "temperatureAmbiante" &&
+        (val === undefined || val === null)
+      ) {
+        continue;
+      }
 
-    /**
-     * Calcule la capacité de stockage requise
-     * Formules :
-     * - C_utile [Wh] = E_charge [Wh/j] × N_aut
-     * - C_nominale [Wh] = C_utile / DoD_max
-     * - C_Ah [Ah] = C_nominale [Wh] / U_batt [V]
-     * 
-     * Dé-rating température plomb: -1%/°C au-delà de 25°C (p.6 guide)
-     * 
-     * @param technologie Technologie batterie
-     * @param consommationJournaliere Wh/jour
-     * @param autonomie Jours d'autonomie souhaités
-     * @param tensionSysteme Tension système batterie (V)
-     * @param temperatureAmbiante Température ambiante max (°C, optionnel)
-     * @returns Capacité nominale et utile avec métadonnées
-     */
-    capaciteStockage(
-        technologie: TechnologieBatterie = "LiFePO4",
-        consommationJournaliere: number,
-        autonomie: number,
-        tensionSysteme: number,
-        temperatureAmbiante?: number
-    ): ResultatStockage {
+      if (val === undefined || val === null) {
+        return `[StockageService.${nomFonction}] Le paramètre '${cle}' est manquant.`;
+      }
 
-        // Paramètres par technologie (p.6 guide)
-        let profondeurDecharge: number;
-        let cyclesMin: number;
-        let cyclesMax: number;
-        let tempMin: number;
-        let tempMax: number;
-
-        switch (technologie) {
-            case "Plomb-acide":
-            case "AGM/Gel":
-                profondeurDecharge = 0.50;      // 50% max pour longévité
-                cyclesMin = 300;
-                cyclesMax = 600;
-                tempMin = -20;
-                tempMax = 50;
-                break;
-
-            case "LiFePO4":
-                profondeurDecharge = 0.85;      // 80-90% possible, 85% conservateur
-                cyclesMin = 2000;
-                cyclesMax = 6000;
-                tempMin = 0;
-                tempMax = 55;
-                break;
-
-            case "Lithium NMC/NCA":
-                profondeurDecharge = 0.80;      // 80% pour sécurité
-                cyclesMin = 500;
-                cyclesMax = 2000;
-                tempMin = 0;
-                tempMax = 45;                   // Plus sensible chaleur que LFP
-                break;
-
-            case "NiCd":
-                profondeurDecharge = 0.65;      // 60-70%
-                cyclesMin = 1000;
-                cyclesMax = 3000;
-                tempMin = -20;
-                tempMax = 45;
-                break;
-
-            default:
-                throw new Error(`Technologie batterie non supportée: ${technologie}`);
+      if (typeof val === "number") {
+        if (isNaN(val) || !isFinite(val)) {
+          return `[StockageService.${nomFonction}] Le paramètre '${cle}' n'est pas un nombre valide.`;
         }
 
-        // Énergie utile requise
-        const capaciteUtile = consommationJournaliere * autonomie;
-
-        // Capacité nominale brute (avant corrections)
-        let capaciteNominaleWh = capaciteUtile / profondeurDecharge;
-
-        let deratingApplique = false;
-
-        // CORRECTION: Dé-rating température pour plomb-acide (p.6 guide)
-        // "En RDC et milieu tropical... Dé-rating recommandé: −1%/°C au-delà de 25°C"
-        if ((technologie === "Plomb-acide" || technologie === "AGM/Gel") && temperatureAmbiante) {
-            if (temperatureAmbiante > 25) {
-                const perteCapacite = (temperatureAmbiante - 25) * 0.01; // 1% par °C
-                const facteurDerating = 1 + perteCapacite; // Augmenter capacité pour compenser
-                capaciteNominaleWh = capaciteNominaleWh * facteurDerating;
-                deratingApplique = true;
-            }
+        // Règles seulement pour les valeurs qui doivent être strictement positives
+        if (
+          [
+            "consommationJournaliere",
+            "autonomie",
+            "tensionSysteme",
+            "tensionBatterie",
+            "capaciteBatterie",
+            "capaciteTotal",
+            "puissancePVCrete",
+            "tensionBatteries",
+            "puissanceChargeMax",
+          ].includes(cle) &&
+          val <= 0
+        ) {
+          return `[StockageService.${nomFonction}] Le paramètre '${cle}' doit être strictement supérieur à 0.`;
         }
 
-        // Conversion Ah
-        const capaciteNominaleAh = capaciteNominaleWh / tensionSysteme;
-
-        return {
-            appareil: "Batteries",
-            typeBatterie: technologie,
-            DoDMax: profondeurDecharge,
-            cyclesDoDMax: {
-                min: cyclesMin,
-                max: cyclesMax
-            },
-            plageTemperatureFonctionnement: {
-                min: tempMin,
-                max: tempMax  // ✅ CORRIGÉ: était tempMin avant
-            },
-            capacite: {
-                utile_Wh: Math.round(capaciteUtile),
-                nominale_Wh: Math.round(capaciteNominaleWh),
-                nominale_Ah: Math.round(capaciteNominaleAh * 10) / 10
-            },
-            autonomieJours: autonomie,
-            temperatureDeratingApplique: deratingApplique
-        };
-    }
-
-    /**
-     * Calcule la disposition des modules batterie (série/parallèle)
-     * 
-     * @param tensionSystem Tension système cible (V)
-     * @param tensionBatterie Tension unitaire batterie (V, typ: 12V)
-     * @param capaciteBatterie Capacité unitaire (Ah)
-     * @param capaciteTotal Capacité totale requise (Ah)
-     * @returns Disposition optimale
-     */
-    modulesBatteries(
-        tensionSystem: number,
-        tensionBatterie: number,
-        capaciteBatterie: number,
-        capaciteTotal: number
-    ): {
-        appareil: string;
-        nombre: number;
-        disposition: {
-            batteriesParString: number;
-            modulesEnParallele: number;
-        };
-    } {
-        // Nombre de batteries en série pour tension système
-        const batteriesParString = Math.round(tensionSystem / tensionBatterie);
-
-        // Vérification cohérence
-        if (Math.abs(batteriesParString * tensionBatterie - tensionSystem) > tensionBatterie * 0.1) {
-            console.warn(`Tension système ${tensionSystem}V non multiple de ${tensionBatterie}V`);
+        // Règle d'or pour le rendement de l'onduleur
+        if (cle === "rendementOnduleur" && (val <= 0 || val > 1)) {
+          return `[StockageService.${nomFonction}] Le rendement de l'onduleur doit être compris entre 0 (exclus) et 1 (inclus).`;
         }
+      }
+    }
+    return null;
+  }
 
-        // Nombre de strings en parallèle pour capacité
-        const stringsEnParallele = Math.ceil(capaciteTotal / capaciteBatterie);
+  /**
+   * Calcule la capacité de stockage requise
+   * Formules :
+   * - C_utile [Wh] = E_charge [Wh/j] × N_aut
+   * - C_nominale [Wh] = C_utile / DoD_max
+   * - C_Ah [Ah] = C_nominale [Wh] / U_batt [V]
+   *
+   * Dé-rating température plomb: -1%/°C au-delà de 25°C (p.6 guide)
+   */
+  public capaciteStockage(
+    technologie: TechnologieBatterie = "LiFePO4",
+    consommationJournaliere: number,
+    autonomie: number,
+    tensionSysteme: number,
+    temperatureAmbiante?: number | undefined
+  ): { success: boolean; error: string | null; data: ResultatStockage | null } {
+    const errorValidation = this.validationParametres("capaciteStockage", {
+      consommationJournaliere,
+      autonomie,
+      tensionSysteme,
+      temperatureAmbiante,
+    });
 
-        return {
-            appareil: "Batteries",
-            nombre: batteriesParString * stringsEnParallele,
-            disposition: {
-                batteriesParString: batteriesParString,
-                modulesEnParallele: stringsEnParallele
-            }
-        };
+    if (errorValidation) {
+      return sendResponse(false, errorValidation, null);
     }
 
-    /**
-     * Dimensionne le régulateur de charge / BMS
-     * Formules (p.6 guide):
-     * - I_charge_max = P_PV_crête / U_batterie
-     * - I_décharge_max = P_charge_max / (U_batterie × η_onduleur)
-     * 
-     * Référence: IEC 62619 (sécurité Li-ion stationnaire)
-     * 
-     * @param puissancePVCrete Puissance crête PV (W)
-     * @param tensionBatteries Tension batterie (V)
-     * @param puissanceChargeMax Puissance max charge (W)
-     * @param rendementOnduleur Rendement onduleur (0-1)
-     * @returns Courants max charge/décharge
-     */
-    regulateurBMS(
-        puissancePVCrete: number,
-        tensionBatteries: number,
-        puissanceChargeMax: number,
-        rendementOnduleur: number
-    ): {
-        appareil: string;
-        IChargeMax: number;      // A
-        IDechargeMax: number;    // A
-        IBMSRecommande: number;  // A (avec marge 25%)
-    } {
-        // Courant charge max (entrée PV)
-        const courantChargeMax = puissancePVCrete / tensionBatteries;
-
-        // Courant décharge max (sortie vers charge/onduleur)
-        const courantDechargeMax = puissanceChargeMax / (tensionBatteries * rendementOnduleur);
-
-        // BMS avec marge de 25% pour pics et vieillissement
-        const iBMSRecommande = Math.max(courantChargeMax, courantDechargeMax) * 1.25;
-
-        return {
-            appareil: "Battery Management System",
-            IChargeMax: Math.round(courantChargeMax * 100) / 100,
-            IDechargeMax: Math.round(courantDechargeMax * 100) / 100,
-            IBMSRecommande: Math.ceil(iBMSRecommande / 10) * 10 // Arrondi dizaine supérieure
-        };
+    const config = CONFIG_TECHNOLOGIES[technologie];
+    if (!config) {
+      return sendResponse(
+        false,
+        `Technologie batterie non supportée: ${technologie}`,
+        null
+      );
     }
+
+    const { profondeurDecharge, cyclesMin, cyclesMax, tempMin, tempMax } =
+      config;
+
+    // Énergie utile requise
+    const capaciteUtile = consommationJournaliere * autonomie;
+
+    // Capacité nominale brute (avant corrections)
+    let capaciteNominaleWh = capaciteUtile / profondeurDecharge;
+    let deratingApplique = false;
+
+    // CORRECTION: Dé-rating température pour le plomb-acide (p.6 guide)
+    // Utilisation d'une vérification stricte contre undefined pour autoriser la valeur 0°C
+    if (
+      (technologie === "Plomb-acide" || technologie === "AGM/Gel") &&
+      temperatureAmbiante &&
+      temperatureAmbiante > 25
+    ) {
+      const tClamped = Math.min(temperatureAmbiante, 50);
+      let facteurDerating = 1;
+
+      if (tClamped <= 40) {
+        facteurDerating += (tClamped - 25) * 0.01; // +1% par °C
+      } else {
+        const zoneStandard = (40 - 25) * 0.01; // 15%
+        const zoneCritique = (tClamped - 40) * 0.02; // +2% par °C au-dessus de 40
+        facteurDerating += zoneStandard + zoneCritique;
+
+        console.warn(
+          `Température de ${tClamped}°C détectée. Application d'un surdimensionnement critique.`
+        );
+      }
+
+      capaciteNominaleWh = capaciteNominaleWh * facteurDerating;
+      deratingApplique = true;
+    }
+
+    // Conversion Ah
+    const capaciteNominaleAh = capaciteNominaleWh / tensionSysteme;
+
+    const returnDatas = {
+      appareil: "Batteries",
+      typeBatterie: technologie,
+      DoDMax: profondeurDecharge,
+      cyclesDoDMax: {
+        min: cyclesMin,
+        max: cyclesMax,
+      },
+      plageTemperatureFonctionnement: {
+        min: tempMin,
+        max: tempMax,
+      },
+      capacite: {
+        utile_Wh: Math.round(capaciteUtile),
+        nominale_Wh: Math.round(capaciteNominaleWh),
+        nominale_Ah: Math.round(capaciteNominaleAh * 10) / 10,
+      },
+      autonomieJours: autonomie,
+      temperatureDeratingApplique: deratingApplique,
+    };
+    return sendResponse(true, null, returnDatas);
+  }
+
+  /**
+   * Calcule la disposition des modules batterie (série/parallèle)
+   */
+  public modulesBatteries(
+    tensionSystem: number,
+    tensionBatterie: number,
+    capaciteBatterie: number,
+    capaciteTotal: number
+  ): {
+    success: boolean;
+    error: string | null;
+    data: {
+      appareil: string;
+      nombre: number;
+      disposition: {
+        batteriesParString: number;
+        modulesEnParallele: number;
+      };
+    } | null;
+  } {
+    const errorValidation = this.validationParametres("modulesBatteries", {
+      tensionSysteme: tensionSystem,
+      tensionBatterie,
+      capaciteBatterie,
+      capaciteTotal,
+    });
+
+    if (errorValidation) {
+      return sendResponse(false, errorValidation, null);
+    }
+
+    const batteriesParString = Math.round(tensionSystem / tensionBatterie);
+
+    if (
+      Math.abs(batteriesParString * tensionBatterie - tensionSystem) >
+      tensionBatterie * 0.1
+    ) {
+      console.warn(
+        `Tension système ${tensionSystem}V non multiple de ${tensionBatterie}V`
+      );
+    }
+
+    const stringsEnParallele = Math.ceil(capaciteTotal / capaciteBatterie);
+
+    const returnDatas = {
+      appareil: "Batteries",
+      nombre: batteriesParString * stringsEnParallele,
+      disposition: {
+        batteriesParString: batteriesParString,
+        modulesEnParallele: stringsEnParallele,
+      },
+    };
+    return sendResponse(true, null, returnDatas);
+  }
+
+  /**
+   * Dimensionne le régulateur de charge / BMS
+   */
+  public regulateurBMS(
+    puissancePVCrete: number,
+    tensionBatteries: number,
+    puissanceChargeMax: number,
+    rendementOnduleur: number
+  ): {
+    success: boolean;
+    error: string | null;
+    data: {
+      appareil: string;
+      IChargeMax: number;
+      IDechargeMax: number;
+      IBMSRecommande: number;
+    } | null;
+  } {
+    const errorValidation = this.validationParametres("regulateurBMS", {
+      puissancePVCrete,
+      tensionBatteries,
+      puissanceChargeMax,
+      rendementOnduleur,
+    });
+
+    if (errorValidation) {
+      return sendResponse(false, errorValidation, null);
+    }
+
+    // Courant charge max (entrée PV)
+    const courantChargeMax = puissancePVCrete / tensionBatteries;
+
+    // Courant décharge max (sortie vers charge/onduleur)
+    const courantDechargeMax =
+      puissanceChargeMax / (tensionBatteries * rendementOnduleur);
+
+    // BMS avec marge de 25% pour pics et vieillissement
+    const iBMSRecommande =
+      Math.max(courantChargeMax, courantDechargeMax) * 1.25;
+
+    const returnDatas = {
+      appareil: "Battery Management System",
+      IChargeMax: Math.round(courantChargeMax * 100) / 100,
+      IDechargeMax: Math.round(courantDechargeMax * 100) / 100,
+      IBMSRecommande: Math.ceil(iBMSRecommande / 10) * 10, // Arrondi à la dizaine supérieure
+    };
+    return sendResponse(true, null, returnDatas);
+  }
 }
 
 export const stockageService = new StockageService();
