@@ -1,430 +1,431 @@
 import type {
-    ParametresSTCPanneau,
-    ResultatModulesPV,
-    MateriauConducteur,
-    MethodePose,
-    ConditionEnvironnement,
-    TypeCableSolaire,
-    CableDCDimensionnement,
-    ProtectionDC,
-    DimensionnementAC,
-    ResultatDimensionnementCablage
+  ResultatModulesPV,
+  ParametresSTCPanneau,
+  MateriauConducteur,
+  DimensionnementAC,
+  MethodePose,
+  CalculSectionDCIntern,
+  ResultatDimensionnementDC,
+  ResultatSelectivite,
 } from "../../types/installationPhotovoltaique.types.js";
 import {
-    RESISTIVITE,
-    COEFF_TEMP,
-    TEMP_MAX_CONDUCTEUR,
-    SECTIONS_NORMALISEES,
-    COURANT_ADMISSIBLE_CUIVRE_B2,
-    FACTEUR_ALUMINIUM,
-    FACTEUR_TEMPERATURE_PVC,
-    FACTEUR_POSE,
-    FACTEUR_GROUPEMENT,
-    CALIBRES_FUSIBLES_DC,
-    CALIBRES_DISJONCTEURS
-} from "../../utils/constantesPhysiques.utils.js"
+  SECTIONS_NORMALISEES,
+  RESISTIVITE,
+  COEFF_TEMP,
+  COURANT_ADMISSIBLE_CUIVRE_B2,
+  COURANT_ADMISSIBLE_ALU_B2,
+  FACTEUR_TEMPERATURE_PVC,
+  FACTEUR_GROUPEMENT,
+} from "../../utils/constantesPhysiques.utils.js";
+import { sendResponse } from "../../utils/handlers.utils.js";
 
-
-// Service de dimensionnement des câbles et protections électriques
 export class CablageEtProtectionsService {
+  // DIMENSIONNEMENT CÂBLES DC (STRING & PRINCIPAL PV)
+  public dimensionnerCablesDC(
+    resultatModules: ResultatModulesPV,
+    panneauParametres: ParametresSTCPanneau,
+    longueurStringMeters: number = 15,
+    longueurPrincipalMeters: number = 10,
+    temperatureAmbiante: number = 30,
+    materiau: MateriauConducteur = "cuivre"
+  ): {
+    success: boolean;
+    error: string | null;
+    data: ResultatDimensionnementDC | null;
+  } {
+    try {
+      const Isc_stc = panneauParametres.courantCourtCircuit;
+      const Voc_stc = panneauParametres.tensionVoc;
+      const nombreStrings = resultatModules.stringsEnParallele;
 
-    // Dimensionnement complet du câblage DC et des protections associées
-    dimensionnerCablesDC(
-        resultatModules: ResultatModulesPV,
-        panneauParametres: ParametresSTCPanneau,
-        longueurString: number = 15,
-        longueurPrincipal: number = 10,
-        temperatureAmbiante: number = 40,
-        nombreStrings: number,
-        materiau: MateriauConducteur = "cuivre",
-        methodePose: MethodePose = "conduit_surface",
-        conditionEnvironnement: ConditionEnvironnement = "chaud"
-    ): ResultatDimensionnementCablage {
-
-        const {
-            courantCourtCircuit: Isc,
-            tensionMPP: Vmpp,
-            tensionVoc
-        } = panneauParametres;
-
-        const avertissements: string[] = [];
-        const sectionsUtilisees: number[] = [];
-
-        // Ajustement température
-        let tempAmbianteEffective = temperatureAmbiante;
-        let tempMaxConducteur = TEMP_MAX_CONDUCTEUR["H1Z2Z2-K"];
-
-        if (conditionEnvironnement === "extreme" || conditionEnvironnement === "tres_chaud") {
-            tempAmbianteEffective = Math.max(temperatureAmbiante, 50);
-            avertissements.push(
-                `Condition extrême: température ambiante ${tempAmbianteEffective}°C - Dé-rating appliqué`
-            );
-        }
-
-        const tempConducteurCalculee = Math.min(
-            tempAmbianteEffective + 20,
-            tempMaxConducteur
+      if (!Isc_stc || Isc_stc <= 0)
+        return sendResponse(false, "Isc_stc doit être supérieur à 0", null);
+      if (!Voc_stc || Voc_stc <= 0)
+        return sendResponse(false, "Voc_stc doit être supérieur à 0", null);
+      if (!nombreStrings || nombreStrings <= 0)
+        return sendResponse(
+          false,
+          "nombreStrings doit être au moins de 1",
+          null
         );
 
-        // Courant de dimensionnement
-        const courantDimensionnement = Isc * 1.25;
+      const Isc_max_string = Isc_stc * 1.25;
+      const Isc_max_principal = Isc_stc * nombreStrings * 1.25;
 
-        // Câble par string
-        const cableString = this.calculerSectionCableDC(
-            longueurString,
-            courantDimensionnement,
-            Vmpp,
-            1.0,
-            tempAmbianteEffective,
-            tempConducteurCalculee,
-            materiau,
-            methodePose,
-            1,
-            "H1Z2Z2-K"
+      const k_temp = this.interpolerFacteurTemperature(temperatureAmbiante);
+      const k_group_string = 1.0;
+      const k_group_principal = this.obtenirFacteurGroupement(nombreStrings);
+
+      const k_total_string = k_temp * k_group_string;
+      const k_total_principal = k_temp * k_group_principal;
+
+      const sectionString = this.calculerSectionCableDC(
+        Isc_max_string,
+        longueurStringMeters,
+        Voc_stc,
+        k_total_string,
+        1.0,
+        materiau
+      );
+
+      if (!sectionString.success || !sectionString.data) {
+        return sendResponse(
+          false,
+          `[Câble String] ${sectionString.error}`,
+          null
         );
-        sectionsUtilisees.push(cableString.section);
+      }
 
-        // Câble principal DC
-        const facteurFoisonnement = nombreStrings > 3 ? 0.8 : 1.0;
-        const courantTotal = nombreStrings * courantDimensionnement * facteurFoisonnement;
-        const tensionSystemeDC = resultatModules.tensionStringSTC;
-        const chuteTensionMaxPrincipal = 2.0;
+      const sectionPrincipal = this.calculerSectionCableDC(
+        Isc_max_principal,
+        longueurPrincipalMeters,
+        Voc_stc,
+        k_total_principal,
+        2.0,
+        materiau
+      );
 
-        const cablePrincipal = this.calculerSectionCableDC(
-            longueurPrincipal,
-            courantTotal,
-            tensionSystemeDC,
-            chuteTensionMaxPrincipal,
-            tempAmbianteEffective,
-            tempConducteurCalculee,
-            materiau,
-            methodePose,
-            Math.min(nombreStrings, 6),
-            "H1Z2Z2-K"
+      if (!sectionPrincipal.success || !sectionPrincipal.data) {
+        return sendResponse(
+          false,
+          `[Câble Principal] ${sectionPrincipal.error}`,
+          null
         );
-        sectionsUtilisees.push(cablePrincipal.section);
+      }
 
-        // Protections string (fusibles)
-        const protectionsString: ProtectionDC[] = [];
+      const protectionRequise = nombreStrings >= 3;
+      let calibreFusibleRecommande = 0;
 
-        if (nombreStrings > 2) {
-            const InMin = Isc * 1.56;
-            const InMax = Isc * 2.0;
-            const calibreFusible = this.calibrerFusibleDC(InMin, InMax);
+      if (protectionRequise) {
+        const In_min = 1.4 * Isc_stc;
+        calibreFusibleRecommande = Math.ceil(In_min);
+      }
 
-            protectionsString.push({
-                type: "fusible",
-                calibre: calibreFusible,
-                tensionAssignee: Math.ceil(resultatModules.vocStringFroid * 1.2),
-                pouvoirCoupure: 10,
-                norme: "IEC 60269-6",
-                emplacement: `Boîte de jonction DC - ${nombreStrings} strings`,
-                caracteristiques: `gPV - fusible photovoltaïque ${calibreFusible}A`
-            });
-        }
+      const returnDatas = {
+        cableString: {
+          courantEmploi_Ib: Number(Isc_max_string.toFixed(2)),
+          facteurCorrectionK: Number(k_total_string.toFixed(2)),
+          sectionConseillee_mm2: sectionString.data.section,
+          chuteTension_Pourcent: Number(
+            sectionString.data.chutePourcent.toFixed(2)
+          ),
+        },
+        cablePrincipal: {
+          courantEmploi_Ib: Number(Isc_max_principal.toFixed(2)),
+          facteurCorrectionK: Number(k_total_principal.toFixed(2)),
+          sectionConseillee_mm2: sectionPrincipal.data.section,
+          chuteTension_Pourcent: Number(
+            sectionPrincipal.data.chutePourcent.toFixed(2)
+          ),
+        },
+        protections: {
+          fusiblesStringsRequis: protectionRequise,
+          calibreFusibleString_A: calibreFusibleRecommande,
+        },
+      };
+      return sendResponse(true, null, returnDatas);
+    } catch (error: unknown) {
+      throw new Error((error as Error).message || "Erreur DC interne")
+    }
+  }
 
-        // Protections onduleur DC
-        const protectionOnduleurDC: ProtectionDC[] = [];
+  // DIMENSIONNEMENT CÂBLES AC (ONDULEUR -> RÉSEAU)
+  public dimensionnerCablageAC(
+    puissanceNominaleOnduleurWh: number,
+    tensionReseauV: number,
+    isTriphase: boolean,
+    longueurMeters: number,
+    cosPhi: number = 0.8,
+    temperatureAmbiante: number = 30,
+    materiau: MateriauConducteur = "cuivre",
+    methodePose: MethodePose = "conduit_encastre"
+  ): {
+    success: boolean;
+    error: string | null;
+    data: DimensionnementAC | null;
+  } {
+    if (!puissanceNominaleOnduleurWh || puissanceNominaleOnduleurWh <= 0)
+      return sendResponse(false, "puissanceNominaleOnduleurWh invalide", null);
+    if (!tensionReseauV || tensionReseauV <= 0)
+      return sendResponse(false, "Tension réseau invalide", null);
 
-        protectionOnduleurDC.push({
-            type: "sectionneur",
-            tensionAssignee: Math.ceil(resultatModules.vocStringFroid * 1.2),
-            norme: "IEC 60947-3",
-            emplacement: "Entrée onduleur DC - coupure maintenance",
-            caracteristiques: `Un ≥ ${Math.ceil(resultatModules.vocStringFroid * 1.2)}V, In ≥ ${Math.ceil(courantTotal * 1.25)}A`
-        });
-
-        if (courantTotal > 50) {
-            const calibreDisjoncteur = this.calibrerDisjoncteur(courantTotal * 1.25, Infinity);
-            protectionOnduleurDC.push({
-                type: "disjoncteur",
-                calibre: calibreDisjoncteur,
-                tensionAssignee: Math.ceil(resultatModules.vocStringFroid * 1.2),
-                pouvoirCoupure: 6,
-                norme: "IEC 60947-2",
-                emplacement: "Protection entrée DC onduleur",
-                caracteristiques: `Courbe C ou D, ${calibreDisjoncteur}A`
-            });
-        }
-
-        // IDEA: parafoudreDC objet ProtectionDC, pas un array
-        const typeParafoudre = (longueurString > 10 || conditionEnvironnement === "extreme")
-            ? "Type 1+2 (Imax 12.5kA 10/350μs)"
-            : "Type 2 (Imax 5kA 8/20μs)";
-
-        const parafoudreDC: ProtectionDC = {
-            type: "parafoudre",
-            tensionAssignee: Math.ceil(resultatModules.vocStringFroid * 1.2),
-            norme: "IEC 61643-31",
-            emplacement: longueurString > 10
-                ? "Boîte jonction + entrée onduleur"
-                : "Entrée onduleur DC",
-            caracteristiques: `${typeParafoudre} - Up ≤ 2.0kV, Uc ≥ ${Math.ceil(resultatModules.vocStringFroid * 1.2)}V`
-        };
-
-        // Vérification chute tension
-        const chuteTensionGlobale = cableString.chuteTensionPourcent + cablePrincipal.chuteTensionPourcent;
-        const verificationChuteTension = chuteTensionGlobale <= 3.0;
-
-        if (!verificationChuteTension) {
-            avertissements.push(
-                `Chute tension globale DC ${chuteTensionGlobale.toFixed(2)}% > 3% recommandé`
-            );
-        }
-
-        if (materiau === "aluminium") {
-            avertissements.push(
-                `Aluminium utilisé: vérifier compatibilité galvanique et serrage adapté`
-            );
-        }
-
-        // IDEA: retour avec parafoudreDC comme objet unique
-        return {
-            panneauVoc: tensionVoc,
-            cablesString: Array(nombreStrings).fill(cableString),
-            cablePrincipalDC: cablePrincipal,
-            protectionsString,
-            protectionOnduleurDC,
-            parafoudreDC,
-            sectionsStandardUtilisees: [...new Set(sectionsUtilisees)],
-            verificationChuteTensionGlobale: verificationChuteTension,
-            avertissements
-        };
+    let Ib = 0;
+    if (isTriphase) {
+      Ib =
+        puissanceNominaleOnduleurWh / (tensionReseauV * Math.sqrt(3) * cosPhi);
+    } else {
+      Ib = puissanceNominaleOnduleurWh / (tensionReseauV * cosPhi);
     }
 
-    // Calcule la section de câble DC
-    private calculerSectionCableDC(
-        longueur: number,
-        courant: number,
-        tension: number,
-        chuteTensionMax: number,
-        temperatureAmbiante: number,
-        temperatureConducteur: number,
-        materiau: MateriauConducteur,
-        methodePose: MethodePose,
-        nombreCircuitsGroupe: number,
-        typeCable: TypeCableSolaire
-    ): CableDCDimensionnement {
+    const In = Math.ceil(Ib * 1.1);
 
-        const rho20 = RESISTIVITE[materiau];
-        const alpha = COEFF_TEMP[materiau];
-        const rho = rho20 * (1 + alpha * (temperatureConducteur - 20));
+    const k_temp = this.interpolerFacteurTemperature(temperatureAmbiante);
+    const k_total = k_temp * 1.0;
+    const Iz_requis = In / k_total;
 
-        const kT = this.interpolerFacteurTemperature(temperatureAmbiante) ?? 1;
-        const kP = FACTEUR_POSE[methodePose];
-        const kG = FACTEUR_GROUPEMENT[Math.min(nombreCircuitsGroupe, 6)] || 0.57;
-        const kM = materiau === "aluminium" ? FACTEUR_ALUMINIUM : 1.0;
-        const kTotal = kT * kP * kG * kM;
+    const tableCourants =
+      materiau === "cuivre"
+        ? COURANT_ADMISSIBLE_CUIVRE_B2
+        : COURANT_ADMISSIBLE_ALU_B2;
 
-        for (const section of SECTIONS_NORMALISEES) {
-            const I0 = COURANT_ADMISSIBLE_CUIVRE_B2[section] || 0;
-            const Iz = I0 * kTotal;
+    const sectionMaximaleInitiale =
+      SECTIONS_NORMALISEES[SECTIONS_NORMALISEES.length - 1];
+    if (sectionMaximaleInitiale === undefined) {
+      return sendResponse(
+        false,
+        "[CablageAC] Table des sections vides ou non définie.",
+        null
+      );
+    }
 
-            if (Iz < courant) continue;
+    let sectionSelectionnee = sectionMaximaleInitiale;
+    let sectionTrouvee = false;
 
-            const chuteTensionV = (2 * longueur * courant * rho) / section;
-            const chuteTensionPourcent = (chuteTensionV / tension) * 100;
+    for (const section of SECTIONS_NORMALISEES) {
+      const courantAdmissible = tableCourants[section];
+      if (courantAdmissible !== undefined && courantAdmissible >= Iz_requis) {
+        sectionSelectionnee = section;
+        sectionTrouvee = true;
+        break;
+      }
+    }
 
-            if (chuteTensionPourcent <= chuteTensionMax) {
-                const resistanceLineique = rho * 1000 / section;
+    if (!sectionTrouvee) {
+      return sendResponse(
+        false,
+        `[CablageAC] Intensité requise (${Iz_requis.toFixed(
+          1
+        )}A) hors limites des tables pour l'${
+          materiau === "cuivre" ? "Cuivre" : "Aluminium"
+        }.`,
+        null
+      );
+    }
 
-                return {
-                    section,
-                    materiau,
-                    typeCable,
-                    courantAdmissible: Math.round(Iz * 100) / 100,
-                    courantDimensionnement: Math.round(courant * 100) / 100,
-                    resistanceLineique: Math.round(resistanceLineique * 1000) / 1000,
-                    chuteTensionV: Math.round(chuteTensionV * 100) / 100,
-                    chuteTensionPourcent: Math.round(chuteTensionPourcent * 100) / 100,
-                    chuteTensionMax,
-                    longueur,
-                    nombreConducteurs: 2,
-                    temperatureAmbiante,
-                    temperatureConducteur,
-                    methodePose,
-                    facteursCorrection: {
-                        kT: Math.round(kT * 100) / 100,
-                        kG: Math.round(kG * 100) / 100,
-                        kP: Math.round(kP * 100) / 100,
-                        kM: Math.round(kM * 100) / 100,
-                        total: Math.round(kTotal * 100) / 100
-                    }
-                };
-            }
-        }
+    const rho20 = RESISTIVITE[materiau];
+    const alpha = COEFF_TEMP[materiau];
+    const rho70 = rho20 * (1 + alpha * (70 - 20));
 
-        const sectionMinTheorique = (2 * longueur * courant * rho) / (tension * (chuteTensionMax / 100));
-        const sectionNormaliseeSuivante = SECTIONS_NORMALISEES.find(s => s >= sectionMinTheorique);
+    let chuteTensionV = 0;
+    let chutePourcent = 100;
 
-        if (sectionNormaliseeSuivante) {
-            throw new Error(
-                `Section standard insuffisante. Théorique: ${Math.ceil(sectionMinTheorique)} mm², ` +
-                `disponible: ${sectionNormaliseeSuivante} mm²`
-            );
-        }
+    const sectionMaximaleAbsolue =
+      SECTIONS_NORMALISEES[SECTIONS_NORMALISEES.length - 1] ??
+      sectionSelectionnee;
 
-        throw new Error(
-            `Dimensionnement impossible: 300mm² ${materiau} insuffisant pour ${courant}A sur ${longueur}m`
+    while (sectionSelectionnee <= sectionMaximaleAbsolue) {
+      if (isTriphase) {
+        chuteTensionV =
+          Math.sqrt(3) *
+          Ib *
+          longueurMeters *
+          (rho70 / sectionSelectionnee) *
+          cosPhi;
+      } else {
+        chuteTensionV =
+          2 * Ib * longueurMeters * (rho70 / sectionSelectionnee) * cosPhi;
+      }
+      chutePourcent = (chuteTensionV / tensionReseauV) * 100;
+
+      if (chutePourcent <= 3.0) {
+        break;
+      }
+
+      const indexActuel = SECTIONS_NORMALISEES.indexOf(sectionSelectionnee);
+      const sectionSuivante = SECTIONS_NORMALISEES[indexActuel + 1];
+
+      if (
+        indexActuel < SECTIONS_NORMALISEES.length - 1 &&
+        sectionSuivante !== undefined
+      ) {
+        sectionSelectionnee = sectionSuivante;
+      } else {
+        return sendResponse(
+          false,
+          `[CablageAC] Chute de tension prohibitive (${chutePourcent.toFixed(
+            1
+          )}%) même avec la section maximale disponible.`,
+          null
         );
+      }
     }
 
-    // Dimensionnement câblage AC
-    dimensionnerCablageAC(
-        puissanceAC: number,
-        tensionAC: number = 230,
-        cosPhi: number = 0.95,
-        longueur: number = 20,
-        typeCharge: "eclairage" | "force" | "mixte" = "mixte",
-        temperatureAmbiante: number = 30,
-        methodePose: MethodePose = "conduit_encastre",
-        materiau: MateriauConducteur = "cuivre"
-    ): DimensionnementAC {
+    const returnDatas = {
+      section: sectionSelectionnee,
+      materiau: materiau,
+      courantEmploi: Number(Ib.toFixed(2)),
+      courantAdmissible: Number((sectionSelectionnee * k_total).toFixed(2)),
+      protection: In,
+      chuteTension: Number(chutePourcent.toFixed(2)),
+      chuteTensionMax: 3.0,
+      ddr: {
+        type: "B",
+        sensibilite: 300,
+        norme: "NF C 15-100",
+      },
+      methodePose: methodePose,
+      facteursCorrection: {
+        kT: k_temp,
+        total: k_total,
+      },
+    };
 
-        const estTriphase = tensionAC > 250 || tensionAC === 400;
+    return sendResponse(true, null, returnDatas);
+  }
 
-        const Ib = estTriphase
-            ? puissanceAC / (Math.sqrt(3) * tensionAC * cosPhi)
-            : puissanceAC / (tensionAC * cosPhi);
+  // VÉRIFICATION DE LA SÉLECTIVITÉ DES PROTECTIONS
+  public verifierSelectivite(
+    protectionAmont: { calibre: number; type: string; temporisation?: number },
+    protectionAval: { calibre: number; type: string; temporisation?: number }
+  ): {
+    success: boolean;
+    error: string | null;
+    data: ResultatSelectivite | null;
+  } {
+    const amontCalibre = protectionAmont?.calibre ?? 1;
+    const avalCalibre = protectionAval?.calibre ?? 1;
+    const avalCalibreSain = avalCalibre > 0 ? avalCalibre : 1;
 
-        const deltaUmax = typeCharge === "eclairage" ? 3.0 : 5.0;
+    const ratioAmpere = amontCalibre / avalCalibreSain;
+    const selectifAmpere = ratioAmpere >= 1.6;
 
-        const kT = this.interpolerFacteurTemperature(temperatureAmbiante) ?? 1;
-        const kP = FACTEUR_POSE[methodePose];
-        const kM = materiau === "aluminium" ? FACTEUR_ALUMINIUM : 1.0;
-        const kTotal = kT * kP * kM;
+    const tempAmont = protectionAmont?.temporisation || 0;
+    const tempAval = protectionAval?.temporisation || 0;
+    const selectifChrono = tempAmont > tempAval;
 
-        for (const section of SECTIONS_NORMALISEES) {
-            const I0 = COURANT_ADMISSIBLE_CUIVRE_B2[section] || 0;
-            const Iz = I0 * kTotal;
+    const selectif = selectifAmpere || selectifChrono;
 
-            if (Iz < Ib) continue;
+    const typeSelectivite: "ampèremétrique" | "chronométrique" | "aucune" =
+      selectifChrono
+        ? "chronométrique"
+        : selectifAmpere
+        ? "ampèremétrique"
+        : "aucune";
 
-            const rho70 = RESISTIVITE[materiau] * (1 + COEFF_TEMP[materiau] * (70 - 20));
-            const facteurConfig = estTriphase ? Math.sqrt(3) : 2;
-            const chuteTensionV = (facteurConfig * longueur * Ib * rho70) / section;
-            const chuteTension = (chuteTensionV / tensionAC) * 100;
-
-            if (chuteTension <= deltaUmax) {
-                const In = this.calibrerDisjoncteur(Ib, Iz);
-
-                return {
-                    section,
-                    materiau,
-                    courantEmploi: Math.round(Ib * 100) / 100,
-                    courantAdmissible: Math.round(Iz * 100) / 100,
-                    protection: In,
-                    chuteTension: Math.round(chuteTension * 100) / 100,
-                    chuteTensionMax: deltaUmax,
-                    ddr: {
-                        type: "B",
-                        sensibilite: 30,
-                        norme: "IEC 62955 / NFC 15-100 §722"
-                    },
-                    methodePose,
-                    facteursCorrection: {
-                        kT,
-                        kP,
-                        kM,
-                        total: kTotal
-                    }
-                };
-            }
-        }
-
-        throw new Error(
-            `Section standard insuffisante pour câble AC ${puissanceAC}W sur ${longueur}m`
-        );
+    let commentaire =
+      "Risque de déclenchement intempestif simultané (Ratio < 1.6)";
+    if (selectifChrono) {
+      commentaire = `Sélectivité chronométrique respectée (Amont ${tempAmont}ms > Aval ${tempAval}ms)`;
+    } else if (selectifAmpere) {
+      commentaire = "Sélectivité ampèremétrique respectée (Ratio >= 1.6)";
     }
 
-    private interpolerFacteurTemperature(temperature: number): number | undefined {
-        const temperatures: any[] = Object.keys(FACTEUR_TEMPERATURE_PVC)
-            .map(Number)
-            .sort((a, b) => a - b);
-
-        if (!temperature || !temperatures) {
-            return undefined
-        }
-
-        if (temperature <= temperatures[0]) {
-            return FACTEUR_TEMPERATURE_PVC[temperatures[0]];
-        }
-        if (temperature >= temperatures[temperatures.length - 1]) {
-            return FACTEUR_TEMPERATURE_PVC[temperatures[temperatures.length - 1]];
-        }
-
-        for (let i = 0; i < temperatures.length - 1; i++) {
-            const t1 = temperatures[i];
-            const t2 = temperatures[i + 1];
-
-            if (temperature >= t1 && temperature <= t2) {
-                const f1 = FACTEUR_TEMPERATURE_PVC[t1];
-                const f2 = FACTEUR_TEMPERATURE_PVC[t2];
-                const ratio = (temperature - t1) / (t2 - t1);
-                return (f1 && f2 ? f1 + (f2 - f1) * ratio : undefined);
-            }
-        }
-
-        return 0.71;
+    if (amontCalibre <= 0 || avalCalibre <= 0) {
+      commentaire = "Calibres invalides";
+      return sendResponse(
+        false,
+        "Les calibres de protection doivent être supérieurs à 0.",
+        null
+      );
     }
 
-    private calibrerFusibleDC(InMin: number, InMax: number): number {
-        const calibre = CALIBRES_FUSIBLES_DC.find(c => c >= InMin && c <= InMax);
-        if (calibre) return calibre;
+    const returnDatas = {
+      selectif,
+      typeSelectivite,
+      ratio: Number((Math.round(ratioAmpere * 100) / 100).toFixed(2)),
+      commentaire,
+    };
 
-        const calibreProche = CALIBRES_FUSIBLES_DC.find(c => c >= InMin && c <= InMax * 1.1);
-        if (calibreProche) return calibreProche;
+    return sendResponse(true, null, returnDatas);
+  }
 
-        const calibreSecurite = CALIBRES_FUSIBLES_DC.find(c => c >= InMin);
-        if (calibreSecurite) return calibreSecurite;
+  // ENTRAILLES ET MÉTHODES PRIVÉES DE CALCULS TECHNIQUES
 
-        throw new Error(`Aucun calibre fusible DC pour ${InMin}A minimum`);
+  private calculerSectionCableDC(
+    courant: number,
+    longueur: number,
+    tensionSysteme: number,
+    k_total: number,
+    chuteTensionMaxPourcent: number,
+    materiau: MateriauConducteur
+  ): {
+    success: boolean;
+    error: string | null;
+    data: CalculSectionDCIntern | null;
+  } {
+    const tableCourants =
+      materiau === "cuivre"
+        ? COURANT_ADMISSIBLE_CUIVRE_B2
+        : COURANT_ADMISSIBLE_ALU_B2;
+    const rho20 = RESISTIVITE[materiau];
+
+    let sectionRetenue = 0;
+    let chutePourcentFinale = 100;
+    let diagnosticErreur = "Aucune section ne répond aux critères.";
+
+    for (const section of SECTIONS_NORMALISEES) {
+      const Iz_courant_nu = tableCourants[section];
+
+      if (Iz_courant_nu === undefined) {
+        continue;
+      }
+
+      const Iz_corrige = Iz_courant_nu * k_total;
+
+      if (Iz_corrige < courant) {
+        diagnosticErreur = `Courant admissible Iz corrigé insuffisant (${Iz_corrige.toFixed(
+          1
+        )}A requis pour ${courant}A).`;
+        continue;
+      }
+
+      const chuteTensionV = (2 * longueur * courant * rho20) / section;
+      const chutePourcent = (chuteTensionV / tensionSysteme) * 100;
+
+      if (chutePourcent <= chuteTensionMaxPourcent) {
+        sectionRetenue = section;
+        chutePourcentFinale = chutePourcent;
+        break;
+      } else {
+        diagnosticErreur = `Chute de tension hors limites (${chutePourcent.toFixed(
+          2
+        )}% mesurée, max toléré: ${chuteTensionMaxPourcent}%).`;
+      }
     }
 
-    private calibrerDisjoncteur(Ib: number, Iz: number): number {
-        const In = CALIBRES_DISJONCTEURS.find(c => c >= Ib && c <= Iz);
-        if (In) return In;
-
-        const InAvecMarge = CALIBRES_DISJONCTEURS.find(c => {
-            const I2 = 1.45 * c;
-            return c >= Ib && I2 <= 1.45 * Iz;
-        });
-
-        if (InAvecMarge) return InAvecMarge;
-
-        throw new Error(`Aucun calibre disjoncteur pour IB=${Math.round(Ib)}A, IZ=${Math.round(Iz)}A`);
+    if (sectionRetenue === 0) {
+      return sendResponse(
+        false,
+        `Impossible de dimensionner le câble (${materiau}) pour ${longueur}m / ${courant}A. Raison : ${diagnosticErreur}`,
+        null
+      );
     }
 
-    // Vérification sélectivité protections
-    verifierSelectivite(
-        protectionAmont: { calibre: number; type: string; temporisation?: number },
-        protectionAval: { calibre: number; type: string; temporisation?: number }
-    ): {
-        selectif: boolean;
-        typeSelectivite: "ampèremétrique" | "chronométrique" | "aucune";
-        ratio: number;
-        recommandation?: string;
-    } {
-        const ratioAmpere = protectionAmont.calibre / protectionAval.calibre;
-        const selectifAmpere = ratioAmpere >= 1.6;
+    const returnDatas = {
+      section: sectionRetenue,
+      chutePourcent: chutePourcentFinale,
+    };
+    return sendResponse(true, null, returnDatas);
+  }
 
-        const tempAmont = protectionAmont.temporisation || 0;
-        const tempAval = protectionAval.temporisation || 0;
-        const selectifChrono = tempAmont > tempAval;
+  private interpolerFacteurTemperature(temp: number): number {
+    const minFacteur = FACTEUR_TEMPERATURE_PVC[10];
+    const maxFacteur = FACTEUR_TEMPERATURE_PVC[60];
 
-        const selectif = selectifAmpere || selectifChrono;
-        const typeSelectivite = selectifChrono ? "chronométrique" :
-            (selectifAmpere ? "ampèremétrique" : "aucune");
-
-        return {
-            selectif,
-            typeSelectivite,
-            ratio: Math.round(ratioAmpere * 100) / 100,
-            recommandation: !selectif
-                ? `Ratio ${ratioAmpere.toFixed(1)} < 1.6, risque déclenchement amont`
-                : undefined
-        };
+    if (minFacteur === undefined || maxFacteur === undefined) {
+      return 0.71;
     }
+
+    if (temp <= 10) return minFacteur;
+    if (temp >= 60) return maxFacteur;
+
+    const cleArrondie = Math.round(temp / 5) * 5;
+    return FACTEUR_TEMPERATURE_PVC[cleArrondie] ?? 0.71;
+  }
+
+  private obtenirFacteurGroupement(nombreCircuits: number): number {
+    const premierFacteur = FACTEUR_GROUPEMENT[0];
+    const dernierFacteur = FACTEUR_GROUPEMENT[8];
+
+    if (premierFacteur === undefined || dernierFacteur === undefined) {
+      return 1.0;
+    }
+
+    if (nombreCircuits <= 1) return premierFacteur;
+    if (nombreCircuits >= 9) return dernierFacteur;
+
+    return FACTEUR_GROUPEMENT[nombreCircuits - 1] ?? 1.0;
+  }
 }
 
 export const cablageEtProtectionsService = new CablageEtProtectionsService();
