@@ -1,28 +1,59 @@
 {
   "name": "selfsolar",
   "version": "1.0.0",
-  "description": "Outil de dimensionnement de systèmes photovoltaïques autonomes",
-  "main": "dist/index.js",
+  "description": "API de dimensionnement photovoltaïque conforme NFC 15-100, IEC 61215, IEC 62109",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/server.js",
+    "start:prod": "NODE_ENV=production node dist/server.js",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "docker:build": "docker build -t selfsolar-api .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env selfsolar-api"
   },
-  "keywords": ["solaire", "photovoltaique", "dimensionnement", "off-grid"],
-  "author": "Daniel Herman Ramazani Sumaili",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KUROYUKIHIME333/selfsolar.git"
+  },
+  "keywords": [
+    "photovoltaïque",
+    "solaire",
+    "dimensionnement",
+    "NFC-15-100",
+    "IEC-61215",
+    "API",
+    "fastify"
+  ],
+  "author": "",
   "license": "ISC",
   "type": "module",
+  "bugs": {
+    "url": "https://github.com/KUROYUKIHIME333/selfsolar/issues"
+  },
+  "homepage": "https://github.com/KUROYUKIHIME333/selfsolar#readme",
   "dependencies": {
-    "@fastify/formbody": "^8.0.2",
-    "@fastify/static": "^9.0.0",
-    "@fastify/view": "^11.1.1",
-    "ejs": "^5.0.1",
-    "fastify": "^5.8.4"
+    "@fastify/cors": "^11.2.0",
+    "@fastify/jwt": "^10.0.0",
+    "@fastify/sensible": "^6.0.4",
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^5.2.5",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.8.5",
+    "pino-pretty": "^13.1.3",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/ejs": "^3.1.5",
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
+    "@vitest/coverage-v8": "^4.1.5",
+    "msw": "^2.14.3",
+    "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.5"
   }
 }

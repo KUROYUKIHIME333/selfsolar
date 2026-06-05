@@ -1,22 +1,43 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
+    /* Base */
+    "target": "ESNext", 
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ESNext"],
+    "typeRoots": ["./node_modules/@types"],
+    
+    /* Chemins */
     "outDir": "./dist",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "target": "es2022",
-    "lib": ["es2022"],
-    "types": ["node"],
-    "sourceMap": true,
+    "rootDir": "./src",
+    
+    /* Rigueur (Strict Mode) */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    
+    /* Interopérabilité & Écosystème */
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    
+    /* Build & Debug */
     "declaration": true,
     "declarationMap": true,
-    "strict": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true,
-    "noUncheckedIndexedAccess": true
+    "sourceMap": true,
+    "removeComments": true,
+    
+    /* Analyse de code */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true // Recommandé pour la sécurité des tableaux/objets
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.brouillon.ts"]
 }
