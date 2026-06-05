@@ -183,6 +183,7 @@ export interface ResultatModulesPV {
     vmppModuleFroid: number;
     vocModuleFroid: number;
   };
+  _tensionSysteme?: number;
 }
 
 // CÂBLAGE ET PROTECTIONS

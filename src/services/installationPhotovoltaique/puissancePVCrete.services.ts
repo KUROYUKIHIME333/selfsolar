@@ -391,6 +391,7 @@ export class PuissanceCretePVService {
         vmppModuleFroid: Number(vmpp_max.toFixed(2)),
         vocModuleFroid: Number(tension_panneau_max.toFixed(2)),
       },
+      _tensionSysteme: tension_DC_system_PV,
     };
     return sendResponse(true, null, responseDatas);
   }
