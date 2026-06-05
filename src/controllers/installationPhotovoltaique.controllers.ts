@@ -158,7 +158,11 @@ export class InstallationPhotovoltaiqueController {
     try {
       const { localisation } = request.body;
 
-      if (!localisation || !localisation.lat || !localisation.long) {
+      if (
+        !localisation ||
+        typeof localisation.lat !== "number" ||
+        typeof localisation.long !== "number"
+      ) {
         return sendError(
           reply,
           "La localisation du site doit etre au format {lat: number; long: number; altitude: number | undefined}",
