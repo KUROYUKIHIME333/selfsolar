@@ -150,8 +150,7 @@ export const installationPhotovoltaiqueRoutes = async (
       },
       response: {
         200: {
-          description:
-            "Données météo trouvées",
+          description: "Données météo trouvées",
           type: "object",
           properties: {
             success: {
@@ -249,7 +248,7 @@ export const installationPhotovoltaiqueRoutes = async (
   app.post("/stockage-batteries", {
     schema: {
       description: "Caractéristiques du système de stockage par batteries",
-      tags: ["batteries", "stockage", "Lithium", "acide", "AGM/GEL"],
+      tags: ["Stockage par batteries"],
       body: {
         type: "object",
         required: [
@@ -281,6 +280,76 @@ export const installationPhotovoltaiqueRoutes = async (
             type: "number",
             description:
               "Temperature ambiante pour prendre en compte le dérating des batteries",
+          },
+        },
+      },
+      response: {
+        200: {
+          description: "Capacité du système de stockage par batteries",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                appareil: { type: "string" },
+                typeBatterie: { type: "string" },
+                DoDMax: { type: "number" }, // Profondeur décharge max (0.5-0.9)
+                cyclesDoDMax: {
+                  type: "object",
+                  properties: {
+                    min: { type: "number" },
+                    max: { type: "number" },
+                  },
+                },
+                plageTemperatureFonctionnement: {
+                  type: "object",
+                  properties: {
+                    min: { type: "number" },
+                    max: { type: "number" },
+                  },
+                },
+                capacite: {
+                  type: "object",
+                  properties: {
+                    utile_Wh: { type: "number" },
+                    nominale_Wh: { type: "number" },
+                    nominale_Ah: { type: "number" },
+                  },
+                },
+
+                autonomieJours: { type: "number" },
+                temperatureDeratingApplique: { type: "boolean" },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Probleme de calcul/logique",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
           },
         },
       },
