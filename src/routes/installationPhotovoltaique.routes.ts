@@ -15,16 +15,8 @@ export const installationPhotovoltaiqueRoutes = async (
   // ROUTE CONSOMMATION ENERGETIQUE
   app.post("/consommation-energetique", {
     schema: {
-      description: "Consommation énergétique et puissance consommée",
-      tags: [
-        "énergie crète",
-        "puissance",
-        "énergie journalière",
-        "puissance appelée",
-        "puissance installée",
-        "puissance pic",
-        "pic",
-      ],
+      description: "Consommation énergétique et puissance AC installée",
+      tags: ["énergie installée & puissance AC"],
       body: {
         type: "object",
         required: ["equipements"],
@@ -68,6 +60,53 @@ export const installationPhotovoltaiqueRoutes = async (
           },
         },
       },
+      response: {
+        200: {
+          description:
+            "Consommation énergétique et puissance AC installée trouvée",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                energieJournaliereWh: { type: "number", minimum: 0 },
+                puissanceAppeleeW: { type: "number", minimum: 0 },
+                puissanceInstalleeW: { type: "number", minimum: 0 },
+                puissancePicW: { type: "number", minimum: 0 },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Calcul impossible",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+      },
     },
     handler: installationPhotovoltaiqueController.analyserConsommation.bind(
       installationPhotovoltaiqueController
@@ -79,7 +118,7 @@ export const installationPhotovoltaiqueRoutes = async (
     schema: {
       description:
         "Données météo solaire et climatique du site de l'installation",
-      tags: ["PVGIS", "PSH", "irradiance", "G", "climat", "temperatures"],
+      tags: ["PDonnées météo solaire & températures"],
       body: {
         type: "object",
         required: ["localisation"],
