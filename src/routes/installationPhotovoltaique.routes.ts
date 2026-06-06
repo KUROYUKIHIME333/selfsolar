@@ -148,6 +148,97 @@ export const installationPhotovoltaiqueRoutes = async (
           },
         },
       },
+      response: {
+        200: {
+          description:
+            "Données météo trouvées",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                localisation: {
+                  type: "object",
+                  properties: {
+                    lat: {
+                      type: "number",
+                      minimum: -90,
+                      maximum: 90,
+                      description: "Latitude en degrés décimaux",
+                    },
+                    long: {
+                      type: "number",
+                      minimum: -180,
+                      maximum: 180,
+                      description: "Longitude en degrés décimaux",
+                    },
+                    altitude: {
+                      type: "number",
+                      description: "Altitude en mètres (pour déclassement)",
+                    },
+                  },
+                },
+                orientation: {
+                  type: "string",
+                },
+                angle: {
+                  type: "number",
+                },
+                angleOptimal: { type: "number" },
+                PSH: { type: "number" },
+                PSH_max: { type: "number" },
+                G_moy: { type: "number" },
+                G_max: { type: "number" },
+                T_min: { type: "number" },
+                T_max: { type: "number" },
+                windSpeed_mean: { type: "number" },
+                windSpeed_max: { type: "number" },
+                moisDefavorable: { type: "string" },
+                moisSurfavorable: { type: "string" },
+                isFallback: { type: "boolean" },
+                climateCorrection: {
+                  type: "object",
+                  properties: {
+                    dT: { type: "number" },
+                    dGPercent: { type: "number" },
+                    targetYear: { type: "number" },
+                    fraction: { type: "number" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Données introuvables",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+      },
     },
     handler: installationPhotovoltaiqueController.analyserGeographie.bind(
       installationPhotovoltaiqueController
