@@ -23,7 +23,7 @@ import {
 // Appel 1 : MRcalc (radiation mensuelle)
 /**
  * Récupère les données mensuelles de radiation via MRcalc.
- * Utilise l'inclinaison optimale annuelle (optimalinclination=1).
+ * Utilise l'inclinaison optimale annuelle (optrad=1).
  * H(i_opt)_m est en Wh/m²/mois → converti en PSH (kWh/m²/j).
  */
 const fetchMRcalc = async (
@@ -38,19 +38,22 @@ const fetchMRcalc = async (
   const url =
     `${PVGIS_BASE}/MRcalc` +
     `?lat=${lat}&lon=${long}` +
-    `&optimalinclination=1` + // inclinaison optimale annuelle
+    `&optrad=1` +
     `&outputformat=json` +
     `&browser=0`;
 
-  // Correction : Cast simple et standard de la promesse pour éviter les bugs
+  // Cast simple et standard de la promesse pour éviter les bugs
   const json = (await fetchJson(url)) as MRcalcResponse;
+
+  console.log("Structure complète de l'API PVGIS :", JSON.stringify(json.inputs));
 
   const monthly = json.outputs?.monthly;
   if (!Array.isArray(monthly) || monthly.length === 0) {
     throw new Error("MRcalc : outputs.monthly absent ou vide");
   }
 
-  const angleOptimal = json.inputs?.plane?.["fixed(i_opt)"]?.slope?.value;
+  const angleOptimal = json.inputs?.plane?.fixed_inclined_optimal?.slope?.value;
+  
 
   return { monthly, angleOptimal };
 };
@@ -189,12 +192,20 @@ export class ParametresSiteService {
       // PSH mensuelle depuis H(i_opt)_m
       const monthlyPSH = monthly.map((m) => {
         const nbJours = daysInMonth(m.month);
-        // Sécurité anti-division par 0 au cas où daysInMonth renverrait une valeur invalide
         const diviseurJours = nbJours > 0 ? nbJours : 30;
+
+        const rawValue = m["H(i_opt)_m"]; // Valeur brute reçue de l'API
+
+        // Log de débogage pour voir ce que PVGIS renvoie réellement
+        console.log(
+          `Mois ${m.month}: Valeur brute PVGIS = ${rawValue} Wh/m²/mois`
+        );
 
         return {
           month: m.month,
-          psh: m["H(i_opt)_m"] / 1000 / diviseurJours,
+          // Si la valeur est en Wh, on divise par 1000 pour avoir des kWh
+          // Si la valeur est en kWh, on ne divise pas par 1000
+          psh: rawValue / diviseurJours,
         };
       });
 
@@ -251,7 +262,7 @@ export class ParametresSiteService {
         message
       );
 
-      // Correction : Protection stricte contre un crash si localisation est undefined
+      // Protection stricte contre un crash si localisation est undefined
       const safeLat = localisation?.lat ?? 0;
       const latAbs = Math.abs(safeLat);
       let pshFallback: number;
