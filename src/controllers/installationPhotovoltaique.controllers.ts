@@ -675,7 +675,7 @@ export class InstallationPhotovoltaiqueController {
       }
 
       // 2. Calcul de la partie DC (Strings & Câble principal PV)
-      const resDC = cablageEtProtectionsService.dimensionnerCablesDC(
+      const {success: successDC, error: errorDC, data: resDC} = cablageEtProtectionsService.dimensionnerCablesDC(
         resultatModules,
         Parametres_panneau,
         longueur_cable_String_m ?? 15,
@@ -684,16 +684,16 @@ export class InstallationPhotovoltaiqueController {
         materiau_conducteur_DC ?? "cuivre"
       );
 
-      if (!resDC.success || !resDC.data) {
+      if (!successDC && errorDC) {
         return sendError(
           reply,
-          resDC.error || "Erreur lors du dimensionnement des câbles DC.",
+          errorDC || "Erreur lors du dimensionnement des câbles DC.",
           400
         );
       }
 
       // 3. Calcul de la partie AC (Onduleur -> Réseau)
-      const resAC = cablageEtProtectionsService.dimensionnerCablageAC(
+      const {success: successAC, error: errorAC, data: resAC} = cablageEtProtectionsService.dimensionnerCablageAC(
         puissance_nominale_onduleur_Wh,
         tension_Reseau_V,
         is_Triphase ?? false,
@@ -704,18 +704,18 @@ export class InstallationPhotovoltaiqueController {
         methodePose ?? "conduit_encastre"
       );
 
-      if (!resAC.success || !resAC.data) {
+      if (!successAC && errorAC) {
         return sendError(
           reply,
-          resAC.error || "Erreur lors du dimensionnement du câblage AC.",
+          errorAC || "Erreur lors du dimensionnement du câblage AC.",
           400
         );
       }
 
       // 4. Fusion des résultats pour une réponse complète
       const reponseGlobale = {
-        dimensionnementDC: resDC.data,
-        dimensionnementAC: resAC.data,
+        dimensionnementDC: resDC,
+        dimensionnementAC: resAC,
         normesAppliquees: {
           dc: "Guide UTE C 15-712-1 / IEC 60364",
           ac: "NF C 15-100",
