@@ -48,7 +48,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
             },
             servers: [
                 {
-                    url: "http://localhost:3000",
+                    url: "https://selfsolar-1.onrender.com/",
                     description: "Serveur local"
                 }
             ],
