@@ -134,14 +134,6 @@ export interface ResultatStockage {
   };
   autonomieJours: number;
   temperatureDeratingApplique: boolean;
-  disposition?: {
-    appareil: string;
-    nombre: number;
-    disposition: {
-      batteriesParString: number;
-      modulesEnParallele: number;
-    };
-  };
 }
 
 // RESULTATS MODULES PV

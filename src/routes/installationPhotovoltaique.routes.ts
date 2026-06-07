@@ -15,16 +15,8 @@ export const installationPhotovoltaiqueRoutes = async (
   // ROUTE CONSOMMATION ENERGETIQUE
   app.post("/consommation-energetique", {
     schema: {
-      description: "Consommation énergétique et puissance consommée",
-      tags: [
-        "énergie crète",
-        "puissance",
-        "énergie journalière",
-        "puissance appelée",
-        "puissance installée",
-        "puissance pic",
-        "pic",
-      ],
+      description: "Consommation énergétique et puissance AC installée",
+      tags: ["énergie installée & puissance AC"],
       body: {
         type: "object",
         required: ["equipements"],
@@ -68,6 +60,53 @@ export const installationPhotovoltaiqueRoutes = async (
           },
         },
       },
+      response: {
+        200: {
+          description:
+            "Consommation énergétique et puissance AC installée trouvée",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                energieJournaliereWh: { type: "number", minimum: 0 },
+                puissanceAppeleeW: { type: "number", minimum: 0 },
+                puissanceInstalleeW: { type: "number", minimum: 0 },
+                puissancePicW: { type: "number", minimum: 0 },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Calcul impossible",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+      },
     },
     handler: installationPhotovoltaiqueController.analyserConsommation.bind(
       installationPhotovoltaiqueController
@@ -79,7 +118,7 @@ export const installationPhotovoltaiqueRoutes = async (
     schema: {
       description:
         "Données météo solaire et climatique du site de l'installation",
-      tags: ["PVGIS", "PSH", "irradiance", "G", "climat", "temperatures"],
+      tags: ["PDonnées météo solaire & températures"],
       body: {
         type: "object",
         required: ["localisation"],
@@ -109,6 +148,96 @@ export const installationPhotovoltaiqueRoutes = async (
           },
         },
       },
+      response: {
+        200: {
+          description: "Données météo trouvées",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                localisation: {
+                  type: "object",
+                  properties: {
+                    lat: {
+                      type: "number",
+                      minimum: -90,
+                      maximum: 90,
+                      description: "Latitude en degrés décimaux",
+                    },
+                    long: {
+                      type: "number",
+                      minimum: -180,
+                      maximum: 180,
+                      description: "Longitude en degrés décimaux",
+                    },
+                    altitude: {
+                      type: "number",
+                      description: "Altitude en mètres (pour déclassement)",
+                    },
+                  },
+                },
+                orientation: {
+                  type: "string",
+                },
+                angle: {
+                  type: "number",
+                },
+                angleOptimal: { type: "number" },
+                PSH: { type: "number" },
+                PSH_max: { type: "number" },
+                G_moy: { type: "number" },
+                G_max: { type: "number" },
+                T_min: { type: "number" },
+                T_max: { type: "number" },
+                windSpeed_mean: { type: "number" },
+                windSpeed_max: { type: "number" },
+                moisDefavorable: { type: "string" },
+                moisSurfavorable: { type: "string" },
+                isFallback: { type: "boolean" },
+                climateCorrection: {
+                  type: "object",
+                  properties: {
+                    dT: { type: "number" },
+                    dGPercent: { type: "number" },
+                    targetYear: { type: "number" },
+                    fraction: { type: "number" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Données introuvables",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+      },
     },
     handler: installationPhotovoltaiqueController.analyserGeographie.bind(
       installationPhotovoltaiqueController
@@ -119,7 +248,7 @@ export const installationPhotovoltaiqueRoutes = async (
   app.post("/stockage-batteries", {
     schema: {
       description: "Caractéristiques du système de stockage par batteries",
-      tags: ["batteries", "stockage", "Lithium", "acide", "AGM/GEL"],
+      tags: ["Stockage par batteries"],
       body: {
         type: "object",
         required: [
@@ -154,6 +283,76 @@ export const installationPhotovoltaiqueRoutes = async (
           },
         },
       },
+      response: {
+        200: {
+          description: "Capacité du système de stockage par batteries",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                appareil: { type: "string" },
+                typeBatterie: { type: "string" },
+                DoDMax: { type: "number" }, // Profondeur décharge max (0.5-0.9)
+                cyclesDoDMax: {
+                  type: "object",
+                  properties: {
+                    min: { type: "number" },
+                    max: { type: "number" },
+                  },
+                },
+                plageTemperatureFonctionnement: {
+                  type: "object",
+                  properties: {
+                    min: { type: "number" },
+                    max: { type: "number" },
+                  },
+                },
+                capacite: {
+                  type: "object",
+                  properties: {
+                    utile_Wh: { type: "number" },
+                    nominale_Wh: { type: "number" },
+                    nominale_Ah: { type: "number" },
+                  },
+                },
+
+                autonomieJours: { type: "number" },
+                temperatureDeratingApplique: { type: "boolean" },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Probleme de calcul/logique",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+      },
     },
     handler: installationPhotovoltaiqueController.etablirStockage.bind(
       installationPhotovoltaiqueController
@@ -164,7 +363,7 @@ export const installationPhotovoltaiqueRoutes = async (
   app.post("/puissance-crete", {
     schema: {
       description: "Déterminer la puissance crète du système pv",
-      tags: ["puissance crète", "Pc"],
+      tags: ["puissance crète & tension"],
       body: {
         type: "object",
         required: [
@@ -259,6 +458,54 @@ export const installationPhotovoltaiqueRoutes = async (
           },
         },
       },
+      response: {
+        200: {
+          description: "Puissance crète du système pv trouvée",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                Pc: {
+                  type: "number",
+                },
+                pertesTotales: {
+                  type: "number",
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Calcul impossible",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+      },
     },
     handler: installationPhotovoltaiqueController.etablirPuissanceCrete.bind(
       installationPhotovoltaiqueController
@@ -269,7 +516,7 @@ export const installationPhotovoltaiqueRoutes = async (
   app.post("/panneaux-pv", {
     schema: {
       description: "Caractéristiques des panneaux photovoltaiques",
-      tags: ["panneaux photovoltaiques", "modules pv", "panneaux", "pv"],
+      tags: ["panneaux photovoltaiques"],
       body: {
         type: "object",
         required: [
@@ -364,6 +611,89 @@ export const installationPhotovoltaiqueRoutes = async (
           },
         },
       },
+      response: {
+        200: {
+          description: "Caractéristiques des batteries trouvée",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                appareil: { type: "string" },
+                configuration: { type: "string" },
+                // Disposition
+                panneauxParString: { type: "number" }, // Ns
+                stringsEnParallele: { type: "number" }, // Np
+                totalPanneaux: { type: "number" },
+                // Tensions (important pour vérifications)
+                tensionStringSTC: { type: "number" }, // Vmpp à 25°C
+                tensionStringMin: { type: "number" }, // Vmpp à Tmax (condition chaude)
+                tensionStringMax: { type: "number" }, // Vmpp à Tmin (condition froide)
+                vocStringFroid: { type: "number" }, // Voc à Tmin (CRITIQUE sécurité)
+                //Courants champ
+                courantPVMin: { type: "number" },
+                courantPVMax: { type: "number" },
+                courantCourtCircuitPV: { type: "number" },
+                // Puissances
+                puissancePVInstallee: {
+                  type: "object",
+                  properties: {
+                    min: { type: "number" }, // Condition chaude (déclassée)
+                    max: { type: "number" }, // Condition froide
+                    stc: { type: "number" }, // Puissance nominale à STC (pour ratio DC/AC)
+                  },
+                },
+                // Métadonnées internes
+                _temperaturesCellule: {
+                  type: "object",
+                  properties: {
+                    tCellMin: { type: "number" },
+                    tCellMax: { type: "number" },
+                  },
+                },
+                _modules: {
+                  type: "object",
+                  properties: {
+                    vmppModuleChaud: { type: "number" },
+                    vmppModuleFroid: { type: "number" },
+                    vocModuleFroid: { type: "number" },
+                  },
+                },
+                _tensionSysteme: { type: "number" },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Calcul impossible",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+      },
     },
     handler: installationPhotovoltaiqueController.dimensionnerModulesPV.bind(
       installationPhotovoltaiqueController
@@ -374,7 +704,7 @@ export const installationPhotovoltaiqueRoutes = async (
   app.post("/batteries-nombres-et-config", {
     schema: {
       description: "Nombres de batteries en serie et parallele",
-      tags: ["Ns", "Np", "N", "nombre de batteries"],
+      tags: ["nombre de batteries & disposition"],
       body: {
         type: "object",
         required: [
@@ -402,6 +732,57 @@ export const installationPhotovoltaiqueRoutes = async (
           },
         },
       },
+      response: {
+        200: {
+          description: "Caractéristiques des batteries trouvée",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                appareil: { type: "string" },
+                nombre: { type: "number" },
+                disposition: {
+                  type: "object",
+                  properties: {
+                    batteriesParString: { type: "number" },
+                    modulesEnParallele: { type: "number" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Calcul impossible",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+      },
     },
     handler:
       installationPhotovoltaiqueController.dimensionnerModulesBatteries.bind(
@@ -414,7 +795,7 @@ export const installationPhotovoltaiqueRoutes = async (
     schema: {
       description:
         "Vérification de l'onduleur proposé ou bien choix d'un onduleur adapté",
-      tags: ["onduleur", "MPPT", "PWM"],
+      tags: ["Caractéristique onduleur"],
       body: {
         type: "object",
         required: [
@@ -682,6 +1063,103 @@ export const installationPhotovoltaiqueRoutes = async (
           },
         },
       },
+      response: {
+        200: {
+          description: "Caractéristiques onduleur vérifié",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                appareil: { type: "string" },
+                typeSysteme: { type: "string" },
+                rappelVocStringFroid: { type: "number" }, // V - Pour vérification sécurité
+                grandeursChamp: {
+                  type: "object",
+                  properties: {
+                    tCellMin: { type: "number" },
+                    tCellMax: { type: "number" },
+                    vocChampFroid: { type: "number" }, // V - CRITIQUE
+                    vmppChampChaud: { type: "number" }, // V
+                    vmppChampFroid: { type: "number" }, // V
+                    vmppNominal: { type: "number" }, // V
+                    iscChamp: { type: "number" }, // A
+                    //puissanceChampsWc: {type: "number"}, // W
+                    puissanceChampsWcSTC: { type: "number" },
+                    puissanceChampsWcMax: { type: "number" },
+                  },
+                },
+                dimensionnement: {
+                  type: "object",
+                  properties: {
+                    puissanceACMin: { type: "number" },
+                    puissanceACRecommandee: { type: "number" },
+                    puissanceACMax: { type: "number" },
+                    ratioDCAC: { type: "number" },
+                    evaluationRatio: { type: "string" },
+                  },
+                },
+                verification: {
+                  type: "object",
+                  properties: {
+                    compatible: { type: "boolean" },
+                    details: {
+                      type: "object",
+                      properties: {
+                        vocSousLimite: { type: "boolean" },
+                        vmppAuDessusMinimum: { type: "boolean" },
+                        vmppDansPlageMPPT: { type: "boolean" },
+                        iscSousLimite: { type: "boolean" },
+                        puissanceDCOk: { type: "boolean" },
+                        chargeACOk: { type: "boolean" },
+                        surchargeOk: { type: "boolean" },
+                      },
+                    },
+                  },
+                },
+                avertissements: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+
+                erreurs: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Calcul impossible",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+      },
     },
     handler: installationPhotovoltaiqueController.dimensionnerOnduleur.bind(
       installationPhotovoltaiqueController
@@ -692,7 +1170,7 @@ export const installationPhotovoltaiqueRoutes = async (
   app.post("/cables-et-protections", {
     schema: {
       description: "Dimensionner les cables et choisir les protections",
-      tags: ["câbles", "protections", "fusibles", "disjoncters", "calibre"],
+      tags: ["Protections & câbles"],
       body: {
         type: "object",
         required: [
@@ -931,6 +1409,111 @@ export const installationPhotovoltaiqueRoutes = async (
             type: "string",
             description:
               "Mode de pose selon NF C 15 100 : conduit_encastre , conduit_surface , air_libre , enterre ou gaine_technique",
+          },
+        },
+      },
+      response: {
+        200: {
+          description: "Protections & conducteurs trouvée",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: true,
+            },
+            error: { type: "null" },
+            data: {
+              type: "object",
+              properties: {
+                dimensionnementDC: {
+                  type: "object",
+                  properties: {
+                    cableString: {
+                      type: "object",
+                      properties: {
+                        courantEmploi_Ib: { type: "number" },
+                        facteurCorrectionK: { type: "number" },
+                        sectionConseillee_mm2: { type: "number" },
+                        chuteTension_Pourcent: { type: "number" },
+                      },
+                    },
+                    cablePrincipal: {
+                      type: "object",
+                      properties: {
+                        courantEmploi_Ib: { type: "number" },
+                        facteurCorrectionK: { type: "number" },
+                        sectionConseillee_mm2: { type: "number" },
+                        chuteTension_Pourcent: { type: "number" },
+                      },
+                    },
+                    protections: {
+                      fusiblesStringsRequis: { type: "boolean" },
+                      calibreFusibleString_A: { type: "number" },
+                    },
+                  },
+                },
+
+                dimensionnementAC: {
+                  type: "object",
+                  properties: {
+                    section: { type: "number" }, // mm²
+                    materiau: { type: "string" },
+                    courantEmploi: { type: "number" }, // A (IB)
+                    courantAdmissible: { type: "number" }, // A (IZ)
+                    protection: { type: "number" }, // A (In disjoncteur)
+                    chuteTension: { type: "number" }, // %
+                    chuteTensionMax: { type: "number" }, // %
+                    ddr: {
+                      type: "object",
+                      properties: {
+                        type: { type: "string" },
+                        sensibilite: { type: "number" }, // mA
+                        norme: { type: "string" },
+                      },
+                    },
+                    methodePose: { type: "string" },
+                    facteursCorrection: {
+                      type: "object",
+                      properties: {
+                        kT: { type: "number" },
+                        total: { type: "number" },
+                      },
+                    },
+                  },
+                },
+                normesAppliquees: {
+                  type: "object",
+                  properties: {
+                    dc: { type: "string" },
+                    ac: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Erreur de validation ou Calcul impossible",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
+          },
+        },
+        500: {
+          description: "Erreur interne au serveur",
+          type: "object",
+          properties: {
+            success: {
+              type: "boolean",
+              default: false,
+            },
+            error: { type: "string" },
+            data: { type: "null" },
           },
         },
       },
