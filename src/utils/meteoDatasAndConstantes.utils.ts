@@ -16,7 +16,7 @@ export const CLIMATE_HORIZON_YEAR = 2050;
 export const DEFAULT_TARGET_YEAR = 2040;
 
 /** Timeout fetch en ms */
-export const FETCH_TIMEOUT_MS = 12_000;
+export const FETCH_TIMEOUT_MS = 150000;
 
 // ─── UTILS ───
 

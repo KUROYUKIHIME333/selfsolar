@@ -134,14 +134,6 @@ export interface ResultatStockage {
   };
   autonomieJours: number;
   temperatureDeratingApplique: boolean;
-  disposition?: {
-    appareil: string;
-    nombre: number;
-    disposition: {
-      batteriesParString: number;
-      modulesEnParallele: number;
-    };
-  };
 }
 
 // RESULTATS MODULES PV
@@ -379,7 +371,7 @@ export interface MRcalcMonthly {
 export interface MRcalcResponse {
   inputs?: {
     plane?: {
-      "fixed(i_opt)"?: {
+      fixed_inclined_optimal?: {
         slope?: { value?: number };
       };
     };
