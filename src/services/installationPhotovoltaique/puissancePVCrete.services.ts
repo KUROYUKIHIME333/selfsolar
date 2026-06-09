@@ -15,6 +15,7 @@ import {
   IRRADIANCE_STC,
   FACTEUR_SECURITE_COURANT,
   T_STC,
+  CONFIG_TECHNOLOGIES,
 } from "../../utils/constantesPhysiques.utils.js";
 import { tensionSystemePV } from "../../utils/tensionSystemePV.utils.js";
 import {
@@ -79,6 +80,7 @@ export class PuissanceCretePVService {
   public puissanceCretePV(
     pompageSolaire: boolean,
     energieCrete: number | undefined, // Wh/j (Ignoré si pompageSolaire = true)
+    energieRecharge: number | undefined, // Wh/j (Ignoré si pompageSolaire = true)
     PSH: number, // h/j (Heures d'ensoleillement équivalentes à 1000W/m²)
     PR: number, // Facteur 0 à 1 (Performance Ratio)
     pompageCaracteristiques?: PompageSolaireCaracteristiques | undefined,
@@ -101,6 +103,10 @@ export class PuissanceCretePVService {
     }
 
     let Pc: number;
+    const EcT =
+      energieRecharge && energieCrete
+        ? energieCrete + energieRecharge
+        : energieCrete;
 
     // Pompage Solaire Direct
     if (pompageSolaire && !energieCrete) {
@@ -171,7 +177,7 @@ export class PuissanceCretePVService {
       }
 
       // Formule classique : Pc = E_charge / (PSH * PR)
-      Pc = energieCrete / (PSH * PR);
+      Pc = (EcT as number) / (PSH * PR);
     }
 
     // Retour propre avec arrondi de sécurité supérieur
