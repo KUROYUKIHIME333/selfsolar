@@ -255,6 +255,7 @@ export const installationPhotovoltaiqueRoutes = async (
           "technologieBattery",
           "energieJournaliere_Wh",
           "autonomieBatterie_jours",
+          "rechargeBatterie_jours",
           "tensionSystemeBatterie_V",
           "temperatureAmbiante_C",
         ],
@@ -269,6 +270,10 @@ export const installationPhotovoltaiqueRoutes = async (
             description: "Consommation d'énergie journalière",
           },
           autonomieBatterie_jours: {
+            type: "number",
+            description: "Nombre de jours d'autonomie",
+          },
+          rechargeBatterie_jours: {
             type: "number",
             description: "Nombre de jours d'autonomie",
           },
@@ -321,7 +326,7 @@ export const installationPhotovoltaiqueRoutes = async (
                     nominale_Ah: { type: "number" },
                   },
                 },
-
+                energieDeRecharge: { type: "number" },
                 autonomieJours: { type: "number" },
                 temperatureDeratingApplique: { type: "boolean" },
               },
@@ -387,6 +392,11 @@ export const installationPhotovoltaiqueRoutes = async (
             type: "number",
             minimum: 0,
             description: "Consommation énergétique journaliere ne Wh/j",
+          },
+          energieDeRecharge_Wh: {
+            type: "number",
+            minimum: 0,
+            description: "Energie pour recharger les batteries en Wh/j",
           },
           PSH_heuresParJour: {
             type: "number",
