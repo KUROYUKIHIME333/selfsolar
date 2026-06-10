@@ -225,6 +225,7 @@ export class InstallationPhotovoltaiqueController {
         technologieBattery: TechnologieBatterie;
         energieJournaliere_Wh: number;
         autonomieBatterie_jours: number;
+        rechargeBatterie_jours: number;
         tensionSystemeBatterie_V: number;
         temperatureAmbiante_C?: number;
       };
@@ -236,6 +237,7 @@ export class InstallationPhotovoltaiqueController {
         technologieBattery,
         energieJournaliere_Wh,
         autonomieBatterie_jours,
+        rechargeBatterie_jours,
         tensionSystemeBatterie_V,
         temperatureAmbiante_C,
       } = request.body;
@@ -267,6 +269,7 @@ export class InstallationPhotovoltaiqueController {
         technologieBattery,
         energieJournaliere_Wh,
         autonomieBatterie_jours,
+        rechargeBatterie_jours,
         tensionSystemeBatterie_V,
         temperatureAmbiante_C
       );
@@ -296,7 +299,8 @@ export class InstallationPhotovoltaiqueController {
         pompageSolaire: boolean;
         PSH_heuresParJour: number;
         avecStockage: boolean;
-        energieCrete_Wh?: number;
+        energieCrete_Wh?: number | undefined;
+        energieDeRecharge_Wh: number | undefined;
         pompageCaracteristiques?: PompageSolaireCaracteristiques;
         rendementOnduleurMPPT?: number;
         technologieBatteries?: TechnologieBatterie;
@@ -309,6 +313,7 @@ export class InstallationPhotovoltaiqueController {
         typeInstallation,
         pompageSolaire,
         energieCrete_Wh,
+        energieDeRecharge_Wh,
         PSH_heuresParJour,
         avecStockage,
         pompageCaracteristiques,
@@ -366,11 +371,18 @@ export class InstallationPhotovoltaiqueController {
       }
 
       let Ec = energieCrete_Wh;
+      let Er = 0;
 
-      if (avecStockage && technologieBatteries && energieCrete_Wh) {
+      if (
+        avecStockage &&
+        technologieBatteries &&
+        energieCrete_Wh &&
+        energieDeRecharge_Wh
+      ) {
         const K =
           CONFIG_TECHNOLOGIES[technologieBatteries]["facteurMajorationCharge"];
         Ec = energieCrete_Wh * K;
+        Er = energieDeRecharge_Wh * K;
       }
 
       const {
@@ -380,6 +392,7 @@ export class InstallationPhotovoltaiqueController {
       } = puissanceCretePVService.puissanceCretePV(
         pompageSolaire,
         Ec,
+        Er,
         PSH_heuresParJour,
         PrData.PR,
         pompageCaracteristiques,
@@ -675,7 +688,11 @@ export class InstallationPhotovoltaiqueController {
       }
 
       // 2. Calcul de la partie DC (Strings & Câble principal PV)
-      const {success: successDC, error: errorDC, data: resDC} = cablageEtProtectionsService.dimensionnerCablesDC(
+      const {
+        success: successDC,
+        error: errorDC,
+        data: resDC,
+      } = cablageEtProtectionsService.dimensionnerCablesDC(
         resultatModules,
         Parametres_panneau,
         longueur_cable_String_m ?? 15,
@@ -693,7 +710,11 @@ export class InstallationPhotovoltaiqueController {
       }
 
       // 3. Calcul de la partie AC (Onduleur -> Réseau)
-      const {success: successAC, error: errorAC, data: resAC} = cablageEtProtectionsService.dimensionnerCablageAC(
+      const {
+        success: successAC,
+        error: errorAC,
+        data: resAC,
+      } = cablageEtProtectionsService.dimensionnerCablageAC(
         puissance_nominale_onduleur_Wh,
         tension_Reseau_V,
         is_Triphase ?? false,

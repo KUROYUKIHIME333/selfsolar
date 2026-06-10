@@ -11,6 +11,11 @@ export type Localisation = {
   altitude?: number; // m (pour déclassement)
 };
 
+export type IrradianceBounds = {
+  max: number; // W/m²
+  min: number; // W/m²
+};
+
 export type HemisphereValue = "N" | "S" | "Equateur";
 export type OrientationValue = "N" | "S" | "Quelconque";
 
@@ -335,6 +340,9 @@ export interface PVGISDatasResult {
   T_min: number;
   /** Température maximale (TMY + correction GIEC) en °C */
   T_max: number;
+
+  IR_min: number;
+  IR_max: number;
 
   // ── Vent (TMY) ─────────────────────────────────────────────────────────────
   /** Vitesse du vent moyenne annuelle à 10 m (m/s) */
