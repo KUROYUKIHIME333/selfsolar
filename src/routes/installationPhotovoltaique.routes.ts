@@ -195,6 +195,8 @@ export const installationPhotovoltaiqueRoutes = async (
                 G_max: { type: "number" },
                 T_min: { type: "number" },
                 T_max: { type: "number" },
+                IR_min: { type: "number" },
+                IR_max: { type: "number" },
                 windSpeed_mean: { type: "number" },
                 windSpeed_max: { type: "number" },
                 moisDefavorable: { type: "string" },
