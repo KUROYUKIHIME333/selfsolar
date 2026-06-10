@@ -15,6 +15,7 @@ import {
   daysInMonth,
   climateFraction,
   IPCC_DELTA,
+  getIrradianceMaxOffline,
 } from "../../utils/meteoDatasAndConstantes.utils.js";
 
 // Utilise PVGIS (Photovoltaic Geographical Information System) de la Commission Européenne
@@ -45,7 +46,10 @@ const fetchMRcalc = async (
   // Cast simple et standard de la promesse pour éviter les bugs
   const json = (await fetchJson(url)) as MRcalcResponse;
 
-  console.log("Structure complète de l'API PVGIS :", JSON.stringify(json.inputs));
+  console.log(
+    "Structure complète de l'API PVGIS :",
+    JSON.stringify(json.inputs)
+  );
 
   const monthly = json.outputs?.monthly;
   if (!Array.isArray(monthly) || monthly.length === 0) {
@@ -53,12 +57,28 @@ const fetchMRcalc = async (
   }
 
   const angleOptimal = json.inputs?.plane?.fixed_inclined_optimal?.slope?.value;
-  
 
   return { monthly, angleOptimal };
 };
 
-// Appel 2 : TMY (température et vent horaires)
+// Interface pour la réponse attendue de l'API PVGIS Monthly
+interface PVGISMonthlyResponse {
+  outputs: {
+    monthly: Array<{
+      month: number;
+      "G(i)": number; // Irradiation globale sur plan incliné (kWh/m2)
+      "H(h)": number; // Irradiation globale sur plan horizontal (kWh/m2)
+      T2m: number; // Température moyenne à 2m
+    }>;
+  };
+}
+
+interface IrradianceData {
+  month: number;
+  irGlobal: number;
+}
+
+// Appel 3 : TMY (température et vent horaires)
 /**
  * Récupère le TMY et extrait Tmin, Tmax, WS_mean, WS_max.
  */
@@ -189,16 +209,27 @@ export class ParametresSiteService {
 
       const { monthly, angleOptimal } = mrcalcResult;
 
+      // console.log("-------------------------------");
+      // console.log("-------------------------------");
+      // console.log("-------------------------------");
+      // console.log("-------------------------------");
+      // console.log("Données MRcalc :", mrcalcResult);
+      // console.log("-------------------------------");
+      // console.log("-------------------------------");
+      // console.log("-------------------------------");
+      // console.log("-------------------------------");
+
       // PSH mensuelle depuis H(i_opt)_m
-      const monthlyPSH = monthly.map((m) => {
+      const monthlyMetrics = monthly.map((m) => {
         const nbJours = daysInMonth(m.month);
         const diviseurJours = nbJours > 0 ? nbJours : 30;
+        const diviseurHeures = (nbJours > 0 ? nbJours : 30) * 6;
 
         const rawValue = m["H(i_opt)_m"]; // Valeur brute reçue de l'API
 
         // Log de débogage pour voir ce que PVGIS renvoie réellement
         console.log(
-          `Mois ${m.month}: Valeur brute PVGIS = ${rawValue} Wh/m²/mois`
+          `Mois ${m.month}: Valeur brute PVGIS = ${rawValue} kWh/m²/mois`
         );
 
         return {
@@ -206,46 +237,49 @@ export class ParametresSiteService {
           // Si la valeur est en Wh, on divise par 1000 pour avoir des kWh
           // Si la valeur est en kWh, on ne divise pas par 1000
           psh: rawValue / diviseurJours,
+          ir: (rawValue * 1000) / diviseurHeures,
         };
       });
 
       // Mois défavorable (PSH min) et favorable (PSH max)
-      const moisDefavorable = monthlyPSH.reduce((worst, curr) =>
-        curr.psh < worst.psh ? curr : worst
-      );
-      const moisSurfavorable = monthlyPSH.reduce((best, curr) =>
-        curr.psh > best.psh ? curr : best
-      );
+      const stats = {
+        defavorable: monthlyMetrics.reduce((prev, curr) =>
+          curr.psh < prev.psh ? curr : prev
+        ),
+        surfavorable: monthlyMetrics.reduce((prev, curr) =>
+          curr.psh > prev.psh ? curr : prev
+        ),
+        irMin: monthlyMetrics.reduce((prev, curr) =>
+          curr.ir < prev.ir ? curr : prev
+        ),
+        irMax: monthlyMetrics.reduce((prev, curr) =>
+          curr.ir > prev.ir ? curr : prev
+        ),
+      };
 
       // Correction climatique GIEC SSP2-4.5
       const fraction = climateFraction(targetYear);
       const dT = IPCC_DELTA.dT * fraction;
       const dG = IPCC_DELTA.dG * fraction;
 
-      const PSH_min_corrected = Number(
-        (moisDefavorable.psh * (1 + dG)).toFixed(3)
-      );
-      const PSH_max_corrected = Number(
-        (moisSurfavorable.psh * (1 + dG)).toFixed(3)
-      );
-      const T_min_corrected = Number((tmyResult.T_min + dT).toFixed(1));
-      const T_max_corrected = Number((tmyResult.T_max + dT).toFixed(1));
-
       return {
-        PSH: PSH_min_corrected,
-        PSH_max: PSH_max_corrected,
-        G_moy: PSH_min_corrected,
-        G_max: PSH_max_corrected,
+        PSH: Number((stats.defavorable.psh * (1 + dG)).toFixed(3)),
+        PSH_max: Number((stats.surfavorable.psh * (1 + dG)).toFixed(3)),
+        G_moy: Number((stats.defavorable.psh * (1 + dG)).toFixed(3)),
+        G_max: Number((stats.surfavorable.psh * (1 + dG)).toFixed(3)),
 
-        T_min: T_min_corrected,
-        T_max: T_max_corrected,
+        T_min: Number((tmyResult.T_min + dT).toFixed(1)),
+        T_max: Number((tmyResult.T_max + dT).toFixed(1)),
+
+        IR_min: Number((stats.irMin.ir * (1 + dG)).toFixed(3)),
+        IR_max: Number((stats.irMax.ir * (1 + dG)).toFixed(3)),
 
         windSpeed_mean: tmyResult.windSpeed_mean,
         windSpeed_max: tmyResult.windSpeed_max,
 
         angleOptimalPVGIS: angleOptimal,
-        moisDefavorable: String(moisDefavorable.month),
-        moisSurfavorable: String(moisSurfavorable.month),
+        moisDefavorable: String(stats.defavorable.month),
+        moisSurfavorable: String(stats.surfavorable.month),
         isFallback: false,
 
         climateCorrection: {
@@ -284,6 +318,8 @@ export class ParametresSiteService {
         G_max: pshFallback,
         T_min: 15,
         T_max: 40,
+        IR_min: getIrradianceMaxOffline(localisation).min,
+        IR_max: getIrradianceMaxOffline(localisation).max,
         windSpeed_mean: 1.5,
         windSpeed_max: 5,
         isFallback: true,
