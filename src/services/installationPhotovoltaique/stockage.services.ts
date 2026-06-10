@@ -75,6 +75,7 @@ export class StockageService {
     technologie: TechnologieBatterie = "LiFePO4",
     consommationJournaliere: number,
     autonomie: number,
+    joursPourRecharge: number,
     tensionSysteme: number,
     temperatureAmbiante?: number | undefined
   ): { success: boolean; error: string | null; data: ResultatStockage | null } {
@@ -137,6 +138,8 @@ export class StockageService {
     // Conversion Ah
     const capaciteNominaleAh = capaciteNominaleWh / tensionSysteme;
 
+    const energieRecharge = capaciteNominaleWh / joursPourRecharge;
+
     const returnDatas = {
       appareil: "Batteries",
       typeBatterie: technologie,
@@ -154,6 +157,7 @@ export class StockageService {
         nominale_Wh: Math.round(capaciteNominaleWh),
         nominale_Ah: Math.round(capaciteNominaleAh * 10) / 10,
       },
+      energieDeRecharge: energieRecharge,
       autonomieJours: autonomie,
       temperatureDeratingApplique: deratingApplique,
     };
