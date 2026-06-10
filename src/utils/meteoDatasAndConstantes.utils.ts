@@ -1,3 +1,8 @@
+import type {
+  Localisation,
+  IrradianceBounds,
+} from "../types/installationPhotovoltaique.types.js";
+
 // ─── CONSTANTES ───
 
 export const PVGIS_BASE = "https://re.jrc.ec.europa.eu/api/v5_3";
@@ -62,4 +67,31 @@ export const fetchJson = async (url: string): Promise<unknown> => {
     // );
   }
   return response.json();
+};
+
+/**
+ * Calcule l'irradiance max théorique en W/m² selon la latitude.
+ * Utilise la constante solaire et l'épaisseur atmosphérique (Masse d'air).
+ */
+export const getIrradianceMaxOffline = (
+  localisation: Localisation
+): IrradianceBounds => {
+  const latRad = Math.abs(localisation.lat) * (Math.PI / 180);
+  // angle d'inclinaison de la Terre
+  const delta = 23.45 * (Math.PI / 180);
+  const cosZenith = Math.cos(latRad - delta);
+
+  // Constante solaire (1367 W/m²)
+  // Facteur 0.75 pour la transmission atmosphérique moyenne
+  // Calcul de l'irradiance maximale théorique (ciel clair)
+  const irradianceMax = 1367 * Math.pow(0.75, 1 / cosZenith);
+
+  // Estimation de l'irradiance minimale (ciel très couvert / jour sombre)
+  // On considère qu'un ciel très chargé laisse passer 10 à 20% de l'irradiance maximale théorique.
+  const irradianceMin = irradianceMax * 0.15;
+
+  return {
+    max: Math.round(irradianceMax),
+    min: Math.round(irradianceMin),
+  };
 };
