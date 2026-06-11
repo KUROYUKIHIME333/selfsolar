@@ -71,7 +71,7 @@ CREATE INDEX idx_projects_user_id ON projects(user_id);
 CREATE INDEX idx_calculations_project_id ON calculations(project_id);
 CREATE INDEX idx_calculations_inputs ON calculations USING GIN (input_params);
 
--- 8. Trigger pour mise à jour automatique de 'updated_at'
+-- 8. Triggers pour mise à jour automatique des champs 'updated_at'
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -87,5 +87,21 @@ CREATE TRIGGER update_projects_updated_at
 
 CREATE TRIGGER update_subscriptions_updated_at
     BEFORE UPDATE ON subscriptions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_profiles_updated_at
+    BEFORE UPDATE ON profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+
+CREATE TRIGGER update_jobs_queue_updated_at
+    BEFORE UPDATE ON jobs_queue
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_calculations_updated_at
+    BEFORE UPDATE ON calculations
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
