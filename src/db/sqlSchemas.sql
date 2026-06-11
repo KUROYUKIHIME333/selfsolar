@@ -11,7 +11,19 @@ CREATE TABLE profiles (
     username TEXT,
     company_name TEXT,
     email TEXT UNIQUE NOT NULL,
+    is_delete BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE subscriptiion_plan(
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan plan_type DEFAULT 'FREE',
+    price NUMERIC(10,3) NOT NULL DEFAULT 0,
+    profile_icon TEXT,
+    description TEXT,
+    is_delete BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -19,9 +31,9 @@ CREATE TABLE profiles (
 CREATE TABLE subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    plan plan_type DEFAULT 'FREE',
-    profile_icon TEXT,
+    plan_subscriptions UUID NOT NULL REFERENCES subscriptiion_plan(id) ON DELETE CASCADE,
     is_active BOOLEAN DEFAULT true,
+    is_delete BOOLEAN DEFAULT false,
     expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -36,6 +48,7 @@ CREATE TABLE jobs_queue (
     status jobs_status DEFAULT 'PENDING...',
     result_id UUID,
     error_message TEXT,
+    is_delete BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW()
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -49,6 +62,7 @@ CREATE TABLE projects (
     description TEXT,
     service_type service_type NOT NULL,
     is_free BOOLEAN DEFAULT true,
+    is_delete BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -60,6 +74,7 @@ CREATE TABLE calculations (
     version TEXT NOT NULL DEFAULT '1.0.0',
     input_params JSONB NOT NULL,
     output_results JSONB NOT NULL,
+    is_delete BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
