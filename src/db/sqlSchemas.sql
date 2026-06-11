@@ -7,6 +7,7 @@ CREATE TYPE jobs_status AS ENUM ('PENDING...', 'PROCESSING...', 'COMPLETED', 'FA
 -- 2. Profil utilisateur (Étendu depuis auth.users si on utilise supabase)
 CREATE TABLE profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    profile_picture TEXT,
     username TEXT,
     company_name TEXT,
     email TEXT UNIQUE NOT NULL,
@@ -19,6 +20,7 @@ CREATE TABLE subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     plan plan_type DEFAULT 'FREE',
+    profile_icon TEXT,
     is_active BOOLEAN DEFAULT true,
     expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -43,6 +45,8 @@ CREATE TABLE projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
+    profile_icon TEXT,
+    description TEXT,
     service_type service_type NOT NULL,
     is_free BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
