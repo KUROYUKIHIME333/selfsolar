@@ -29,6 +29,7 @@ CREATE TABLE subscriptions (
 CREATE TABLE jobs_queue (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     payload JSONB NOT NULL,
     status jobs_status DEFAULT 'PENDING...',
     result_id UUID,
