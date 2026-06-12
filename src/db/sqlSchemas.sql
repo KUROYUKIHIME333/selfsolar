@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TYPE service_type AS ENUM ('PV', 'GE', 'IRVE', 'BT', 'BATT');
 CREATE TYPE plan_type AS ENUM ('FREE', 'STANDARD', 'PRO');
 CREATE TYPE jobs_status AS ENUM ('PENDING...', 'PROCESSING...', 'COMPLETED', 'FAILED')
-CREATE TYPE journal_natures AS ENUM ('HARD-DELETE', 'UPDATE', 'SOFT-DELETE')
+CREATE TYPE journal_natures AS ENUM ('CREATE', 'UPDATE', 'SOFT-DELETE', 'HARD-DELETE')
 
 -- 2. Profil utilisateur (Étendu depuis auth.users si on utilise supabase)
 CREATE TABLE profiles (
@@ -83,10 +83,18 @@ CREATE TABLE calculations (
 CREATE TABLE deleted_journal (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     actual_month INT,
+    last_values JSONB NOT NULL,
+    deleter UUID NOT NULL REFERENCES profiles(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+);
+
+CREATE TABLE actions_journal (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    actual_month INT,
     nature journal_natures DEFAULT "UPDATE",
     previous_values JSONB NOT NULL,
     next_values JSONB NOT NULL,
-    author UUID NOT NULL REFERENCES profiles(id),
+    action_by UUID NOT NULL REFERENCES profiles(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
 );
 
