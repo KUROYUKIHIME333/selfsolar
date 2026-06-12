@@ -14,6 +14,9 @@ const envSchema = z.object({
   PVGIS_URL: z.string().default("https://re.jrc.ec.europa.eu/api/v5_2/"),
   API_URL: z.string().default("https://selfsolar-1.onrender.com/"),
 
+  SUPABASE_DB_URL: z
+    .string()
+    .url("DATABASE_URL doit être une URL de connexion Postgres valide"),
   POSTGRES_USER: z.string().default("postgres"),
   POSTGRES_PASSWORD: z.string(),
   POSTGRES_HOST: z.string().default("localhost"),
