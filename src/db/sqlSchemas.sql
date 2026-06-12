@@ -19,10 +19,11 @@ CREATE TABLE profiles (
 
 CREATE TABLE subscriptiion_plan(
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    plan plan_type DEFAULT 'FREE',
-    price NUMERIC(10,3) NOT NULL DEFAULT 0,
     profile_icon TEXT,
-    description TEXT,
+    descript TEXT,
+    plan plan_type DEFAULT 'FREE',
+    price NUMERIC(10,3) NOT NULL DEFAULT 0.000,
+    currency VARCHAR(3) DEFAULT 'USD'
     is_delete BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW()
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -46,7 +47,7 @@ CREATE TABLE jobs_queue (
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     payload JSONB NOT NULL,
-    status jobs_status DEFAULT 'PENDING...',
+    statut jobs_status DEFAULT 'PENDING...',
     result_id UUID,
     error_message TEXT,
     is_delete BOOLEAN DEFAULT false,
@@ -58,9 +59,9 @@ CREATE TABLE jobs_queue (
 CREATE TABLE projects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
+    names TEXT NOT NULL,
     profile_icon TEXT,
-    description TEXT,
+    descript TEXT,
     service_type service_type NOT NULL,
     is_free BOOLEAN DEFAULT true,
     is_delete BOOLEAN DEFAULT false,
@@ -72,7 +73,7 @@ CREATE TABLE projects (
 CREATE TABLE calculations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    version TEXT NOT NULL DEFAULT '1.0.0',
+    service_version TEXT NOT NULL DEFAULT '1.0.0',
     input_params JSONB NOT NULL,
     output_results JSONB NOT NULL,
     is_delete BOOLEAN DEFAULT false,
@@ -92,8 +93,10 @@ CREATE TABLE actions_journal (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     actual_month INT,
     nature journal_natures DEFAULT "UPDATE",
+    action_on_table TEXT NOT NULL,
     previous_values JSONB NOT NULL,
     next_values JSONB NOT NULL,
+    action_on UUID NOT NULL,
     action_by UUID NOT NULL REFERENCES profiles(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
 );
