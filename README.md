@@ -64,21 +64,17 @@ Scripts de test pour différents scénarios :
 npm run test
 ```
 
-## API Endpoints
-
-
-- `GET /api/v1/pv/liste-panneaux` : Liste des panneaux PV
-- `GET /api/v1/pv/liste-batteries` : Liste des batteries
-- `GET /api/v1/pv/listes` : Listes combinées
-- `GET /api/v1/pv/sante` : État des services
-
-## Structure du Projet
+## Structure du Projet après tout ça, normalement
 
 ```
-    ├──
-    ├──
-    ├──
-    ├──
+    ├── .env
+    ├── .env.example
+    ├── .gitignore
+    ├── package-lock.json
+    ├── package.json
+    ├── README.md
+    ├── tsconfig.json
+    ├── vitest.config.ts
     └── src/
         ├── server.ts              # Point d'entrée serveur
         ├── app.ts                 # Configuration Fastify
@@ -120,6 +116,15 @@ npm run test
             ├── constantesPhysiques.utils.ts
             └── ...
 ```
+
+## API Endpoints
+
+
+- `GET /api/v1/pv/liste-panneaux` : Liste des panneaux PV
+- `GET /api/v1/pv/liste-batteries` : Liste des batteries
+- `GET /api/v1/pv/listes` : Listes combinées
+- `GET /api/v1/pv/sante` : État des services
+
 
 ## Technologies
 
