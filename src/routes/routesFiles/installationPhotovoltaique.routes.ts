@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { installationPhotovoltaiqueController } from "../controllers/installationPhotovoltaique.controllers.js";
+import { installationPhotovoltaiqueController } from "../../controllers/installationPhotovoltaique.controllers.js";
 
 /**
  * WARNING:
