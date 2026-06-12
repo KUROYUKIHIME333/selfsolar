@@ -5,6 +5,9 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+  DATA_BASE_USED: z
+    .enum(["postgresql_local", "postgresql_supabase"])
+    .default("postgresql_supabase"),
   CORS_ORIGIN: z.string().default(""),
   PORT: z.preprocess((val) => Number(val), z.number().default(5001)),
   HOST: z.string().default("0.0.0.0"),
