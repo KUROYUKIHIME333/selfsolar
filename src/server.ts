@@ -1,10 +1,8 @@
 import { buildApp } from "./app.js";
-import dotenv from "dotenv";
+import { env } from "./config/env.js";
 
-dotenv.config();
-
-const PORT = Number(process.env.PORT) || 3000;
-const HOST = process.env.HOST || "0.0.0.0";
+const PORT = Number(env.PORT) || 3000;
+const HOST = env.HOST || "0.0.0.0";
 
 const start = async () => {
   // Initialisation de l'instance via la Factory
