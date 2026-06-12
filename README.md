@@ -75,44 +75,50 @@ npm run test
 ## Structure du Projet
 
 ```
-src/
-├── app.ts                 # Configuration Fastify
-├── server.ts              # Point d'entrée serveur
-├── controllers/
-│   └── installationPhotovoltaique.controllers.ts
-│   └── ...
-├── config/
-├── db/
-├── hooks/
-├── plugins/
-├── routes/
-│   ├── api.routes.ts
-│   └── installationPhotovoltaique.routes.ts
-│   └── ...
-├── services/
-│   ├── installationPhotovoltaique/
-│   │   ├── bilanConso.services.ts
-│   │   ├── parametreSite.services.ts
-│   │   ├── puissancePVCrete.services.ts
-│   │   ├── stockage.services.ts
-│   │   └── cablageProtection.services.ts
-│   └── ...
-├── types/
-│   └── installationPhotovoltaique.types.ts
-│   └── ...
-├── tests/
-│   └── unitary/
-│       └── installationPhotovoltaique/
-|       |   └── bilanConsommation.tests.ts
-|       |   └── cablageProtection.tests.ts
-|       |   └── parametreSite.tests.ts
-|       |   └── ...
-│       └── ...
-└── utils/
-|   ├── batteriesListe.utils.ts
-|   └── constantesPhysiques.utils.ts
-|   └── ...
-└── 
+    ├──
+    ├──
+    ├──
+    ├──
+    └── src/
+        ├── server.ts              # Point d'entrée serveur
+        ├── app.ts                 # Configuration Fastify
+        ├── controllers/
+        │   ├── installationPhotovoltaique.controllers.ts
+        │   └── ...
+        ├── config/
+        │   ├── auth.ts
+        │   └── db.ts
+        ├── db/
+        │   └── sqlSchemas.sql
+        ├── hooks/
+        ├── plugins/
+        ├── routes/
+        │   ├── api.routes.ts
+        │   ├── installationPhotovoltaique.routes.ts
+        │   └── ...
+        ├── services/
+        │   ├── installationPhotovoltaique/
+        │   │   ├── bilanConso.services.ts
+        │   │   ├── parametreSite.services.ts
+        │   │   ├── puissancePVCrete.services.ts
+        │   │   ├── stockage.services.ts
+        │   │   └── cablageProtection.services.ts
+        │   └── ...
+        ├── types/
+        │   ├── installationPhotovoltaique.types.ts
+        │   └── ...
+        ├── tests/
+        │   └── unitary/
+        │       ├── installationPhotovoltaique/
+        |       |   ├── bilanConsommation.tests.ts
+        |       |   ├── cablageProtection.tests.ts
+        |       |   ├── parametreSite.tests.ts
+        |       |   └── ...
+        │       └── ...
+        └── utils/
+            ├── batteriesListe.utils.ts
+            ├── constantesPhysiques.utils.ts
+            └── ...
 ```
 
 ## Technologies
