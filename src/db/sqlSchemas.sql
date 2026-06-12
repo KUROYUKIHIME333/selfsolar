@@ -86,6 +86,7 @@ CREATE TABLE deleted_journal (
     nature journal_natures DEFAULT "UPDATE",
     previous_values JSONB NOT NULL,
     next_values JSONB NOT NULL,
+    author UUID NOT NULL REFERENCES profiles(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
 );
 
