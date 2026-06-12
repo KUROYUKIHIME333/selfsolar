@@ -3,7 +3,7 @@
 API backend pour le dimensionnement automatique d'installations photovoltaïques, conforme aux normes internationales (NFC 15-100, IEC 61215, IEC 62109, etc.); développée en Node.js/TypeScript avec Fastify. 
 Elle intègre des données météorologiques via PVGIS, même si je ne suis pas encore satisfait de cette partie.
 
-Si vous voyez des erreurs, des améliorations possibles, ou bien juste pour discuter, n'hesitez pas, [contactez moi](https://danielramazani.pages.dev/contact)  
+Si vous voyez des erreurs, des améliorations possibles, avez un projet ou boulot à me proposer, ou bien juste pour discuter, n'hesitez pas, [contactez moi](https://danielramazani.pages.dev/contact)  
 
 ### Fonctionnalités Principales
 
