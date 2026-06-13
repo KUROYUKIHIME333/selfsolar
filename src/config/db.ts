@@ -8,9 +8,9 @@ const clientUrl: string = useLocalPostgresqlDb
   ? `postgres://${env.POSTGRES_USER}:${env.POSTGRES_PASSWORD}@${env.POSTGRES_HOST}:${env.POSTGRES_PORT}/${env.POSTGRES_DB}`
   : env.SUPABASE_DB_URL;
 
-const queryClient = postgres(clientUrl, {
+const db = postgres(clientUrl, {
   max: 15,
   ssl: useSupabaseDb ? "require" : false,
 });
 
-export const db = queryClient;
+export default db;
