@@ -49,6 +49,25 @@ export class ProfilesRequests {
 
     // return sendResponse(true, null, profile);
   }
+
+  public async softDeleteProfiles(id: string) {
+    if (!id) {
+      return sendResponse(
+        false,
+        "Renseigner l'id du compte à supprimer",
+        null
+      );
+    };
+
+    // const profile =
+    //   await db`INSERT INTO ${PROFILES}(${columns}) VALUES(${values}) ON CONFLICT(email) DO NOTHING RETURNING *`;
+
+    // if (!profile) {
+    //   return sendResponse(false, "L'email fourni est dejà utilisé", null);
+    // }
+
+    // return sendResponse(true, null, profile);
+  }
 }
 
 export const profilesRequests = new ProfilesRequests();
