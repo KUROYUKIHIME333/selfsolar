@@ -1,14 +1,14 @@
 export type TypePlanSouscription = "FREE" | "STANDARD" | "PRO";
 
 export interface DbProfiles {
-  id: string;
-  profile_picture: string;
   username: string;
-  company_name: string;
   email: string;
-  is_delete: boolean;
-  created_at: Date;
-  updated_at: Date;
+  id?: string;
+  profile_picture?: string;
+  company_name?: string;
+  is_delete?: boolean;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 export interface DbSubscriptionPlans {
