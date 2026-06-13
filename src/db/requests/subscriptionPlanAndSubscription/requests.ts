@@ -17,14 +17,10 @@ export class SubscriptionsRequests {
     const values = getValuesCommaSeparated(newPlan);
 
     const subscriptionPlan =
-      await db`INSERT INTO ${SUBSCRIPTIONS_PLAN}(${columns}) VALUES(${values}) ON CONFLICT(id, plan) DO NOTHING RETURNING *`;
+      await db`INSERT INTO ${SUBSCRIPTIONS_PLAN}(${columns}) VALUES(${values}) ON CONFLICT(plan) DO NOTHING RETURNING *`;
 
     if (!subscriptionPlan) {
-      return sendResponse(
-        false,
-        "Le plan de souscription n'a pas été créé",
-        null
-      );
+      return sendResponse(false, "Ce plan de souscription existe déjà", null);
     }
 
     return sendResponse(true, null, subscriptionPlan);
