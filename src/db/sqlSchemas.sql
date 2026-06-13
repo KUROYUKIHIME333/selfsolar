@@ -10,6 +10,7 @@ CREATE TABLE profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     profile_picture TEXT,
     username TEXT,
+    password TEXT,
     company_name TEXT,
     email TEXT UNIQUE NOT NULL,
     is_delete BOOLEAN DEFAULT false,
