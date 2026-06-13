@@ -1,4 +1,4 @@
-import { SUBSCRIPTIONS, SUBSCRIPTIONS_PLAN } from "../../dbTables.js";
+import { SUBSCRIPTIONS_PLAN } from "../../dbTables.js";
 import type {
   //   TypePlanSouscription,
   DbSubscriptionPlans,
