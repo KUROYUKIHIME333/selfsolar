@@ -1,8 +1,8 @@
 import { SUBSCRIPTIONS, SUBSCRIPTIONS_PLAN } from "../../dbTables.js";
 import type {
-  TypePlanSouscription,
+  //   TypePlanSouscription,
   DbSubscriptionPlans,
-  DbSubscriptions,
+  //   DbSubscriptions,
 } from "../../../types/dbTypes.js";
 import db from "../../../config/db.js";
 import {
@@ -29,6 +29,8 @@ export class SubscriptionsRequests {
 
     return sendResponse(true, null, subscriptionPlan);
   }
+
+  //   public async createSuscription() {}
 }
 
 export const subscriptionsRequests = new SubscriptionsRequests();
