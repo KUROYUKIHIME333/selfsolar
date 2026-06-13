@@ -52,12 +52,8 @@ export class ProfilesRequests {
 
   public async softDeleteProfiles(id: string) {
     if (!id) {
-      return sendResponse(
-        false,
-        "Renseigner l'id du compte à supprimer",
-        null
-      );
-    };
+      return sendResponse(false, "Renseigner l'id du compte à supprimer", null);
+    }
 
     // const profile =
     //   await db`INSERT INTO ${PROFILES}(${columns}) VALUES(${values}) ON CONFLICT(email) DO NOTHING RETURNING *`;

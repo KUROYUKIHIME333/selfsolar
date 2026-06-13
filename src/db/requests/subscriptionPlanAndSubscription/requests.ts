@@ -19,7 +19,7 @@ export class SubscriptionsRequests {
         "le nom du plan, son prix et sa devise sont à renseigner",
         null
       );
-    };
+    }
     const columns = getKeysCommaSeparated(newPlan);
     const values = getValuesCommaSeparated(newPlan);
 
