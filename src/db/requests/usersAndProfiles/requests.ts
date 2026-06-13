@@ -9,6 +9,13 @@ import { sendResponse } from "../../../utils/handlers.utils.js";
 
 export class ProfilesRequests {
   public async createProfiles(newUser: DbProfiles) {
+    if (!newUser || !newUser.email || !newUser.password) {
+      return sendResponse(
+        false,
+        "Renseigner l'email et le mot de passe pour inscription",
+        null
+      );
+    }
     const columns = getKeysCommaSeparated(newUser);
     const values = getValuesCommaSeparated(newUser);
 
