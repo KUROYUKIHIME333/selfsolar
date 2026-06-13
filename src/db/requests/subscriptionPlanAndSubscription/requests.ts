@@ -13,6 +13,13 @@ import { sendResponse } from "../../../utils/handlers.utils.js";
 
 export class SubscriptionsRequests {
   public async createSubscriptionPlan(newPlan: DbSubscriptionPlans) {
+    if (!newPlan || !newPlan.plan || !newPlan.currency || !newPlan.plan) {
+      return sendResponse(
+        false,
+        "le nom du plan, son prix et sa devise sont à renseigner",
+        null
+      );
+    };
     const columns = getKeysCommaSeparated(newPlan);
     const values = getValuesCommaSeparated(newPlan);
 
