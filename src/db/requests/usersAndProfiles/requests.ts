@@ -28,6 +28,27 @@ export class ProfilesRequests {
 
     return sendResponse(true, null, profile);
   }
+
+  public async updateProfiles(newUser: DbProfiles) {
+    if (!newUser || !newUser.email || !newUser.password) {
+      return sendResponse(
+        false,
+        "Renseigner l'email et le mot de passe pour inscription",
+        null
+      );
+    }
+    const columns = getKeysCommaSeparated(newUser);
+    const values = getValuesCommaSeparated(newUser);
+
+    // const profile =
+    //   await db`INSERT INTO ${PROFILES}(${columns}) VALUES(${values}) ON CONFLICT(email) DO NOTHING RETURNING *`;
+
+    // if (!profile) {
+    //   return sendResponse(false, "L'email fourni est dejà utilisé", null);
+    // }
+
+    // return sendResponse(true, null, profile);
+  }
 }
 
 export const profilesRequests = new ProfilesRequests();
