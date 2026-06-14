@@ -9,6 +9,9 @@ import { sendResponse } from "../../../utils/handlers.utils.js";
 
 export class ProfilesRequests {
   public async createProfiles(newUser: DbProfiles) {
+    //TODO: Remove it when finishing working or debugging
+    console.log("REQUETE PROFILE :", newUser);
+
     if (!newUser || !newUser.email || !newUser.password) {
       return sendResponse(
         false,
@@ -19,9 +22,12 @@ export class ProfilesRequests {
 
     const columns = getKeysCommaSeparated(newUser);
     const values = getValuesCommaSeparated(newUser);
+    //TODO: Remove it when finishing working or debugging
+    console.log("COLONNES :", columns);
+    console.log("VALEURS :", values);
 
     const profile =
-      await db`INSERT INTO ${PROFILES}(${columns}) VALUES(${values}) ON CONFLICT(email) DO NOTHING`;
+      await db`INSERT INTO ${PROFILES}(id,${columns}) VALUES(gen_random_uuid(),${values}) RETURNING (id,email,profile_picture,username,company_name,created_at,updated_at) `;
 
     //TODO: Remove it when finishing working or debugging
     console.log("CREATION D'UN PROFILE :", profile);
