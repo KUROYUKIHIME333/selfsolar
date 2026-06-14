@@ -11,5 +11,9 @@ export const getKeysCommaSeparated = (obj: Record<string, any>): string => {
 };
 
 export const getValuesCommaSeparated = (obj: Record<string, any>): string => {
-  return Object.values(obj).join(",");
+  let values: string[] = [];
+  Object.values(obj).forEach((element) => {
+    values.push(`'${element}'`);
+  });
+  return values.join(",");
 };
