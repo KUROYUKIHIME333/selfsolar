@@ -20,7 +20,7 @@ export class BasicRequests {
     return result[0];
   }
 
-  //INSERER DANS UNE TABLE DES VALEURSET RETOURNER DES CHAMPS
+  //INSERER DANS UNE TABLE DES VALEURS ET RETOURNER DES CHAMPS
   public async insertValuesIntoTable(
     table: string,
     datas: object,
