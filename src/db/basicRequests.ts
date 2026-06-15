@@ -36,7 +36,7 @@ export class BasicRequests {
     return result[0];
   }
 
-  //INSERER DANS UNE TABLE DES VALEURS ET RETOURNER DES CHAMPS
+  //MODIFIER DANS UNE TABLE
   public async updateInTable(
     table: string,
     id: string,
