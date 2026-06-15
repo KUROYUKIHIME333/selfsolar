@@ -20,6 +20,12 @@ export class BasicRequests {
     return result[0];
   }
 
+  // RECUPERER PAR UN CHAMPS PAR L ID(egalité stricte)
+  public async selectByIdFromTable(table: string, id: string) {
+    const result = await sql`SELECT * FROM ${sql(table)} WHERE id = ${id}`;
+    return result[0];
+  }
+
   //INSERER DANS UNE TABLE DES VALEURS ET RETOURNER DES CHAMPS
   public async insertValuesIntoTable(
     table: string,
