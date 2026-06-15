@@ -1,4 +1,5 @@
 import { sql } from "../config/db.js";
+import type { TablesFieldsPossibilities } from "../types/dbTypes.js";
 
 export class BasicRequests {
   // RECUPERER UNE TABLE
@@ -11,7 +12,7 @@ export class BasicRequests {
   public async selectByFieldFromTable(
     table: string,
     fieldName: string,
-    fieldValue: string
+    fieldValue: TablesFieldsPossibilities
   ) {
     const result = await sql`SELECT * FROM ${sql(
       table
@@ -74,7 +75,7 @@ export class BasicRequests {
   public async countByAFieldFromTable(
     table: string,
     fieldName: string,
-    fieldValue: string,
+    fieldValue: TablesFieldsPossibilities,
     criteria: "all" | "active" | "deleted" = "active"
   ) {
     let result = await sql`SELECT COUNT(*) FROM ${sql(
