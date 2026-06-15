@@ -67,6 +67,17 @@ export class ProfilesRequests {
     return result;
   }
 
+  public async activateUser(id: string) {
+    const result = await basicRequests.updateInTable(
+      PROFILES,
+      id,
+      { isActive: true },
+      PROFILES_FIELDS_TO_SEND
+    );
+
+    return result;
+  }
+
   public async countActiveProfiles() {
     const result = await basicRequests.countByAFieldFromTable(
       PROFILES,
