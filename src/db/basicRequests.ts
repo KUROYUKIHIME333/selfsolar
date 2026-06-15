@@ -36,6 +36,26 @@ export class BasicRequests {
     return result[0];
   }
 
+  //INSERER DANS UNE TABLE DES VALEURS ET RETOURNER DES CHAMPS
+  public async updateInTable(
+    table: string,
+    fieldName: string,
+    fieldValue: TablesFieldsPossibilities,
+    datas: object,
+    fieldsToReturn: string[] = ["*"]
+  ) {
+    // Transformer le tableau en fragment sql
+    const returningFields = fieldsToReturn.map((field) => sql(field as string));
+
+    const result = await sql`
+      UPDATE ${sql(table)} 
+      SET ${sql(datas)} 
+      WHERE ${fieldName} = ${fieldValue}
+      RETURNING ${sql(returningFields.join(", "))}
+    `;
+    return result[0];
+  }
+
   public async softDeleteFromTable(
     table: string,
     id: string,
