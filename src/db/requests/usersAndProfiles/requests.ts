@@ -25,7 +25,6 @@ export class ProfilesRequests {
   public async updateUser(id: string, data: Partial<DbProfiles>) {
     const result = await basicRequests.updateInTable(
       PROFILES,
-      "id",
       id,
       data,
       PROFILES_FIELDS_TO_SEND
@@ -34,11 +33,34 @@ export class ProfilesRequests {
     return result;
   }
 
-  public async deleteUser(id: string, data: Partial<DbProfiles>) {
+  public async deleteUser(id: string) {
+    const result = await basicRequests.softDeleteFromTable(
+      PROFILES,
+      id,
+      PROFILES_FIELDS_TO_SEND
+    );
+
+    return result;
+  }
+
+  public async isUserActive(
+    searchValue: string,
+    searchField: "email" | "id" = "id"
+  ) {
+    const result = await basicRequests.selectByFieldFromTable(
+      PROFILES,
+      searchField,
+      searchValue
+    );
+
+    return result?.isActive;
+  }
+
+  public async desactivateUser(id: string) {
     const result = await basicRequests.updateInTable(
       PROFILES,
       id,
-      data,
+      { isActive: false },
       PROFILES_FIELDS_TO_SEND
     );
 
