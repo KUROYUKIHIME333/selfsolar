@@ -53,14 +53,14 @@ export class ProfilesRequests {
       searchValue
     );
 
-    return result?.isActive;
+    return result?.is_active;
   }
 
   public async desactivateUser(id: string) {
     const result = await basicRequests.updateInTable(
       PROFILES,
       id,
-      { isActive: false },
+      { is_active: false },
       PROFILES_FIELDS_TO_SEND
     );
 
@@ -71,7 +71,7 @@ export class ProfilesRequests {
     const result = await basicRequests.updateInTable(
       PROFILES,
       id,
-      { isActive: true },
+      { is_active: true },
       PROFILES_FIELDS_TO_SEND
     );
 
@@ -81,7 +81,7 @@ export class ProfilesRequests {
   public async countActiveProfiles() {
     const result = await basicRequests.countByAFieldFromTable(
       PROFILES,
-      "isActive",
+      "is_active",
       true
     );
 
@@ -91,7 +91,7 @@ export class ProfilesRequests {
   public async countNonactiveProfiles() {
     const result = await basicRequests.countByAFieldFromTable(
       PROFILES,
-      "isActive",
+      "is_active",
       false
     );
 

@@ -68,7 +68,7 @@ export class BasicRequests {
   ) {
     const returningFields = fieldsToReturn.map((field) => sql(field as string));
     return await sql`UPDATE ${sql(table)} 
-      SET isDeleted = true
+      SET is_delete = true
       WHERE id = ${id}
       RETURNING ${sql(returningFields.join(", "))}`;
   }
@@ -83,7 +83,7 @@ export class BasicRequests {
   ) {
     let result = await sql`SELECT COUNT(*) FROM ${sql(
       table
-    )} WHERE isDeleted = false`;
+    )} WHERE is_delete = false`;
 
     if (criteria === "all") {
       result = await sql`SELECT COUNT(*) FROM ${sql(table)}`;
@@ -91,7 +91,7 @@ export class BasicRequests {
     if (criteria === "deleted") {
       result = await sql`SELECT COUNT(*) FROM ${sql(
         table
-      )} WHERE isDeleted = true`;
+      )} WHERE is_delete = true`;
     }
 
     return result[0]?.count;
@@ -105,7 +105,7 @@ export class BasicRequests {
   ) {
     let result = await sql`SELECT COUNT(*) FROM ${sql(
       table
-    )} WHERE isDeleted = false AND WHERE ${fieldName} = ${fieldValue}`;
+    )} WHERE is_delete = false AND WHERE ${fieldName} = ${fieldValue}`;
 
     if (criteria === "all") {
       result = await sql`SELECT COUNT(*) FROM ${sql(
@@ -115,7 +115,7 @@ export class BasicRequests {
     if (criteria === "deleted") {
       result = await sql`SELECT COUNT(*) FROM ${sql(
         table
-      )} WHERE isDeleted = true WHERE ${fieldName} = ${fieldValue}`;
+      )} WHERE is_delete = true WHERE ${fieldName} = ${fieldValue}`;
     }
 
     return result[0]?.count;
