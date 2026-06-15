@@ -13,6 +13,7 @@ CREATE TABLE profiles (
     password TEXT,
     company_name TEXT,
     email TEXT UNIQUE NOT NULL,
+    is_active BOOLEAN DEFAULT true,
     is_delete BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
