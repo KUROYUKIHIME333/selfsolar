@@ -22,6 +22,18 @@ export class ProfilesRequests {
     return result;
   }
 
+  public async updateUser(id: string, data: Partial<DbProfiles>) {
+    const result = await basicRequests.updateInTable(
+      PROFILES,
+      "id",
+      id,
+      data,
+      PROFILES_FIELDS_TO_SEND
+    );
+
+    return result;
+  }
+
   public async countActiveProfiles() {
     const result = await basicRequests.countByAFieldFromTable(
       PROFILES,
