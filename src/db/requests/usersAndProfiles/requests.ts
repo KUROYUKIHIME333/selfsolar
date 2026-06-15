@@ -1,5 +1,6 @@
 import { basicRequests } from "../../basicRequests.js";
 import { PROFILES, PROFILES_FIELDS_TO_SEND } from "../../dbTables.js";
+import type { DbProfiles } from "../../../types/dbTypes.js";
 export class ProfilesRequests {
   public async findByEmail(email: string) {
     const result = await basicRequests.selectByFieldFromTable(
@@ -7,6 +8,17 @@ export class ProfilesRequests {
       "email",
       email
     );
+
+    return result;
+  }
+
+  public async createUser(data: Partial<DbProfiles>) {
+    const result = await basicRequests.insertValuesIntoTable(
+      PROFILES,
+      data,
+      PROFILES_FIELDS_TO_SEND
+    );
+
     return result;
   }
 
@@ -16,6 +28,7 @@ export class ProfilesRequests {
       "isActive",
       true
     );
+
     return result;
   }
 
@@ -25,6 +38,7 @@ export class ProfilesRequests {
       "isActive",
       false
     );
+
     return result;
   }
 }
