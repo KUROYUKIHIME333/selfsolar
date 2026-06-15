@@ -39,7 +39,7 @@ CREATE TABLE subscriptions (
     is_active BOOLEAN DEFAULT true,
     is_delete BOOLEAN DEFAULT false,
     expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -98,7 +98,7 @@ CREATE TABLE deleted_journal (
 CREATE TABLE actions_journal (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     actual_month INT,
-    nature journal_natures DEFAULT "UPDATE",
+    nature journal_natures DEFAULT 'UPDATE',
     action_on_table TEXT NOT NULL,
     previous_values JSONB NOT NULL,
     next_values JSONB NOT NULL,
