@@ -1,79 +1,23 @@
-import { PROFILES } from "../../dbTables.js";
+import { db } from "../../../config/db.js";
+import { PROFILES, PROFILES_FIELDS_TO_SEND } from "../../dbTables.js";
 import type { DbProfiles } from "../../../types/dbTypes.js";
-import db from "../../../config/db.js";
-import {
-  getKeysCommaSeparated,
-  getValuesCommaSeparated,
-} from "../../../utils/toolbox.utils.js";
-import { sendResponse } from "../../../utils/handlers.utils.js";
-
+import { basicRequests } from "../../basicRequests.js";
+import { getKeysArray } from "../../../utils/toolbox.utils.js";
 export class ProfilesRequests {
   public async createProfiles(newUser: DbProfiles) {
-    //TODO: Remove it when finishing working or debugging
-    console.log("REQUETE PROFILE :", newUser);
+    const sqlRequest = basicRequests.insertIntoTable(
+      PROFILES,
+      newUser,
+      PROFILES_FIELDS_TO_SEND
+    );
+    const columns = getKeysArray(newUser);
 
-    if (!newUser || !newUser.email || !newUser.password) {
-      return sendResponse(
-        false,
-        "Renseigner l'email et le mot de passe pour inscription",
-        null
-      );
-    }
+    console.log(sqlRequest);
 
-    const columns = getKeysCommaSeparated(newUser);
-    const values = getValuesCommaSeparated(newUser);
-    //TODO: Remove it when finishing working or debugging
-    console.log("COLONNES :", columns);
-    console.log("VALEURS :", values);
+    const response = await db`insert into profiles ${db(newUser, columns)}`;
 
-    const profile =
-      await db`INSERT INTO ${PROFILES}(id,${columns}) VALUES(gen_random_uuid(),${values}) RETURNING (id,email,profile_picture,username,company_name,created_at,updated_at) `;
-
-    //TODO: Remove it when finishing working or debugging
-    console.log("CREATION D'UN PROFILE :", profile);
-
-    if (!profile) {
-      return sendResponse(false, "L'email fourni est dejà utilisé", null);
-    }
-
-    return sendResponse(true, null, profile);
+    return response;
   }
-
-  // public async updateProfiles(newUser: DbProfiles) {
-  //   if (!newUser || !newUser.email || !newUser.password) {
-  //     return sendResponse(
-  //       false,
-  //       "Renseigner l'email et le mot de passe pour inscription",
-  //       null
-  //     );
-  //   }
-  //   const columns = getKeysCommaSeparated(newUser);
-  //   const values = getValuesCommaSeparated(newUser);
-
-  //   // const profile =
-  //   //   await db`INSERT INTO ${PROFILES}(${columns}) VALUES(${values}) ON CONFLICT(email) DO NOTHING RETURNING *`;
-
-  //   // if (!profile) {
-  //   //   return sendResponse(false, "L'email fourni est dejà utilisé", null);
-  //   // }
-
-  //   // return sendResponse(true, null, profile);
-  // }
-
-  // public async softDeleteProfiles(id: string) {
-  //   if (!id) {
-  //     return sendResponse(false, "Renseigner l'id du compte à supprimer", null);
-  //   }
-
-  //   // const profile =
-  //   //   await db`INSERT INTO ${PROFILES}(${columns}) VALUES(${values}) ON CONFLICT(email) DO NOTHING RETURNING *`;
-
-  //   // if (!profile) {
-  //   //   return sendResponse(false, "L'email fourni est dejà utilisé", null);
-  //   // }
-
-  //   // return sendResponse(true, null, profile);
-  // }
 }
 
 export const profilesRequests = new ProfilesRequests();

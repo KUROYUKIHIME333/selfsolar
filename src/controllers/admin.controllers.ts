@@ -2,40 +2,22 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { profilesRequests } from "../db/requests/usersAndProfiles/requests.js";
 import { DbProfiles } from "../types/dbTypes.js";
 import { sendError, sendSuccess } from "../utils/handlers.utils.js";
+import { db } from "../config/db.js";
 
 export class AdminController {
-  public async createNewUser(
-    request: FastifyRequest<{
-      Body: {
-        newUser: DbProfiles;
-      };
-    }>,
-    reply: FastifyReply
-  ) {
-    try {
-      const { newUser } = request.body;
+  public async createNewUser(reply: FastifyReply) {
+    const response =
+      await db`INSERT INTO profils (id, profile_picture, email, password) VALUES (gen_random_uuid(), null, 'Daaili@gmail', '7680f32c08d1a67d5a603c047280') RETURNING (id, email, profile_picture, username, company_name, created_at, updated_at);`;
 
-      const { success, error, data } = await profilesRequests.createProfiles(
-        newUser
-      );
+    //TODO: Remove it when finishing working or debugging
+    console.log("----------------------------------");
+    console.log("CRESULT OF REQUEST IN THE CONTROLLER");
+    console.log("----------------------------------");
+    console.log("CREATION: ", response);
+    console.log("----------------------------------");
+    console.log("----------------------------------");
 
-      //TODO: Remove it when finishing working or debugging
-    console.log("CREATION: ", success);
-    console.log("CREATION: ",error);
-    console.log("CREATION: ", data);
-
-      if (!success || error || !data) {
-        return sendError(
-          reply,
-          error || "Une erreur est survenue lors de la création su profil",
-          400
-        );
-      }
-
-      //TODO: Remove it when finishing working or debugging
-    console.log("CREATION: ", data);
-      return sendSuccess(reply, data, 200);
-    } catch (error) {}
+    return sendSuccess(reply, response, 200);
   }
 }
 
