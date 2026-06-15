@@ -1,36 +1,38 @@
+import { PROFILES } from "../db/dbTables.js";
+
 export type TypePlanSouscription = "FREE" | "STANDARD" | "PRO";
 
 export interface DbProfiles {
   email: string;
-  password: string;
-  id?: string;
-  profile_picture?: string;
-  username?: string;
-  company_name?: string;
-  is_delete?: boolean;
-  created_at?: Date;
-  updated_at?: Date;
+  password?: string;
+  id?: string | undefined;
+  profile_picture?: string | undefined;
+  username?: string | undefined;
+  company_name?: string | undefined;
+  is_delete?: boolean | undefined;
+  created_at?: Date | undefined;
+  updated_at?: Date | undefined;
 }
 
 export interface DbSubscriptionPlans {
   plan: TypePlanSouscription;
   price: number;
   currency: string;
-  descript?: string;
-  is_delete?: boolean;
-  id?: string;
-  profile_icon?: string;
-  created_at?: Date;
-  updated_at?: Date;
+  descript?: undefined | string;
+  is_delete?: undefined | boolean;
+  id?: undefined | string;
+  profile_icon?: undefined | string;
+  created_at?: undefined | Date;
+  updated_at?: undefined | Date;
 }
 
 export interface DbSubscriptions {
   user_id: string;
   plan_subscriptions: string;
-  is_active?: boolean;
-  id?: string;
-  is_delete?: boolean;
-  expires_at?: Date;
-  created_at?: Date;
-  updated_at?: Date;
+  is_active?: undefined | boolean;
+  id?: undefined | string;
+  is_delete?: undefined | boolean;
+  expires_at?: undefined | Date;
+  created_at?: undefined | Date;
+  updated_at?: undefined | Date;
 }
