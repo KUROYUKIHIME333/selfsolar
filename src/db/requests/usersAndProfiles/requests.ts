@@ -7,13 +7,17 @@ export class ProfilesRequests {
       "email",
       email
     );
-    return result
+    return result;
   }
 
-  public async countActiveProfiles(){
-    const isActive: boolean = true;
-    const result = await basicRequests.countByAFieldFromTable(PROFILES, "isActive", isActive)
-  } 
+  public async countActiveProfiles() {
+    const result = await basicRequests.countByAFieldFromTable(
+      PROFILES,
+      "isActive",
+      true
+    );
+    return result;
+  }
 }
 
 export const profilesRequests = new ProfilesRequests();
