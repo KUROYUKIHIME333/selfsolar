@@ -39,8 +39,7 @@ export class BasicRequests {
   //INSERER DANS UNE TABLE DES VALEURS ET RETOURNER DES CHAMPS
   public async updateInTable(
     table: string,
-    fieldName: string,
-    fieldValue: TablesFieldsPossibilities,
+    id: string,
     datas: object,
     fieldsToReturn: string[] = ["*"]
   ) {
@@ -50,7 +49,7 @@ export class BasicRequests {
     const result = await sql`
       UPDATE ${sql(table)} 
       SET ${sql(datas)} 
-      WHERE ${fieldName} = ${fieldValue}
+      WHERE id = ${id}
       RETURNING ${sql(returningFields.join(", "))}
     `;
     return result[0];
