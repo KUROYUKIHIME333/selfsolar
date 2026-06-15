@@ -19,10 +19,10 @@ export class BasicRequests {
   }
 
   //INSERER DANS UNE TABLE DES VALEURSET RETOURNER DES CHAMPS
-  public async insertIntoTable(
+  public async insertValuesIntoTable(
     table: string,
     datas: object,
-    fieldsToReturn: string[]
+    fieldsToReturn: string[] = ["*"]
   ) {
     // Transformer le tableau en fragment sql
     const returningFields = fieldsToReturn.map((field) => sql(field as string));
@@ -32,6 +32,22 @@ export class BasicRequests {
       RETURNING ${sql(returningFields.join(", "))}
     `;
     return result[0];
+  }
+
+  public async softDeleteFromTable(
+    table: string,
+    id: string,
+    fieldsToReturn: string[] = ["*"]
+  ) {
+    const returningFields = fieldsToReturn.map((field) => sql(field as string));
+    return await sql`UPDATE ${sql(table)} 
+      SET isDeleted = true
+      WHERE id = ${id}
+      RETURNING ${sql(returningFields.join(", "))}`;
+  }
+
+  public async hardDeleteFromTable(table: string, id: string) {
+    return await sql`DELETE FROM ${sql(table)} WHERE id = ${id}`;
   }
 }
 
