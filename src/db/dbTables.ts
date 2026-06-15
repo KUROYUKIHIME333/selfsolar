@@ -1,4 +1,14 @@
 export const PROFILES = "profiles";
+export const PROFILES_FIELDS_TO_SEND = [
+  "id",
+  "profile_picture",
+  "username",
+  "company_name",
+  "email",
+  "created_at",
+  "updated_at",
+];
+
 export const SUBSCRIPTIONS = "subscriptions";
 export const SUBSCRIPTIONS_PLAN = "subscription_plans";
 export const PROJECTS = "projects";
