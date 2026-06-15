@@ -22,9 +22,9 @@ export class BasicRequests {
   public async insertIntoTable(
     table: string,
     datas: object,
-    fieldsToReturn: (keyof object)[]
+    fieldsToReturn: string[]
   ) {
-    // On transforme le tableau ['email', 'id'] en fragment sql "email, id"
+    // Transformer le tableau en fragment sql
     const returningFields = fieldsToReturn.map((field) => sql(field as string));
 
     const result = await sql`
