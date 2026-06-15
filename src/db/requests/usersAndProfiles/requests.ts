@@ -11,7 +11,8 @@ export class ProfilesRequests {
   }
 
   public async countActiveProfiles(){
-    const result = await basicRequests.countByAFieldFromTable(PROFILES, )
+    const isActive: boolean = true;
+    const result = await basicRequests.countByAFieldFromTable(PROFILES, "isActive", isActive)
   } 
 }
 
