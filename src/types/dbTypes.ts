@@ -1,4 +1,5 @@
 export type TypePlanSouscription = "FREE" | "STANDARD" | "PRO";
+export type TablesFieldsPossibilities = "string" | "boolean" | "number";
 
 export interface DbProfiles {
   id: string | undefined;
