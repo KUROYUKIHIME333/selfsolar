@@ -18,6 +18,15 @@ export class ProfilesRequests {
     );
     return result;
   }
+
+  public async countNonactiveProfiles() {
+    const result = await basicRequests.countByAFieldFromTable(
+      PROFILES,
+      "isActive",
+      false
+    );
+    return result;
+  }
 }
 
 export const profilesRequests = new ProfilesRequests();
