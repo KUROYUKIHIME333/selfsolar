@@ -30,7 +30,7 @@ export class BasicRequests {
     const result = await pool.query(`SELECT * FROM ${table} WHERE id = $1`, [
       id,
     ]);
-    return result.rows[0] ?? null;
+    return result.rows;
   }
 
   //INSERER DANS UNE TABLE DES VALEURS ET RETOURNER DES CHAMPS
@@ -55,7 +55,7 @@ export class BasicRequests {
       values
     );
 
-    return result.rows[0];
+    return result.rows;
   }
 
   //MODIFIER DANS UNE TABLE
@@ -81,7 +81,7 @@ export class BasicRequests {
       [...values, id]
     );
 
-    return result.rows[0] ?? null;
+    return result.rows;
   }
 
   // SUPPRESSION LOGIQUE
