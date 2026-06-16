@@ -1,6 +1,7 @@
 import { basicRequests } from "../../basicRequests.js";
 import { PROFILES, PROFILES_FIELDS_TO_SEND } from "../../dbTables.js";
 import type { DbProfiles } from "../../../types/dbTypes.js";
+
 export class ProfilesRequests {
   public async findByEmail(email: string) {
     const result = await basicRequests.selectByFieldFromTable(
