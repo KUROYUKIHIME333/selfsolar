@@ -16,7 +16,7 @@ export class BasicRequests {
     const keys = Object.keys(conditions);
     const values = Object.values(conditions);
 
-    const where = keys.map((key, i) => `${key} = $${i++}`).join(" AND ");
+    const where = keys.map((key, i) => `${key} = $${i+1}`).join(" AND ");
 
     const result = await pool.query(
       `SELECT * FROM ${table} WHERE ${where}`,
@@ -69,8 +69,8 @@ export class BasicRequests {
     const keys = Object.keys(datas);
     const values = Object.values(datas);
 
-    const clauses = keys.map((key, i) => `${key}=$${i++}`).join(", ");
-    const idPlaceholder = `${keys.length + 1}`;
+    const clauses = keys.map((key, i) => `${key}=$${i+1}`).join(", ");
+    const idPlaceholder = `$${keys.length + 1}`;
     const returning = fieldsToReturn.join(", ");
 
     const result = await pool.query(
@@ -85,20 +85,21 @@ export class BasicRequests {
     return result.rows[0] ?? null;
   }
 
+  // SUPPRESSION LOGIQUE
   public async softDeleteFromTable(
     table: string,
     id: string,
     fieldsToReturn: string[] = ["*"]
   ) {
-    const returningFields = fieldsToReturn.map((field) => sql(field as string));
-    return await sql`UPDATE ${table} 
-      SET is_delete = true
-      WHERE id = ${id}
-      RETURNING ${sql(returningFields.join(", "))}`;
+    const result = await this.updateInTable(table, id, {is_delete: true}, fieldsToReturn);
+
+    return result;
+
   }
 
   public async hardDeleteFromTable(table: string, id: string) {
-    return await sql`DELETE FROM ${table} WHERE id = ${id}`;
+    const result = await pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+    return (result.rowCount ?? 0) > 0;
   }
 
   public async countAllFromTable(
