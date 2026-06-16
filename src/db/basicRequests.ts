@@ -1,12 +1,11 @@
-import { sql } from "../config/db.js";
-import type { TablesFieldsPossibilities } from "../types/dbTypes.js";
-import { getValuesCommaSeparated } from "../utils/toolbox.utils.js";
+import pool from "../config/db.js";
+import { QueryResult } from "pg";
 
 export class BasicRequests {
   // RECUPERER UNE TABLE
   public async selectAllFromTable(table: string) {
-    const result = await sql`SELECT * FROM ${table}`;
-    return result;
+    const result = await pool.query(`SELECT * FROM ${table}`);
+    return result.rows;
   }
 
   // RECUPERER PAR UN CHAMPS (egalité stricte)
@@ -30,8 +29,10 @@ export class BasicRequests {
 
   // RECUPERER PAR UN CHAMPS PAR L ID(egalité stricte)
   public async selectByIdFromTable(table: string, id: string) {
-    const result = await sql`SELECT * FROM ${table} WHERE id = ${id}`;
-    return result[0];
+    const result = await pool.query(`SELECT * FROM ${table} WHERE id = $1`, [
+      id,
+    ]);
+    return result.rows[0] ?? null;
   }
 
   //INSERER DANS UNE TABLE DES VALEURS ET RETOURNER DES CHAMPS
@@ -50,12 +51,16 @@ export class BasicRequests {
 
     //TODO: debugging to remove
     console.log(
-      `INSERT INTO ${table} (${colomns}) VALUES (${getValuesCommaSeparated(datas)})
+      `INSERT INTO ${table} (${colomns}) VALUES (${getValuesCommaSeparated(
+        datas
+      )})
       RETURNING ${returningFields}`
     );
 
     const result = await sql`
-      INSERT INTO ${table} ${sql(datas)} RETURN ${sql(fieldsToReturn.join(", "))}
+      INSERT INTO ${table} ${sql(datas)} RETURN ${sql(
+      fieldsToReturn.join(", ")
+    )}
     `;
     //TODO: debugging to remove
     console.log(result);
