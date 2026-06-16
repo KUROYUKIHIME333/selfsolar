@@ -18,8 +18,14 @@ const envSchema = z.object({
   LOCAL_POSTGRES_USER: z.string().default("postgres"),
   LOCAL_POSTGRES_PASSWORD: z.string(),
   LOCAL_POSTGRES_HOST: z.string().default("localhost"),
-  LOCAL_POSTGRES_PORT: z.preprocess((val) => Number(val), z.number().default(5432)),
+  LOCAL_POSTGRES_PORT: z.preprocess(
+    (val) => Number(val),
+    z.number().default(5432)
+  ),
   LOCAL_POSTGRES_DB: z.string(),
+
+  BETTER_AUTH_SECRET: z.string(),
+  BETTER_AUTH_URL: z.string(),
 });
 
 // Extraire le type pour TypeScript
