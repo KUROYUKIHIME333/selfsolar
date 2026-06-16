@@ -56,7 +56,7 @@ export class BasicRequests {
       values
     );
 
-    return result.rows;
+    return result.rows[0];
   }
 
   //MODIFIER DANS UNE TABLE
@@ -69,16 +69,20 @@ export class BasicRequests {
     const keys = Object.keys(datas);
     const values = Object.values(datas);
 
-    const clauses = keys.map((key, i)=>`${key}=$${i+1}`).join(", ")
+    const clauses = keys.map((key, i) => `${key}=$${i++}`).join(", ");
+    const idPlaceholder = `${keys.length + 1}`;
     const returning = fieldsToReturn.join(", ");
 
-    const result = await sql`
-      UPDATE ${table} 
-      SET ${sql(datas)} 
-      WHERE id = ${id}
-      RETURNING ${sql(returningFields.join(", "))}
-    `;
-    return result[0];
+    const result = await pool.query(
+      `UPDATE ${table} 
+      SET ${clauses} 
+      WHERE id = ${idPlaceholder}
+      RETURNING ${returning}
+    `,
+      [...values, id]
+    );
+
+    return result.rows[0] ?? null;
   }
 
   public async softDeleteFromTable(
