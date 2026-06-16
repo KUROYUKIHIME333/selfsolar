@@ -4,21 +4,21 @@ import type { DbProfiles } from "../../../types/dbTypes.js";
 
 export class ProfilesRequests {
   public async findByEmail(email: string) {
-    const result = await basicRequests.selectByFieldFromTable(
-      PROFILES,
-      "email",
-      email
-    );
+    const result = await basicRequests.selectByFieldFromTable(PROFILES, {
+      email: email,
+    });
+
+    return result;
+  }
+
+  public async findById(id: string) {
+    const result = await basicRequests.selectByIdFromTable(PROFILES, id);
 
     return result;
   }
 
   public async createUser(data: Partial<DbProfiles>) {
-    const result = await basicRequests.insertValuesIntoTable(
-      PROFILES,
-      data,
-      PROFILES_FIELDS_TO_SEND
-    );
+    const result = await basicRequests.insertValuesIntoTable(PROFILES, data);
 
     return result;
   }
@@ -44,17 +44,13 @@ export class ProfilesRequests {
     return result;
   }
 
-  public async isUserActive(
-    searchValue: string,
-    searchField: "email" | "id" = "id"
-  ) {
+  public async isUserActive(condition: { email: string } | { id: string }) {
     const result = await basicRequests.selectByFieldFromTable(
       PROFILES,
-      searchField,
-      searchValue
+      condition
     );
 
-    return result?.is_active;
+    return result;
   }
 
   public async desactivateUser(id: string) {
@@ -82,8 +78,8 @@ export class ProfilesRequests {
   public async countActiveProfiles() {
     const result = await basicRequests.countByAFieldFromTable(
       PROFILES,
-      "is_active",
-      true
+      { is_active: true },
+      "active"
     );
 
     return result;
@@ -92,9 +88,27 @@ export class ProfilesRequests {
   public async countNonactiveProfiles() {
     const result = await basicRequests.countByAFieldFromTable(
       PROFILES,
-      "is_active",
-      false
+      { is_active: false },
+      "active"
     );
+
+    return result;
+  }
+
+  public async countSoftDeletedProfiles() {
+    const result = await basicRequests.countAllFromTable(PROFILES, "deleted");
+
+    return result;
+  }
+
+  public async countNoSoftDeletedProfiles() {
+    const result = await basicRequests.countAllFromTable(PROFILES, "active");
+
+    return result;
+  }
+
+  public async countAllProfiles() {
+    const result = await basicRequests.countAllFromTable(PROFILES, "all");
 
     return result;
   }
