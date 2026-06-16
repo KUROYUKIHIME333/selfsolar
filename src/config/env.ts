@@ -15,11 +15,11 @@ const envSchema = z.object({
   API_URL: z.string().default("https://selfsolar-1.onrender.com/"),
 
   SUPABASE_DB_URL: z.string(),
-  POSTGRES_USER: z.string().default("postgres"),
-  POSTGRES_PASSWORD: z.string(),
-  POSTGRES_HOST: z.string().default("localhost"),
-  POSTGRES_PORT: z.preprocess((val) => Number(val), z.number().default(5432)),
-  POSTGRES_DB: z.string(),
+  LOCAL_POSTGRES_USER: z.string().default("postgres"),
+  LOCAL_POSTGRES_PASSWORD: z.string(),
+  LOCAL_POSTGRES_HOST: z.string().default("localhost"),
+  LOCAL_POSTGRES_PORT: z.preprocess((val) => Number(val), z.number().default(5432)),
+  LOCAL_POSTGRES_DB: z.string(),
 });
 
 // Extraire le type pour TypeScript
