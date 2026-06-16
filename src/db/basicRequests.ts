@@ -1,6 +1,5 @@
 import pool from "../config/db.js";
 import { TablesFieldsPossibilities } from "../types/dbTypes.js";
-import { QueryResult } from "pg";
 
 export class BasicRequests {
   // RECUPERER UNE TABLE
@@ -38,44 +37,40 @@ export class BasicRequests {
   //INSERER DANS UNE TABLE DES VALEURS ET RETOURNER DES CHAMPS
   public async insertValuesIntoTable(
     table: string,
-    datas: object,
+    datas: Record<string, unknown>,
     fieldsToReturn: string[] = ["*"]
   ) {
-    // Transformer le tableau en fragment sql
-    const returningFields = fieldsToReturn.join(", ");
-    const colomns = Object.keys(datas).join(", ");
+    const keys = Object.keys(datas);
+    const values = Object.values(datas);
 
-    //TODO: debugging to remove
-    console.log(`${returningFields}`);
-    console.log(`${fieldsToReturn}`);
+    const columns = keys.join(", ");
+    const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
+    const returning = fieldsToReturn.join(", ");
 
-    //TODO: debugging to remove
-    console.log(
-      `INSERT INTO ${table} (${colomns}) VALUES (${getValuesCommaSeparated(
-        datas
-      )})
-      RETURNING ${returningFields}`
+    const result = await pool.query(
+      `
+    INSERT INTO ${table} (${columns})
+    VALUES (${placeholders})
+    RETURNING ${returning}
+  `,
+      values
     );
 
-    const result = await sql`
-      INSERT INTO ${table} ${sql(datas)} RETURN ${sql(
-      fieldsToReturn.join(", ")
-    )}
-    `;
-    //TODO: debugging to remove
-    console.log(result);
-    return result[0];
+    return result.rows;
   }
 
   //MODIFIER DANS UNE TABLE
   public async updateInTable(
     table: string,
     id: string,
-    datas: object,
+    datas: Record<string, unknown>,
     fieldsToReturn: string[] = ["*"]
   ) {
-    // Transformer le tableau en fragment sql
-    const returningFields = fieldsToReturn.map((field) => sql(field as string));
+    const keys = Object.keys(datas);
+    const values = Object.values(datas);
+
+    const clauses = keys.map((key, i)=>`${key}=$${i+1}`).join(", ")
+    const returning = fieldsToReturn.join(", ");
 
     const result = await sql`
       UPDATE ${table} 
