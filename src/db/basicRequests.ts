@@ -1,10 +1,11 @@
 import { sql } from "../config/db.js";
 import type { TablesFieldsPossibilities } from "../types/dbTypes.js";
+import { getValuesCommaSeparated } from "../utils/toolbox.utils.js";
 
 export class BasicRequests {
   // RECUPERER UNE TABLE
   public async selectAllFromTable(table: string) {
-    const result = await sql`SELECT * FROM ${sql(table)}`;
+    const result = await sql`SELECT * FROM ${table}`;
     return result;
   }
 
@@ -14,15 +15,22 @@ export class BasicRequests {
     fieldName: string,
     fieldValue: TablesFieldsPossibilities
   ) {
+    //TODO: debugging to remove
+    console.log(`SELECT * FROM ${table} WHERE ${fieldName} = ${fieldValue}`);
+
     const result = await sql`SELECT * FROM ${sql(
       table
     )} WHERE ${fieldName} = ${fieldValue}`;
+
+    //TODO: debugging to remove
+    console.log(result);
+
     return result[0];
   }
 
   // RECUPERER PAR UN CHAMPS PAR L ID(egalité stricte)
   public async selectByIdFromTable(table: string, id: string) {
-    const result = await sql`SELECT * FROM ${sql(table)} WHERE id = ${id}`;
+    const result = await sql`SELECT * FROM ${table} WHERE id = ${id}`;
     return result[0];
   }
 
@@ -33,12 +41,24 @@ export class BasicRequests {
     fieldsToReturn: string[] = ["*"]
   ) {
     // Transformer le tableau en fragment sql
-    const returningFields = fieldsToReturn.map((field) => sql(field as string));
+    const returningFields = fieldsToReturn.join(", ");
+    const colomns = Object.keys(datas).join(", ");
+
+    //TODO: debugging to remove
+    console.log(`${returningFields}`);
+    console.log(`${fieldsToReturn}`);
+
+    //TODO: debugging to remove
+    console.log(
+      `INSERT INTO ${table} (${colomns}) VALUES (${getValuesCommaSeparated(datas)})
+      RETURNING ${returningFields}`
+    );
 
     const result = await sql`
-      INSERT INTO ${sql(table)} ${sql(datas)}
-      RETURNING ${sql(returningFields.join(", "))}
+      INSERT INTO ${table} ${sql(datas)} RETURN ${sql(fieldsToReturn.join(", "))}
     `;
+    //TODO: debugging to remove
+    console.log(result);
     return result[0];
   }
 
@@ -53,7 +73,7 @@ export class BasicRequests {
     const returningFields = fieldsToReturn.map((field) => sql(field as string));
 
     const result = await sql`
-      UPDATE ${sql(table)} 
+      UPDATE ${table} 
       SET ${sql(datas)} 
       WHERE id = ${id}
       RETURNING ${sql(returningFields.join(", "))}
@@ -67,14 +87,14 @@ export class BasicRequests {
     fieldsToReturn: string[] = ["*"]
   ) {
     const returningFields = fieldsToReturn.map((field) => sql(field as string));
-    return await sql`UPDATE ${sql(table)} 
+    return await sql`UPDATE ${table} 
       SET is_delete = true
       WHERE id = ${id}
       RETURNING ${sql(returningFields.join(", "))}`;
   }
 
   public async hardDeleteFromTable(table: string, id: string) {
-    return await sql`DELETE FROM ${sql(table)} WHERE id = ${id}`;
+    return await sql`DELETE FROM ${table} WHERE id = ${id}`;
   }
 
   public async countAllFromTable(
@@ -86,7 +106,7 @@ export class BasicRequests {
     )} WHERE is_delete = false`;
 
     if (criteria === "all") {
-      result = await sql`SELECT COUNT(*) FROM ${sql(table)}`;
+      result = await sql`SELECT COUNT(*) FROM ${table}`;
     }
     if (criteria === "deleted") {
       result = await sql`SELECT COUNT(*) FROM ${sql(

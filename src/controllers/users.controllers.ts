@@ -16,6 +16,9 @@ export class UserController {
       const { newUser } = request.body;
 
       if (newUser?.password && newUser?.email) {
+        console.log(newUser.email);
+        console.log(newUser.password);
+
         const existingUser = await profilesRequests.findByEmail(newUser.email);
 
         if (existingUser) {
@@ -27,6 +30,9 @@ export class UserController {
         }
 
         const user = await profilesRequests.createUser(newUser);
+
+        //TODO: debugging to remove
+        console.log(user);
 
         if (user) {
           return sendSuccess(
