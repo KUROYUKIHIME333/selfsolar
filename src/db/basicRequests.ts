@@ -16,7 +16,7 @@ export class BasicRequests {
     const keys = Object.keys(conditions);
     const values = Object.values(conditions);
 
-    const where = keys.map((key, i) => `${key} = $${i+1}`).join(" AND ");
+    const where = keys.map((key, i) => `${key} = $${i + 1}`).join(" AND ");
 
     const result = await pool.query(
       `SELECT * FROM ${table} WHERE ${where}`,
@@ -69,7 +69,7 @@ export class BasicRequests {
     const keys = Object.keys(datas);
     const values = Object.values(datas);
 
-    const clauses = keys.map((key, i) => `${key}=$${i+1}`).join(", ");
+    const clauses = keys.map((key, i) => `${key}=$${i + 1}`).join(", ");
     const idPlaceholder = `$${keys.length + 1}`;
     const returning = fieldsToReturn.join(", ");
 
@@ -91,10 +91,14 @@ export class BasicRequests {
     id: string,
     fieldsToReturn: string[] = ["*"]
   ) {
-    const result = await this.updateInTable(table, id, {is_delete: true}, fieldsToReturn);
+    const result = await this.updateInTable(
+      table,
+      id,
+      { is_delete: true },
+      fieldsToReturn
+    );
 
     return result;
-
   }
 
   public async hardDeleteFromTable(table: string, id: string) {
@@ -106,44 +110,48 @@ export class BasicRequests {
     table: string,
     criteria: "all" | "active" | "deleted" = "active"
   ) {
-    let result = await sql`SELECT COUNT(*) FROM ${sql(
-      table
-    )} WHERE is_delete = false`;
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let query = `SELECT COUNT(*) FROM ${table}`;
 
-    if (criteria === "all") {
-      result = await sql`SELECT COUNT(*) FROM ${table}`;
+    if (criteria === "active") {
+      conditions.push("is_delete = false");
     }
     if (criteria === "deleted") {
-      result = await sql`SELECT COUNT(*) FROM ${sql(
-        table
-      )} WHERE is_delete = true`;
+      conditions.push("is_delete = true");
     }
 
-    return result[0]?.count;
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ");
+    }
+
+    const result = await pool.query(query, values);
+    return parseInt(result.rows[0].count, 10);
   }
 
   public async countByAFieldFromTable(
     table: string,
-    fieldName: string,
-    fieldValue: TablesFieldsPossibilities,
+    datas: Record<string, unknown>, // On utilise l'objet comme pour l'insert
     criteria: "all" | "active" | "deleted" = "active"
   ) {
-    let result = await sql`SELECT COUNT(*) FROM ${sql(
-      table
-    )} WHERE is_delete = false AND WHERE ${fieldName} = ${fieldValue}`;
+    const keys = Object.keys(datas);
+    const values = Object.values(datas);
+    let query = `SELECT COUNT(*) FROM ${table} WHERE 1=1`;
 
-    if (criteria === "all") {
-      result = await sql`SELECT COUNT(*) FROM ${sql(
-        table
-      )} WHERE ${fieldName} = ${fieldValue}`;
-    }
-    if (criteria === "deleted") {
-      result = await sql`SELECT COUNT(*) FROM ${sql(
-        table
-      )} WHERE is_delete = true WHERE ${fieldName} = ${fieldValue}`;
+    const dynamicConditions = keys
+      .map((key, i) => `${key} = $${i + 1}`)
+      .join(" AND ");
+
+    query += ` AND ${dynamicConditions}`;
+
+    if (criteria === "active") {
+      query += " AND is_delete = false";
+    } else if (criteria === "deleted") {
+      query += " AND is_delete = true";
     }
 
-    return result[0]?.count;
+    const result = await pool.query(query, values);
+    return parseInt(result.rows[0].count, 10);
   }
 }
 
