@@ -1,20 +1,27 @@
-import postgres from "postgres";
+import { Pool } from "pg";
 import { env } from "./env.js";
 
 const isSupabase = env.DATA_BASE_USED === "postgresql_supabase";
 
-const connectionString = !isSupabase
-  ? `postgres://${env.POSTGRES_USER}:${env.POSTGRES_PASSWORD}@${env.POSTGRES_HOST}:${env.POSTGRES_PORT}/${env.POSTGRES_DB}`
-  : env.SUPABASE_DB_URL;
+const pool: Pool = isSupabase
+  ? new Pool({
+      connectionString: env.SUPABASE_DB_URL,
+      ssl: { rejectUnauthorized: false },
+    })
+  : new Pool({
+      host: env.LOCAL_POSTGRES_HOST,
+      port: env.LOCAL_POSTGRES_PORT,
+      user: env.LOCAL_POSTGRES_USER,
+      password: env.LOCAL_POSTGRES_PASSWORD,
+      database: env.LOCAL_POSTGRES_DB,
+    });
 
-//TODO: retirer après debuging
-if (!connectionString) {
-  throw new Error(
-    "La variable d'environnement de connexion à la base de données est manquante."
-  );
-}
+// pool.on("connect", () => {
+//   console.log("CONNECTION APP --- DB ETABLIE");
+// });
 
-export const sql = postgres(connectionString, {
-  connect_timeout: 10,
-  ssl: isSupabase ? "require" : false,
+pool.on("error", (err) => {
+  console.error("Erreur inattendue sur la connection avec la db: ", err);
 });
+
+export default pool;
