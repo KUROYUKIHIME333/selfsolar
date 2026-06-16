@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { TablesFieldsPossibilities } from "../types/dbTypes.js";
 import { QueryResult } from "pg";
 
 export class BasicRequests {
@@ -11,20 +12,19 @@ export class BasicRequests {
   // RECUPERER PAR UN CHAMPS (egalité stricte)
   public async selectByFieldFromTable(
     table: string,
-    fieldName: string,
-    fieldValue: TablesFieldsPossibilities
+    conditions: Record<string, unknown>
   ) {
-    //TODO: debugging to remove
-    console.log(`SELECT * FROM ${table} WHERE ${fieldName} = ${fieldValue}`);
+    const keys = Object.keys(conditions);
+    const values = Object.values(conditions);
 
-    const result = await sql`SELECT * FROM ${sql(
-      table
-    )} WHERE ${fieldName} = ${fieldValue}`;
+    const where = keys.map((key, i) => `${key} = $${i++}`).join(" AND ");
 
-    //TODO: debugging to remove
-    console.log(result);
+    const result = await pool.query(
+      `SELECT * FROM ${table} WHERE ${where}`,
+      values
+    );
 
-    return result[0];
+    return result.rows;
   }
 
   // RECUPERER PAR UN CHAMPS PAR L ID(egalité stricte)
