@@ -1,5 +1,4 @@
 import pool from "../config/db.js";
-import { TablesFieldsPossibilities } from "../types/dbTypes.js";
 
 export class BasicRequests {
   // RECUPERER UNE TABLE
@@ -101,11 +100,13 @@ export class BasicRequests {
     return result;
   }
 
+  // SUPPRESSION DEFINITIVE
   public async hardDeleteFromTable(table: string, id: string) {
     const result = await pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
     return (result.rowCount ?? 0) > 0;
   }
 
+  // COMPTER LES ENREGISTREMENTS DANS UNE TABLE SELON UN CRITERE (tous, supprimés, non supprimés)
   public async countAllFromTable(
     table: string,
     criteria: "all" | "active" | "deleted" = "active"
@@ -129,6 +130,7 @@ export class BasicRequests {
     return parseInt(result.rows[0].count, 10);
   }
 
+  // COMPTER LES ENREGISTREMENTS DANS UNE TABLE SELON UN CHAMPS ET UN CRITERE (tous, supprimés, non supprimés)
   public async countByAFieldFromTable(
     table: string,
     datas: Record<string, unknown>, // On utilise l'objet comme pour l'insert
