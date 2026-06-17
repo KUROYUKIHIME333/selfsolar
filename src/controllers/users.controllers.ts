@@ -92,7 +92,7 @@ export class UserController {
             400
           );
         }
-        if (!user || !user[0]) {
+        if (!updateUser || !updateUser[0]) {
           return sendError(reply, "Désolé, utilisateur non créé", 500);
         }
       }
