@@ -14,14 +14,14 @@ export const usersRoutes = async (app: FastifyInstance) => {
   });
 
   app.get("/:id", {
-    handler: userController.modifierUtilisateurExistant.bind(userController),
+    handler: userController.obtenirUtilisateur.bind(userController),
   });
 
   app.delete("/:id", {
-    handler: userController.modifierUtilisateurExistant.bind(userController),
+    handler: userController.supprimerUtilisateur.bind(userController),
   });
 
   app.get("/search/:email", {
-    handler: userController.modifierUtilisateurExistant.bind(userController),
+    handler: userController..bind(userController),
   });
 };

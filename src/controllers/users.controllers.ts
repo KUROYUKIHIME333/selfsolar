@@ -63,15 +63,7 @@ export class UserController {
 
       return sendSuccess(
         reply,
-        {
-          id: user[0].id,
-          picture: user[0].profile_picture || null,
-          username: user[0].username || null,
-          company: user[0].company_name || null,
-          email: user[0].email,
-          isActive: user[0].is_active,
-          creation: user[0].created_at,
-        },
+        user[0],
         200
       );
     } catch (error: unknown) {
@@ -113,22 +105,14 @@ export class UserController {
       const updateUser = await profilesRequests.updateUser(id, newDatas);
 
       if (updateUser.length > 1) {
-        return sendError(reply, "Problème critique: modificaton multiple", 400);
+        return sendError(reply, "Problème critique: modificaton multiple", 500);
       }
       if (!updateUser || !updateUser[0]) {
         return sendError(reply, "Désolé, utilisateur non créé", 500);
       }
       return sendSuccess(
         reply,
-        {
-          id: updateUser[0].id,
-          picture: updateUser[0].profile_picture || null,
-          username: updateUser[0].username || null,
-          company: updateUser[0].company_name || null,
-          email: updateUser[0].email,
-          isActive: updateUser[0].is_active,
-          modification: updateUser[0].updated_at,
-        },
+        updateUser[0],
         200
       );
     } catch (error: unknown) {
@@ -152,6 +136,15 @@ export class UserController {
       }
 
       const deleteUser = await profilesRequests.deleteUser(id);
+
+      if (deleteUser.length > 1) {
+        return sendError(reply, "Problème critique: modificaton multiple", 500);
+      }
+      if (!deleteUser || !deleteUser[0]) {
+        return sendError(reply, "Désolé, utilisateur non créé", 500);
+      }
+
+      return sendSuccess(reply, deleteUser[0], 200);
     } catch (error: unknown) {
       return sendError(reply, error, 500);
     }
@@ -161,16 +154,37 @@ export class UserController {
     request: FastifyRequest<{
       Params: {
         id: string;
+        email: string;
       };
     }>,
     reply: FastifyReply
   ) {
     try {
-      const id = request.params.id;
+      const {id, email} = request.params;
+      let searchedUser: any[] = [];
+
 
       if (!id || typeof id !== "string") {
         return sendError(reply, "ID manquant ou invalide", 400);
       }
+
+      if (!id && email) {
+        searchedUser = await profilesRequests.findByEmail(email);
+      }
+      if (id && !email) {
+        searchedUser = await profilesRequests.findById(id);
+      }
+      if (searchedUser.length === 0) {
+        return sendError(reply, "Aucun utilisateur trouvé", 404);
+      }
+      if (searchedUser.length > 1) {
+        return sendError(reply, "Problème critique: selection multiple", 500);
+      }
+      if (!searchedUser || !searchedUser[0]) {
+        return sendError(reply, "Désolé, utilisateur non créé", 500);
+      }
+
+      return sendSuccess(reply, searchedUser[0], 200)
     } catch (error: unknown) {
       return sendError(reply, error, 500);
     }

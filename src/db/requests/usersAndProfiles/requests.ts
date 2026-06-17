@@ -18,7 +18,11 @@ export class ProfilesRequests {
   }
 
   public async createUser(data: Partial<DbProfiles>) {
-    const result = await basicRequests.insertValuesIntoTable(PROFILES, data, PROFILES_FIELDS_TO_SEND);
+    const result = await basicRequests.insertValuesIntoTable(
+      PROFILES,
+      data,
+      PROFILES_FIELDS_TO_SEND
+    );
 
     return result;
   }
@@ -35,11 +39,12 @@ export class ProfilesRequests {
   }
 
   public async deleteUser(id: string) {
-    const result = await basicRequests.softDeleteFromTable(
-      PROFILES,
-      id,
-      PROFILES_FIELDS_TO_SEND
-    );
+    const result = await basicRequests.softDeleteFromTable(PROFILES, id, [
+      "id",
+      "email",
+      "is_deleted",
+      "updated_at",
+    ]);
 
     return result;
   }
