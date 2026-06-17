@@ -11,8 +11,9 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default(""),
   PORT: z.preprocess((val) => Number(val), z.number().default(5001)),
   HOST: z.string().default("0.0.0.0"),
-  PVGIS_URL: z.string().default("https://re.jrc.ec.europa.eu/api/v5_2/"),
-  API_URL: z.string().default("https://selfsolar-1.onrender.com/"),
+  PVGIS_URL: z.string(),
+  API_URL: z.string(),
+  FRONTEND_URL: z.string(),
 
   SUPABASE_DB_URL: z.string(),
   LOCAL_POSTGRES_USER: z.string().default("postgres"),
