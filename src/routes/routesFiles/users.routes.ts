@@ -9,7 +9,11 @@ export const usersRoutes = async (app: FastifyInstance) => {
     handler: userController.creerNouveauProfile.bind(userController),
   });
 
-  app.post("/:id", {
+  app.put("/:id", {
+    handler: userController.modifierUtilisateurExistant.bind(userController),
+  });
+
+  app.get("/:id", {
     handler: userController.modifierUtilisateurExistant.bind(userController),
   });
 };
