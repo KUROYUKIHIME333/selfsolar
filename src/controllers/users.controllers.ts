@@ -81,6 +81,7 @@ export class UserController {
 
   public async modifierUtilisateurExistant(
     request: FastifyRequest<{
+      Params: { id: string };
       Body: {
         newDatas: DbProfiles;
       };
@@ -90,10 +91,7 @@ export class UserController {
     try {
       const { newDatas } = request?.body;
       //const id = (request?.params as object) ?? null;
-      const id =
-        Object.keys(request?.params as object)[0] === "id"
-          ? Object.values(request?.params as object)[0]
-          : null;
+      const id = request?.params.id;
 
       console.log("--------------------------");
       console.log(JSON.stringify(id));
@@ -131,8 +129,6 @@ export class UserController {
           email: updateUser[0].email,
           isActive: updateUser[0].is_active,
           modification: updateUser[0].updated_at,
-          plus: request?.params,
-          other: updateUser,
         },
         200
       );
@@ -159,6 +155,8 @@ export class UserController {
       return sendError(reply, error, 500);
     }
   }
+
+  public async obtenirUtilisateur(reply: FastifyReply) {}
 }
 
 export const userController = new UserController();
