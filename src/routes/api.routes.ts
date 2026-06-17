@@ -5,5 +5,5 @@ import { usersRoutes } from "./routesFiles/users.routes.js";
 export const apiRoutes = async (app: FastifyInstance) => {
   // Routes PV sous préfixe /api/v1/pv
   app.register(installationPhotovoltaiqueRoutes, { prefix: "/api/v1/pv" });
-  app.register(usersRoutes, { prefix: "/use" });
+  app.register(usersRoutes, { prefix: "/user" });
 };

@@ -47,7 +47,7 @@ export class UserController {
 
       const user = await profilesRequests.createUser(newUser);
 
-      if (user.length > 0) {
+      if (user.length > 1) {
         console.error("PROBLEME CRITIQUE: INSERTION MULTIPLE DETECTEE");
 
         return sendError(
@@ -82,14 +82,24 @@ export class UserController {
   public async modifierUtilisateurExistant(
     request: FastifyRequest<{
       Body: {
-        id: string;
         newDatas: DbProfiles;
       };
     }>,
     reply: FastifyReply
   ) {
     try {
-      const { id, newDatas } = request.body;
+      const { newDatas } = request?.body;
+      //const id = (request?.params as object) ?? null;
+      const id =
+        Object.keys(request?.params as object)[0] === "id"
+          ? Object.values(request?.params as object)[0]
+          : null;
+
+      console.log("--------------------------");
+      console.log(JSON.stringify(id));
+      console.log("--------------------------");
+      console.log(typeof request?.params);
+      console.log("--------------------------");
 
       if (!id || typeof id !== "string") {
         return sendError(reply, "ID manquant ou invalide", 400);
@@ -105,12 +115,27 @@ export class UserController {
 
       const updateUser = await profilesRequests.updateUser(id, newDatas);
 
-      if (updateUser.length > 0) {
+      if (updateUser.length > 1) {
         return sendError(reply, "Problème critique: modificaton multiple", 400);
       }
       if (!updateUser || !updateUser[0]) {
         return sendError(reply, "Désolé, utilisateur non créé", 500);
       }
+      return sendSuccess(
+        reply,
+        {
+          id: updateUser[0].id,
+          picture: updateUser[0].profile_picture || null,
+          username: updateUser[0].username || null,
+          company: updateUser[0].company_name || null,
+          email: updateUser[0].email,
+          isActive: updateUser[0].is_active,
+          modification: updateUser[0].updated_at,
+          plus: request?.params,
+          other: updateUser,
+        },
+        200
+      );
     } catch (error: unknown) {
       return sendError(reply, error, 500);
     }

@@ -18,7 +18,7 @@ export class ProfilesRequests {
   }
 
   public async createUser(data: Partial<DbProfiles>) {
-    const result = await basicRequests.insertValuesIntoTable(PROFILES, data);
+    const result = await basicRequests.insertValuesIntoTable(PROFILES, data, PROFILES_FIELDS_TO_SEND);
 
     return result;
   }

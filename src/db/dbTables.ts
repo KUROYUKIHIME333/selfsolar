@@ -5,6 +5,7 @@ export const PROFILES_FIELDS_TO_SEND = [
   "username",
   "company_name",
   "email",
+  "is_active",
   "created_at",
   "updated_at",
 ];
