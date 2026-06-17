@@ -24,7 +24,11 @@ export class UserController {
       }
 
       if (!newUser?.password || typeof newUser.password !== "string") {
-        return sendError(reply, "Mot de passe manquant ou invalide", 400);
+        return sendError(
+          reply,
+          "Mot de passe manquant ou invalide. IL DOIT ETRE HASHE SURTOUT",
+          400
+        );
       }
 
       if (!newUser?.email || typeof newUser.email !== "string") {
@@ -42,9 +46,6 @@ export class UserController {
       }
 
       const user = await profilesRequests.createUser(newUser);
-
-      //TODO: debugging to remove
-      console.log(user);
 
       if (user.length > 0) {
         console.error("PROBLEME CRITIQUE: INSERTION MULTIPLE DETECTEE");
@@ -72,12 +73,6 @@ export class UserController {
           creation: user[0].created_at,
         },
         200
-      );
-
-      return sendError(
-        reply,
-        "L'email et le mot de passe (hashé) doivent être renseignés",
-        400
       );
     } catch (error: unknown) {
       return sendError(reply, error, 500);
