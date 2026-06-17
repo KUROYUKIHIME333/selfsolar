@@ -100,6 +100,16 @@ export class UserController {
       return sendError(reply, error, 500);
     }
   }
+
+  public async supprimerUtilisateur(
+    request: FastifyRequest<{
+      Body: {
+        id: string;
+      };
+    }>,
+    reply: FastifyReply
+  ){
+  }
 }
 
 export const userController = new UserController();
