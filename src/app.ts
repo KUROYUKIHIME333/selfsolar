@@ -1,7 +1,4 @@
 import fastify, { FastifyInstance } from "fastify";
-import cors from "@fastify/cors";
-import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "./lib/auth.js";
 import sensible from "@fastify/sensible";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
