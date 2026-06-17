@@ -1,10 +1,13 @@
 import fastify, { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
+import { fromNodeHeaders } from "better-auth/node";
+import { auth } from "./lib/auth.js";
 import sensible from "@fastify/sensible";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { apiRoutes } from "./routes/api.routes.js";
 import { authRoutes } from "./routes/auth.routes.js";
+import corsPlugins from "./plugins/cors.plugins.js";
 import crypto from "node:crypto";
 
 export const buildApp = async (): Promise<FastifyInstance> => {
@@ -120,11 +123,8 @@ export const buildApp = async (): Promise<FastifyInstance> => {
   });
 
   // Plugins core
-  await app.register(cors, {
-    origin: process.env.CORS_ORIGIN || "*",
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
-  });
+  await app.register(corsPlugins);
+
   await app.register(sensible);
 
   // Routes
