@@ -7,6 +7,8 @@ const corsPlugin = async (app: FastifyInstance) => {
     origin: process.env.CORS_ORIGIN || "*",
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
+    credentials: true,
+    maxAge: 86400,
   });
 };
 
