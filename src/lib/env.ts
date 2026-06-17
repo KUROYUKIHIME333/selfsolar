@@ -43,3 +43,4 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+export const IS_SUPABASE = env.DATA_BASE_USED === "postgresql_supabase";

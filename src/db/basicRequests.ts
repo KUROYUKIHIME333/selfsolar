@@ -1,4 +1,4 @@
-import pool from "../config/db.js";
+import pool from "../lib/db.js";
 
 export class BasicRequests {
   // RECUPERER UNE TABLE

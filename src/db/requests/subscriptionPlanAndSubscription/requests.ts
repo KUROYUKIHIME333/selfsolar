@@ -4,7 +4,7 @@ import type {
   DbSubscriptionPlans,
   //   DbSubscriptions,
 } from "../../../types/dbTypes.js";
-import db from "../../../config/db.js";
+import db from "../../../lib/db.js";
 import {
   getKeysCommaSeparated,
   getValuesCommaSeparated,

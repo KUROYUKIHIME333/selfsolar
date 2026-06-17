@@ -1,4 +1,7 @@
 import { FastifyReply } from "fastify";
+import { env } from "../lib/env.js";
+
+
 
 export const controllerErrorHandler = (error: unknown, name: string) => {
   const message =

@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { profilesRequests } from "../db/requests/usersAndProfiles/requests.js";
 import { DbProfiles } from "../types/dbTypes.js";
 import { sendError, sendSuccess } from "../utils/handlers.utils.js";
-import { db } from "../config/db.js";
+import { db } from "../lib/db.js";
 
 export class AdminController {
   public async createNewUser(reply: FastifyReply) {

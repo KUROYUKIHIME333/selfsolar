@@ -1,5 +1,5 @@
 import { buildApp } from "./app.js";
-import { env } from "./config/env.js";
+import { env } from "./lib/env.js";
 
 const PORT = Number(env.PORT) || 3000;
 const HOST = env.HOST || "0.0.0.0";

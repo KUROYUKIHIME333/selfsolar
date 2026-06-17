@@ -1,9 +1,7 @@
 import { Pool } from "pg";
-import { env } from "./env.js";
+import { env, IS_SUPABASE } from "./env.js";
 
-const isSupabase = env.DATA_BASE_USED === "postgresql_supabase";
-
-const pool: Pool = isSupabase
+const pool: Pool = IS_SUPABASE
   ? new Pool({
       connectionString: env.SUPABASE_DB_URL,
       ssl: { rejectUnauthorized: false },

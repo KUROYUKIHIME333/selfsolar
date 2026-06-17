@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 //import { adminController } from "../../controllers/admin.controllers.js";
-import { db } from "../../config/db.js";
+import { db } from "../../lib/db.js";
 
 export const adminRoutes = async (app: FastifyInstance) => {
   // app.post("/plan-souscription", {
