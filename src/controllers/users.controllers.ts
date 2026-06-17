@@ -89,9 +89,8 @@ export class UserController {
     reply: FastifyReply
   ) {
     try {
-      const { newDatas } = request?.body;
-      //const id = (request?.params as object) ?? null;
-      const id = request?.params.id;
+      const { newDatas } = request.body;
+      const id = request.params.id;
 
       console.log("--------------------------");
       console.log(JSON.stringify(id));
@@ -139,14 +138,35 @@ export class UserController {
 
   public async supprimerUtilisateur(
     request: FastifyRequest<{
-      Body: {
+      Params: {
         id: string;
       };
     }>,
     reply: FastifyReply
   ) {
     try {
-      const { id } = request.body;
+      const id = request.params.id;
+
+      if (!id || typeof id !== "string") {
+        return sendError(reply, "ID manquant ou invalide", 400);
+      }
+
+      const deleteUser = await profilesRequests.deleteUser(id);
+    } catch (error: unknown) {
+      return sendError(reply, error, 500);
+    }
+  }
+
+  public async obtenirUtilisateur(
+    request: FastifyRequest<{
+      Params: {
+        id: string;
+      };
+    }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const id = request.params.id;
 
       if (!id || typeof id !== "string") {
         return sendError(reply, "ID manquant ou invalide", 400);
@@ -155,8 +175,6 @@ export class UserController {
       return sendError(reply, error, 500);
     }
   }
-
-  public async obtenirUtilisateur(reply: FastifyReply) {}
 }
 
 export const userController = new UserController();
