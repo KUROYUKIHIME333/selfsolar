@@ -1,7 +1,7 @@
 -- Création de la table utilisateur
 CREATE TABLE
     "user" (
-        "id" TEXT NOT NULL PRIMARY KEY,
+        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "name" TEXT NOT NULL,
         "email" TEXT NOT NULL UNIQUE,
         "emailVerified" BOOLEAN NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE
 -- Création de la table session
 CREATE TABLE
     "session" (
-        "id" TEXT NOT NULL PRIMARY KEY,
+        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "expiresAt" TIMESTAMPTZ NOT NULL,
         "token" TEXT NOT NULL UNIQUE,
         "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE
 -- Création de la table account
 CREATE TABLE
     "account" (
-        "id" TEXT NOT NULL PRIMARY KEY,
+        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "accountId" TEXT NOT NULL,
         "providerId" TEXT NOT NULL,
         "userId" TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
@@ -44,7 +44,7 @@ CREATE TABLE
 -- Création de la table verification
 CREATE TABLE
     "verification" (
-        "id" TEXT NOT NULL PRIMARY KEY,
+        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "identifier" TEXT NOT NULL,
         "value" TEXT NOT NULL,
         "expiresAt" TIMESTAMPTZ NOT NULL,
