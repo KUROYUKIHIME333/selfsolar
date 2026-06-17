@@ -1,55 +1,60 @@
-create table
+-- Création de la table utilisateur
+CREATE TABLE
     "user" (
-        "id" text not null primary key,
-        "name" text not null,
-        "email" text not null unique,
-        "emailVerified" boolean not null,
-        "image" text,
-        "createdAt" timestamptz default CURRENT_TIMESTAMP not null,
-        "updatedAt" timestamptz default CURRENT_TIMESTAMP not null
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "name" TEXT NOT NULL,
+        "email" TEXT NOT NULL UNIQUE,
+        "emailVerified" BOOLEAN NOT NULL,
+        "image" TEXT,
+        "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
 
-create table
+-- Création de la table session
+CREATE TABLE
     "session" (
-        "id" text not null primary key,
-        "expiresAt" timestamptz not null,
-        "token" text not null unique,
-        "createdAt" timestamptz default CURRENT_TIMESTAMP not null,
-        "updatedAt" timestamptz not null,
-        "ipAddress" text,
-        "userAgent" text,
-        "userId" text not null references "user" ("id") on delete cascade
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "expiresAt" TIMESTAMPTZ NOT NULL,
+        "token" TEXT NOT NULL UNIQUE,
+        "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" TIMESTAMPTZ NOT NULL,
+        "ipAddress" TEXT,
+        "userAgent" TEXT,
+        "userId" TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
     );
 
-create table
+-- Création de la table account
+CREATE TABLE
     "account" (
-        "id" text not null primary key,
-        "accountId" text not null,
-        "providerId" text not null,
-        "userId" text not null references "user" ("id") on delete cascade,
-        "accessToken" text,
-        "refreshToken" text,
-        "idToken" text,
-        "accessTokenExpiresAt" timestamptz,
-        "refreshTokenExpiresAt" timestamptz,
-        "scope" text,
-        "password" text,
-        "createdAt" timestamptz default CURRENT_TIMESTAMP not null,
-        "updatedAt" timestamptz not null
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "accountId" TEXT NOT NULL,
+        "providerId" TEXT NOT NULL,
+        "userId" TEXT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE,
+        "accessToken" TEXT,
+        "refreshToken" TEXT,
+        "idToken" TEXT,
+        "accessTokenExpiresAt" TIMESTAMPTZ,
+        "refreshTokenExpiresAt" TIMESTAMPTZ,
+        "scope" TEXT,
+        "password" TEXT,
+        "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" TIMESTAMPTZ NOT NULL
     );
 
-create table
+-- Création de la table verification
+CREATE TABLE
     "verification" (
-        "id" text not null primary key,
-        "identifier" text not null,
-        "value" text not null,
-        "expiresAt" timestamptz not null,
-        "createdAt" timestamptz default CURRENT_TIMESTAMP not null,
-        "updatedAt" timestamptz default CURRENT_TIMESTAMP not null
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "identifier" TEXT NOT NULL,
+        "value" TEXT NOT NULL,
+        "expiresAt" TIMESTAMPTZ NOT NULL,
+        "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
 
-create index "session_userId_idx" on "session" ("userId");
+-- Création des index pour optimiser les performances des recherches
+CREATE INDEX "session_userId_idx" ON "session" ("userId");
 
-create index "account_userId_idx" on "account" ("userId");
+CREATE INDEX "account_userId_idx" ON "account" ("userId");
 
-create index "verification_identifier_idx" on "verification" ("identifier");
+CREATE INDEX "verification_identifier_idx" ON "verification" ("identifier");
