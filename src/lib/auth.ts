@@ -1,20 +1,38 @@
 import { betterAuth } from "better-auth";
-import { env, IS_SUPABASE } from "./env.js";
-import { Pool } from "pg";
+import { env } from "./env.js";
+import pool from "./db.js";
 
 export const auth = betterAuth({
   databaseProvider: "pg",
+  database: pool,
+  secret: env.BETTER_AUTH_SECRET,
+  baseURL: env.BETTER_AUTH_URL || "http://localhost:5001",
 
-  database: IS_SUPABASE
-    ? new Pool({
-        connectionString: env.SUPABASE_DB_URL,
-        ssl: { rejectUnauthorized: false },
-      })
-    : new Pool({
-        host: env.LOCAL_POSTGRES_HOST,
-        port: env.LOCAL_POSTGRES_PORT,
-        user: env.LOCAL_POSTGRES_USER,
-        password: env.LOCAL_POSTGRES_PASSWORD,
-        database: env.LOCAL_POSTGRES_DB,
-      }),
+  emailAndPassword: {
+    enabled: true,
+    autoSignIn: true,
+    minPasswordLength: 8,
+  },
+
+  hooks: {
+    after: async (ctx) => {
+      const body = ctx.body as unknown as Record<string, any>;
+      const url = ctx.request?.url || "";
+      const user =
+        (ctx as any).context?.returned?.user || (ctx as any).result?.user;
+
+      if (url.includes("/sign-up/email") && user) {
+        try {
+          await pool.query(
+            `INSERT INTO profiles (id, email, username)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (id) DO NOTHING`,
+            [user.id, user.email.toLowerCase(), body?.name || null]
+          );
+        } catch (error) {
+          console.error("Erreur lors de la création du profil :", error);
+        }
+      }
+    },
+  },
 });
