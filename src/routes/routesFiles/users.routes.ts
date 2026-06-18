@@ -20,8 +20,4 @@ export const usersRoutes = async (app: FastifyInstance) => {
   app.delete("/:id", {
     handler: userController.supprimerUtilisateur.bind(userController),
   });
-
-  app.get("/search/:email", {
-    handler: userController..bind(userController),
-  });
 };
